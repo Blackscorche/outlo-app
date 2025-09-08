@@ -25,7 +25,6 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
   const [refreshing, setRefreshing] = useState(false);
   const { subscription, quotas, refreshSubscription, validateSubscription } = useSubscription();
   const iap = useIAP();
-  console.log("🚀 ~ SubscriptionScreen ~ subscription:", iap.availablePurchases)
   const quotaManager = useQuotaManager();
 
   useEffect(() => {
