@@ -18,8 +18,10 @@
         "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location",
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera to take photos",
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photo library to select photos",
-        "NSPhotoLibraryAddUsageDescription": "Allow $(PRODUCT_NAME) to save photos to your photo library"
-      }
+        "NSPhotoLibraryAddUsageDescription": "Allow $(PRODUCT_NAME) to save photos to your photo library",
+        "SKStoreProductParameterITunesItemIdentifier": "Enable in-app purchases"
+      },
+      "bundleIdentifier": "com.lovemapapp.mobile"
     },
     "android": {
       "adaptiveIcon": {
@@ -28,11 +30,13 @@
       },
       "package": "com.lovemapapp.mobile",
       "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO",
+        "com.android.vending.BILLING"
       ],
       "config": {
         "googleMaps": {
@@ -59,20 +63,7 @@
       "favicon": "./assets/favicon.png"
     },
     "scheme": "lovemap",
-    "intentFilters": [
-      {
-        "action": "VIEW",
-        "data": [
-          {
-            "scheme": "lovemap"
-          }
-        ],
-        "category": [
-          "BROWSABLE",
-          "DEFAULT"
-        ]
-      }
-    ],
+    
     "plugins": [
       [
         "expo-location",
@@ -85,6 +76,15 @@
         {
           "photosPermission": "The app accesses your photos to let you share them with your connections.",
           "cameraPermission": "The app accesses your camera to let you take photos to share."
+        }
+      ],
+      "react-native-iap",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.1.20"
+          }
         }
       ]
     ],

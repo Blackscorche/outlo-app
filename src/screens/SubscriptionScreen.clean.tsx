@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  AppState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,104 +16,38 @@ import subscriptionService from '../services/subscriptionService';
 import { supabase } from '../integrations/supabase/client';
 import { useSubscription } from '../hooks/useSubscription';
 import { useIAP } from '../components/IAPProvider';
-import { useQuotaManager } from '../hooks/useQuotaManager';
-import { QuotaDebugPanel } from '../components/QuotaDebugPanel';
 
-const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
+const SubscriptionScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { subscription, quotas, refreshSubscription, validateSubscription } = useSubscription();
+  const { subscription, quotas, refreshSubscription } = useSubscription();
   const iap = useIAP();
-  console.log("🚀 ~ SubscriptionScreen ~ subscription:", iap.availablePurchases)
-  const quotaManager = useQuotaManager();
 
   useEffect(() => {
     loadSubscriptionData();
+    
     // Refresh when screen comes into focus
     const unsubscribe = navigation.addListener('focus', () => {
       loadSubscriptionData(true);
     });
 
-    // Listen for app state changes (when user returns from device settings)
-    const handleAppStateChange = (nextAppState: any) => {
-      if (nextAppState === 'active') {
-        console.log('📱 App became active, checking for subscription changes...');
-        loadSubscriptionData(true); // Force refresh when returning to app
-      }
-    };
-
-    const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
-
-    return () => {
-      unsubscribe();
-      appStateSubscription?.remove();
-    };
+    return unsubscribe;
   }, [navigation]);
 
   // Load products when IAP connects
   useEffect(() => {
-    if (iap.connected) {
+    if (iap.connected && !iap.areProductsLoaded()) {
       console.log('🔄 Loading IAP products...');
       iap.loadProducts();
-      iap.getPurchaseHistory()
     }
     
     // Debug info
     if (__DEV__) {
       console.log('=== IAP Status ===');
       console.log('Connected:', iap.connected);
-      console.log('Products loaded:', iap.products);
+      console.log('Products loaded:', iap.products.length);
       console.log('Subscriptions loaded:', iap.subscriptions.length);
-      console.log("avaial purchasesdad", iap.products, iap.availablePurchases);
-      console.log("🔍 Checking subscription status with IAP data");
-      console.log("Available purchases:", iap.availablePurchases?.length || 0);
-      console.log("Subscription tier:", subscription?.tier);
-      console.log("Subscription status:", subscription?.status);
     }
-    (async () => {
-      console.log("active subscriptions", await iap.hasActiveSubscriptions());
-
-      // Don't auto-downgrade based solely on empty availablePurchases
-      // Google Play can take hours/days to update after cancellation
-      
-      // Only downgrade if:
-      // 1. No availablePurchases AND subscription is past expiry date
-      // 2. OR subscription is marked as cancelled and past grace period
-      
-      if (iap.availablePurchases.length === 0 && subscription?.tier === 'premium') {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        // Check if subscription is actually expired
-        let shouldDowngrade = false;
-        let reason = '';
-
-        if (subscription.current_period_end) {
-          const expiryDate = new Date(subscription.current_period_end);
-          const now = new Date();
-          const timeSinceExpiry = now.getTime() - expiryDate.getTime();
-          const oneDayInMs = 24 * 60 * 60 * 1000;
-
-          if (now > expiryDate && timeSinceExpiry > oneDayInMs) {
-            shouldDowngrade = true;
-            reason = 'expired';
-          } else if (subscription.status === 'cancelled' && timeSinceExpiry > oneDayInMs) {
-            shouldDowngrade = true;
-            reason = 'cancelled';
-          }
-        } else if (subscription.status === 'cancelled') {
-          // No expiry date but marked as cancelled - likely safe to downgrade
-          shouldDowngrade = true;
-          reason = 'cancelled';
-        }
-        if (shouldDowngrade) {
-          await subscriptionService.downgradeToBasic(user.id, reason);
-          await refreshSubscription(); // Refresh UI
-        } else {
-          console.log("⏳ Keeping subscription active - within grace period or not expired");
-        }
-      }
-    })();   
   }, [iap.connected, iap.products.length, iap.subscriptions.length]);
 
   const loadSubscriptionData = async (isRefresh = false) => {
@@ -145,11 +78,9 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
 
       console.log(`🛒 Attempting to purchase: ${productId}`);
       setLoading(true);
-
-      await iap.purchaseSubscription(productId, async () => {
-        // await loadSubscriptionData();
-      });
-
+      
+      await iap.purchaseSubscription(productId);
+      
     } catch (error: any) {
       console.error('❌ Purchase error:', error);
       Alert.alert('Purchase Failed', error?.message || 'Failed to process subscription.');
@@ -171,59 +102,16 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
         return;
       }
 
-      // Show purchase confirmation with product details
-      const productName = productId.includes('connection') ? 'Connection Request' :
-                         productId.includes('impression') ? 'First Impression' :
-                         productId.includes('invisible') ? 'Invisible Mode (30 days)' : 'Product';
+      console.log(`🛒 Attempting to purchase: ${productId}`);
+      setLoading(true);
       
-      const productPrice = iap.getFormattedPrice(productId);
-
-      Alert.alert(
-        `Purchase ${productName}`,
-        `Are you sure you want to purchase ${productName} for ${productPrice}?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Purchase',
-            style: 'default',
-            onPress: async () => {
-              try {
-                console.log(`🛒 Attempting to purchase: ${productId}`);
-                setLoading(true);
-                
-                await iap.purchaseConsumable(productId, async () => {
-                  Alert.alert("please wait")
-                  // await loadSubscriptionData();
-                });
-                
-                // Show success message based on product type
-                let successMessage = '';
-                if (productId.includes('connection')) {
-                  successMessage = 'Connection request purchased! You can now send an additional connection request.';
-                } else if (productId.includes('impression')) {
-                  successMessage = 'First impression purchased! You can now send an additional first impression message.';
-                } else if (productId.includes('invisible')) {
-                  successMessage = 'Invisible mode activated! You can now browse profiles invisibly for 30 days.';
-                }
-
-                Alert.alert('Purchase Successful! 🎉', successMessage);
-
-                // Refresh quotas to show updated counts
-                
-              } catch (error: any) {
-                console.error('❌ Purchase error:', error);
-                Alert.alert('Purchase Failed', error?.message || 'Failed to complete purchase.');
-              } finally {
-                setLoading(false);
-              }
-            }
-          }
-        ]
-      );
+      await iap.purchaseConsumable(productId);
       
     } catch (error: any) {
-      console.error('❌ Purchase preparation error:', error);
-      Alert.alert('Error', 'Failed to prepare purchase. Please try again.');
+      console.error('❌ Purchase error:', error);
+      Alert.alert('Purchase Failed', error?.message || 'Failed to complete purchase.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -237,76 +125,12 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
       setLoading(true);
       await iap.restorePurchases();
       
-      // Refresh subscription data after restore
-      await refreshSubscription();
-      
     } catch (error: any) {
       console.error('❌ Restore error:', error);
       Alert.alert('Restore Failed', error?.message || 'Failed to restore purchases.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSyncPurchases = async () => {
-    try {
-      if (!iap.connected) {
-        Alert.alert('Error', 'Store connection not available. Please try again.');
-        return;
-      }
-
-      setLoading(true);
-      console.log('🔄 Syncing purchases...');
-      
-      // Process any pending purchases
-      await iap.processPendingPurchases();
-      
-      // Validate subscription status (with grace period)
-      await refreshSubscription();
-      
-      // Also force validate with IAP
-      const validationResult = await iap.checkSubscriptionStatusWithIAP();
-      console.log('📊 Validation result:', validationResult);
-      
-      Alert.alert('Success', 'Purchases synced and subscription validated!');
-      
-    } catch (error: any) {
-      console.error('❌ Sync error:', error);
-      Alert.alert('Sync Failed', error?.message || 'Failed to sync purchases.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleForceCheck = async () => {
-    Alert.alert(
-      'Force Check Subscription',
-      'This will immediately check your subscription status with Google Play, ignoring the 24-hour grace period. Use this if you just cancelled your subscription and want to see the change immediately.\n\nNote: Google Play can take several hours to update after cancellation.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Force Check',
-          style: 'default',
-          onPress: async () => {
-            try {
-              setLoading(true);
-              console.log('🚨 Force checking subscription status...');
-              
-              // Force validation with IAP check (ignores grace period)
-              await validateSubscription(true);
-              
-              Alert.alert('Success', 'Subscription status force-checked and updated!');
-              
-            } catch (error: any) {
-              console.error('❌ Force check error:', error);
-              Alert.alert('Check Failed', error?.message || 'Failed to check subscription.');
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
   };
 
   const handleCancelSubscription = async () => {
@@ -323,19 +147,10 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
               const { data: { user } } = await supabase.auth.getUser();
               if (!user) return;
 
-              setLoading(true);
               await subscriptionService.cancelSubscription(user.id, subscription?.product_id || '');
-              
-              // Refresh subscription data to reflect changes
-              setTimeout(async () => {
-                await refreshSubscription();
-                setLoading(false);
-              }, 1000); // Small delay to allow database update to complete
-              
             } catch (error) {
               console.error('❌ Cancel error:', error);
               Alert.alert('Error', 'Failed to cancel subscription. Please try again.');
-              setLoading(false);
             }
           },
         },
@@ -349,7 +164,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
     const price = iap.getFormattedPrice(productId);
     
     if (!product) {
-      // console.warn(`❌ Product not found: ${productId}`);
+    //   console.warn(`❌ Product not found: ${productId}`);
       return { name: 'Loading...', price: '$0.00' };
     }
 
@@ -362,15 +177,15 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
     return { name, price, product };
   };
 
-  // if (loading) {
-  //   return (
-  //     <SafeAreaView style={styles.container}>
-  //       <View style={styles.loadingContainer}>
-  //         <ActivityIndicator size="large" color={theme.colors.primary} />
-  //       </View>
-  //     </SafeAreaView>
-  //   );
-  // }
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const isPremium = subscription?.tier === 'premium';
   const isActiveSubscription = isPremium && subscription?.status !== 'cancelled';
@@ -611,44 +426,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
         </View>
 
         {/* Restore Purchases */}
-        {/* <View style={styles.section}>
-          <TouchableOpacity 
-            style={[styles.syncButton, (!iap.connected || loading) && styles.disabledButton]}
-            onPress={handleSyncPurchases}
-            disabled={loading || !iap.connected}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="sync" size={20} color="#fff" />
-                <Text style={styles.syncButtonText}>Sync Purchases</Text>
-              </>
-            )}
-          </TouchableOpacity>
-          <Text style={styles.syncDescription}>
-            Sync your purchases with the database to activate your subscription.
-          </Text>
-
-          <TouchableOpacity 
-            style={[styles.forceCheckButton, (!iap.connected || loading) && styles.disabledButton]}
-            onPress={handleForceCheck}
-            disabled={loading || !iap.connected}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={theme.colors.error} />
-            ) : (
-              <>
-                <Ionicons name="warning-outline" size={20} color={theme.colors.error} />
-                <Text style={styles.forceCheckButtonText}>Force Check Status</Text>
-              </>
-            )}
-          </TouchableOpacity>
-          <Text style={styles.forceCheckDescription}>
-            Immediately check subscription status with Google Play (ignores 24h grace period).
-          </Text>
-
-
+        <View style={styles.section}>
           <TouchableOpacity 
             style={[styles.restoreButton, (!iap.connected || loading) && styles.disabledButton]}
             onPress={handleRestorePurchases}
@@ -666,10 +444,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
           <Text style={styles.restoreDescription}>
             Already purchased? Restore your previous purchases here.
           </Text>
-        </View> */}
-
-        {/* Debug Panel (Development Only) */}
-        <QuotaDebugPanel />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -891,7 +666,6 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary,
     backgroundColor: 'transparent',
     alignSelf: 'center',
-    marginTop: theme.spacing.md,
   },
   restoreButtonText: {
     color: theme.colors.primary,
@@ -903,52 +677,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: 'center',
     marginTop: theme.spacing.sm,
-  },
-  syncButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.primary,
-    alignSelf: 'center',
-  },
-  syncButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: theme.fontSize.base,
-  },
-  syncDescription: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    marginTop: theme.spacing.sm,
-    marginBottom: theme.spacing.lg,
-  },
-  forceCheckButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.error,
-    backgroundColor: 'transparent',
-    alignSelf: 'center',
-  },
-  forceCheckButtonText: {
-    color: theme.colors.error,
-    fontWeight: '600',
-    fontSize: theme.fontSize.base,
-  },
-  forceCheckDescription: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    marginTop: theme.spacing.sm,
-    marginBottom: theme.spacing.lg,
   },
 });
 

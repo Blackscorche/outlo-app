@@ -13,6 +13,7 @@ interface SubscriptionData {
   connectionRequestsRemaining: number;
   firstImpressionsRemaining: number;
   refreshSubscription: () => Promise<void>;
+  validateSubscription: (forceIAPCheck?: boolean) => Promise<void>;
   loading: boolean;
 }
 
@@ -23,15 +24,25 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [quotas, setQuotas] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadSubscriptionData = useCallback(async () => {
+  const loadSubscriptionData = useCallback(async (forceValidation = false, forceIAPCheck = false) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [subData, quotaData] = await Promise.all([
-        subscriptionService.getSubscriptionStatus(user.id),
-        subscriptionService.getUserQuotas(user.id),
-      ]);
+      let subData, quotaData;
+
+      if (forceValidation || forceIAPCheck) {
+        // Use validation method that checks expiry and IAP status
+        console.log('🔄 Force validating subscription...');
+        subData = await subscriptionService.validateAndSyncSubscription(user.id, forceIAPCheck);
+        quotaData = await subscriptionService.getUserQuotas(user.id);
+      } else {
+        // Normal load
+        [subData, quotaData] = await Promise.all([
+          subscriptionService.getSubscriptionStatus(user.id),
+          subscriptionService.getUserQuotas(user.id),
+        ]);
+      }
 
       setSubscription(subData || { tier: 'basic', status: 'active' });
       setQuotas(quotaData || {
@@ -117,6 +128,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     await loadSubscriptionData();
   };
 
+  const validateSubscription = async (forceIAPCheck = false) => {
+    setLoading(true);
+    await loadSubscriptionData(true, forceIAPCheck); // Force validation with optional IAP check
+  };
+
   const value: SubscriptionData = {
     subscription,
     quotas,
@@ -127,6 +143,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     connectionRequestsRemaining,
     firstImpressionsRemaining,
     refreshSubscription,
+    validateSubscription,
     loading,
   };
 

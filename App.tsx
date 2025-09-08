@@ -13,6 +13,7 @@ import { useInAppNotifications } from './src/hooks/useInAppNotifications';
 import { SettingsProvider, useSettings } from './src/contexts/SettingsContext';
 import { ToastProvider } from './src/contexts/ToastContext';
 import { SubscriptionProvider } from './src/contexts/SubscriptionContext';
+import { IAPProvider } from './src/components/IAPProvider';
 import { ImagePickerModal } from './src/utils/imagePicker';
 import pushNotificationService, { navigationRef } from './src/services/pushNotificationService';
 import engagementNotificationService from './src/services/engagementNotificationService';
@@ -338,6 +339,7 @@ export default function App() {
       <SettingsProvider>
         <ToastProvider>
           <SubscriptionProvider>
+            <IAPProvider>
             {user ? (
               <KeepAwakeManager>
                 <NavigationContainer
@@ -382,6 +384,7 @@ export default function App() {
               </Stack.Navigator>
             </NavigationContainer>
           )}
+            </IAPProvider>
           </SubscriptionProvider>
         </ToastProvider>
       </SettingsProvider>

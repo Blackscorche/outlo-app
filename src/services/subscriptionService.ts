@@ -1,652 +1,694 @@
+// CLEAN Subscription Service - Only Database Updates
 import { supabase } from '../integrations/supabase/client';
-import { Alert, Linking } from 'react-native';
-import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
+import { Alert, Linking, Platform } from 'react-native';
 
 export type SubscriptionTier = 'basic' | 'premium';
 export type BillingPeriod = 'monthly' | 'yearly';
 
-export interface SubscriptionPlan {
+export interface UserSubscription {
   tier: SubscriptionTier;
-  billingPeriod?: BillingPeriod;
-  price: number; // in cents
-  features: {
-    connectionRequests: number;
-    firstImpressions: number;
-    invisibleMode: boolean;
-  };
+  status: string;
+  billing_period?: BillingPeriod;
+  current_period_end?: string;
+  product_id?: string;
 }
 
-export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
-  basic: {
-    tier: 'basic',
-    price: 0,
-    features: {
-      connectionRequests: 1,
-      firstImpressions: 0,
-      invisibleMode: false,
-    },
-  },
-  premium_monthly: {
-    tier: 'premium',
-    billingPeriod: 'monthly',
-    price: 1499, // $14.99
-    features: {
-      connectionRequests: 10,
-      firstImpressions: 3,
-      invisibleMode: true,
-    },
-  },
-  premium_yearly: {
-    tier: 'premium',
-    billingPeriod: 'yearly',
-    price: 14400, // $144 (20% discount)
-    features: {
-      connectionRequests: 10,
-      firstImpressions: 3,
-      invisibleMode: true,
-    },
-  },
+export interface UserQuotas {
+  connection_requests_remaining: number;
+  connection_requests_purchased: number;
+  first_impressions_remaining: number;
+  first_impressions_purchased: number;
+  invisible_mode_expires_at?: string;
+}
+
+// Legacy exports for compatibility - remove these later
+export const SUBSCRIPTION_PLANS = {
+  basic: { tier: 'basic', price: 0, features: { connectionRequests: 1, firstImpressions: 0, invisibleMode: false } },
+  premium_monthly: { tier: 'premium', price: 1499, features: { connectionRequests: 10, firstImpressions: 3, invisibleMode: true } },
+  premium_yearly: { tier: 'premium', price: 14400, features: { connectionRequests: 10, firstImpressions: 3, invisibleMode: true } },
 };
 
 export const EXTRA_PURCHASES = {
-  connection_request: {
-    price: 100, // $1.00
-    quantity: 1,
-  },
-  invisible_mode: {
-    price: 499, // $4.99 per month
-    duration: 30, // days
-  },
-  first_impression: {
-    price: 199, // $1.99
-    quantity: 1,
-  },
+  connection_request: { price: 100, quantity: 1 },
+  first_impression: { price: 199, quantity: 1 },
+  invisible_mode: { price: 499, duration: 30 },
 };
 
 class SubscriptionService {
-  // Get user's current subscription
-  async getUserSubscription(userId: string) {
-    // Always try backend API first
+  // Check and sync subscription status with Google Play delay handling
+  async validateAndSyncSubscription(userId: string, forceIAPCheck = false): Promise<UserSubscription> {
     try {
-      // Try to get fresh status from backend with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-      
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.SUBSCRIPTION_STATUS}/${userId}`, {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        const data = await response.json();
-        // Ensure status field exists for premium subscriptions
-        if (data.tier === 'premium' && !data.status) {
-          data.status = 'active';
+      console.log("🔄 Validating and syncing subscription for user:", userId);
+
+      // Step 1: Check database subscription
+      const dbSubscription = await this.getUserSubscription(userId);
+      console.log("📊 Database subscription:", dbSubscription);
+
+      // Step 2: Check if subscription has expired (most reliable check)
+      if (dbSubscription.current_period_end) {
+        const expiryDate = new Date(dbSubscription.current_period_end);
+        const now = new Date();
+        
+        if (now > expiryDate && dbSubscription.status === 'active') {
+          console.log("⏰ Subscription expired based on period_end, downgrading to basic");
+          await this.downgradeToBasic(userId, 'expired');
+          return { tier: 'basic', status: 'expired' };
         }
-        return data;
       }
+
+      // Step 3: Handle Google Play delays - only do aggressive IAP checking if forced or enough time has passed
+      if (dbSubscription.tier === 'premium' && dbSubscription.status === 'active') {
+        // Check if we should verify with IAP (accounting for Google Play delays)
+        let shouldVerifyIAP = forceIAPCheck;
+        
+        if (!shouldVerifyIAP && dbSubscription.current_period_end) {
+          const expiryDate = new Date(dbSubscription.current_period_end);
+          const now = new Date();
+          const timeSinceExpiry = now.getTime() - expiryDate.getTime();
+          const gracePeriodMs = 24 * 60 * 60 * 1000; // 24 hours grace period
+          
+          // Only check IAP if we're past the grace period
+          shouldVerifyIAP = timeSinceExpiry > gracePeriodMs;
+        }
+
+        if (shouldVerifyIAP) {
+          const iapValid = await this.verifyWithIAP(userId, dbSubscription.product_id || '');
+          if (!iapValid) {
+            console.log("❌ IAP verification failed after grace period, downgrading to basic");
+            await this.downgradeToBasic(userId, 'cancelled');
+            return { tier: 'basic', status: 'cancelled' };
+          }
+        } else {
+          console.log("⏳ Within grace period, skipping IAP verification");
+        }
+      }
+
+      console.log("✅ Subscription validation complete:", dbSubscription);
+      return dbSubscription;
+
     } catch (error) {
-      // Silently fall back to local database
-      console.log('Backend unavailable, using local database');
+      console.error("❌ Error validating subscription:", error);
+      return { tier: 'basic', status: 'error' };
     }
+  }
 
-    // Fallback to local database
+  // Verify subscription with IAP store
+  private async verifyWithIAP(userId: string, productId: string): Promise<boolean> {
     try {
-      const { data, error } = await supabase
-        .from('user_subscriptions')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching subscription:', error);
-        // Don't throw, just return default
-      }
-
-      // Ensure status field exists for premium subscriptions
-      if (data) {
-        if (data.tier === 'premium' && !data.status) {
-          data.status = 'active';
-        }
-        return data;
-      }
-
-      return {
-        tier: 'basic',
-        status: 'active',
-        billing_period: null,
-        current_period_end: null,
-      };
-    } catch (err) {
-      // If all else fails, return basic subscription
-      return {
-        tier: 'basic',
-        status: 'active',
-        billing_period: null,
-        current_period_end: null,
-      };
-    }
-  }
-
-  // Get user's current quotas
-  async getUserQuotas(userId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('user_quotas')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching quotas:', error);
-      }
-
-      // Create default quotas if none exist
-      if (!data) {
-        const { data: newQuotas, error: createError } = await supabase
-          .from('user_quotas')
-          .upsert({
-            user_id: userId,
-            connection_requests_remaining: 1,
-            first_impressions_remaining: 0,
-            connection_requests_purchased: 0,
-            first_impressions_purchased: 0,
-          }, {
-            onConflict: 'user_id',
-            ignoreDuplicates: false
-          })
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('Error creating quotas:', createError);
-          // Return default quotas if creation fails
-          return {
-            user_id: userId,
-            connection_requests_remaining: 1,
-            first_impressions_remaining: 0,
-            connection_requests_purchased: 0,
-            first_impressions_purchased: 0,
-            invisible_mode_expires_at: null,
-            last_reset_at: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
-        }
-
-        return newQuotas;
-      }
-
-      return data;
-    } catch (err) {
-      console.error('Unexpected error in getUserQuotas:', err);
-      // Return default quotas
-      return {
-        user_id: userId,
-        connection_requests_remaining: 1,
-        first_impressions_remaining: 0,
-        connection_requests_purchased: 0,
-        first_impressions_purchased: 0,
-        invisible_mode_expires_at: null,
-        last_reset_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-    }
-  }
-
-  // Check if user can send connection request
-  async canSendConnectionRequest(userId: string): Promise<boolean> {
-    const quotas = await this.getUserQuotas(userId);
-    return (quotas.connection_requests_remaining + quotas.connection_requests_purchased) > 0;
-  }
-
-  // Use a connection request
-  async useConnectionRequest(userId: string): Promise<boolean> {
-    const quotas = await this.getUserQuotas(userId);
-    
-    if (quotas.connection_requests_remaining > 0) {
-      const { error } = await supabase
-        .from('user_quotas')
-        .update({
-          connection_requests_remaining: quotas.connection_requests_remaining - 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', userId);
-
-      return !error;
-    } else if (quotas.connection_requests_purchased > 0) {
-      const { error } = await supabase
-        .from('user_quotas')
-        .update({
-          connection_requests_purchased: quotas.connection_requests_purchased - 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', userId);
-
-      return !error;
-    }
-
-    return false;
-  }
-
-  // Check if user can send first impression
-  async canSendFirstImpression(userId: string): Promise<boolean> {
-    const quotas = await this.getUserQuotas(userId);
-    return (quotas.first_impressions_remaining + quotas.first_impressions_purchased) > 0;
-  }
-
-  // Cancel subscription
-  async cancelSubscription(userId: string): Promise<boolean> {
-    try {
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CANCEL_SUBSCRIPTION}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('Cancel subscription failed:', response.status, errorData);
-        throw new Error(errorData.error || 'Failed to cancel subscription');
-      }
-
-      const result = await response.json();
-      return result.success === true;
+      // Import IAP service dynamically to avoid circular dependency
+      const { useLoveMapIAP } = await import('./iapService');
+      
+      // This would be called from a component that has IAP context
+      // For now, we'll return true and rely on app state checks
+      // TODO: Implement proper IAP receipt validation
+      return true;
     } catch (error) {
-      console.error('Error canceling subscription:', error);
+      console.error("❌ Error verifying with IAP:", error);
       return false;
     }
   }
 
-  // Get subscription status with refresh from backend
-  async getSubscriptionStatus(userId: string, forceRefresh: boolean = false) {
-    if (forceRefresh) {
-      // Try multiple times with increasing delays to handle webhook processing delays
-      const maxRetries = 3;
-      const delays = [1000, 2000, 3000]; // 1s, 2s, 3s
-      
-      for (let i = 0; i < maxRetries; i++) {
-        try {
-          if (i > 0) {
-            await new Promise(resolve => setTimeout(resolve, delays[i - 1]));
-          }
-          
-          const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.SUBSCRIPTION_STATUS}/${userId}`);
-          if (response.ok) {
-            const data = await response.json();
-            
-            // Ensure status field exists for premium subscriptions
-            if (data.tier === 'premium' && !data.status) {
-              data.status = 'active';
-            }
-            
-            // Update local cache with fresh data
-            if (data.tier || data.status) {
-              // Save to local database for future use
-              await supabase
-                .from('user_subscriptions')
-                .upsert({
-                  user_id: userId,
-                  tier: data.tier,
-                  billing_period: data.billing_period,
-                  status: data.status,
-                  current_period_start: data.current_period_start,
-                  current_period_end: data.current_period_end,
-                  updated_at: new Date().toISOString(),
-                }, { 
-                  onConflict: 'user_id',
-                  ignoreDuplicates: false 
-                });
-                
-              // Also update quotas if premium (including cancelled but still active)
-              if (data.tier === 'premium' && (data.status === 'active' || data.status === 'cancelled')) {
-                const plan = data.billing_period === 'yearly' ? 
-                  SUBSCRIPTION_PLANS.premium_yearly : 
-                  SUBSCRIPTION_PLANS.premium_monthly;
-                  
-                await supabase
-                  .from('user_quotas')
-                  .upsert({
-                    user_id: userId,
-                    connection_requests_remaining: plan.features.connectionRequests,
-                    first_impressions_remaining: plan.features.firstImpressions,
-                    updated_at: new Date().toISOString(),
-                  }, {
-                    onConflict: 'user_id',
-                    ignoreDuplicates: false
-                  });
-              }
-              
-              return data;
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching subscription status:', error);
-          if (i === maxRetries - 1) {
-            // Last attempt failed, continue to fallback
-            break;
-          }
-        }
-      }
-    }
+  // Downgrade user to basic plan
+ async downgradeToBasic(userId: string, reason: string): Promise<void> {
+    try {
+      console.log(`🔄 Downgrading user ${userId} to basic, reason: ${reason}`);
 
-    // Use regular method for cached/local data
+      // Update subscription
+      const { error: subError } = await supabase
+        .from('user_subscriptions' as any)
+        .upsert({
+          user_id: userId,
+          tier: 'basic',
+          status: reason === 'expired' ? 'expired' : 'cancelled',
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',
+        });
+
+      if (subError) throw subError;
+
+      // Update quotas to basic
+      const { error: quotaError } = await supabase
+        .from('user_quotas' as any)
+        .upsert({
+          user_id: userId,
+          connection_requests_remaining: 1,
+          first_impressions_remaining: 0,
+          connection_requests_purchased: 0,
+          first_impressions_purchased: 0,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',
+        });
+
+      if (quotaError) throw quotaError;
+
+      console.log(`✅ User downgraded to basic, reason: ${reason}`);
+    } catch (error) {
+      console.error("❌ Error downgrading to basic:", error);
+      throw error;
+    }
+  }
+
+    // Get user's current subscription from database
+  async getUserSubscription(userId: string): Promise<UserSubscription> {
+    try {
+      const { data, error } = await supabase
+        .from('user_subscriptions' as any)
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        console.log("No subscription found, returning basic");
+        return { tier: 'basic', status: 'inactive' };
+      }
+
+      return {
+        tier: (data as any).tier as SubscriptionTier,
+        status: (data as any).status,
+        billing_period: (data as any).billing_period as BillingPeriod,
+        current_period_end: (data as any).current_period_end,
+        product_id: (data as any).product_id,
+      };
+    } catch (error) {
+      console.error("Error getting subscription:", error);
+      return { tier: 'basic', status: 'inactive' };
+    }
+  }
+
+  // Alias for compatibility with SubscriptionContext
+  async getSubscriptionStatus(userId: string): Promise<UserSubscription> {
     return this.getUserSubscription(userId);
   }
 
-  // Create subscription checkout
-  async createSubscriptionCheckout(userId: string, plan: 'premium_monthly' | 'premium_yearly') {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
+  // Get user's current quotas from database
+  async getUserQuotas(userId: string): Promise<UserQuotas> {
     try {
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_SUBSCRIPTION_CHECKOUT}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          plan,
-          email: user.email,
-        }),
-      });
+      const { data, error } = await supabase
+        .from('user_quotas' as any)
+        .select('*')
+        .eq('user_id', userId)
+        .single();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Checkout session error:', errorData);
-        throw new Error(errorData.error || 'Failed to create checkout session');
+      if (error) {
+        console.log("No quotas found, creating basic quotas");
+        return {
+          connection_requests_remaining: 1,
+          connection_requests_purchased: 0,
+          first_impressions_remaining: 0,
+          first_impressions_purchased: 0,
+        };
       }
 
-      const { checkoutUrl, sessionId } = await response.json();
-      
-      return { url: checkoutUrl };
+      return data as any;
     } catch (error) {
-      console.error('Error creating checkout session:', error);
-      Alert.alert(
-        'Connection Error',
-        'Unable to connect to payment server. Please try again later.',
-        [{ text: 'OK' }]
-      );
+      console.error("Error getting quotas:", error);
+      return {
+        connection_requests_remaining: 0,
+        connection_requests_purchased: 0,
+        first_impressions_remaining: 0,
+        first_impressions_purchased: 0,
+      };
+    }
+  }
+
+  // Process IAP purchase - Update database only
+  async processIAPPurchase(userId: string, purchase: any): Promise<void> {
+    try {
+      console.log("🔄 Processing IAP purchase for user:", userId, "product:", purchase.productId, this.isSubscription(purchase.productId));
+
+      // Ensure user records exist first
+      await this.ensureUserRecordsExist(userId);
+
+      if (this.isSubscription(purchase.productId)) {
+        await this.activateSubscription(userId, purchase.productId, purchase);
+      } else {
+        await this.addConsumable(userId, purchase.productId);
+      }
+
+      console.log("✅ Purchase processed successfully");
+    } catch (error) {
+      console.error("❌ Error processing purchase:", error);
       throw error;
     }
   }
-  
-  // Simulate subscription purchase for demo/development
-  async simulateSubscriptionPurchase(userId: string, plan: 'premium_monthly' | 'premium_yearly') {
-    const planDetails = SUBSCRIPTION_PLANS[plan];
+
+  // Ensure user has subscription and quota records
+  private async ensureUserRecordsExist(userId: string): Promise<void> {
+    try {
+      // Check if subscription record exists
+      const { data: subExists } = await supabase
+        .from('user_subscriptions' as any)
+        .select('user_id')
+        .eq('user_id', userId)
+        .single();
+
+      if (!subExists) {
+        console.log("Creating basic subscription record for user:", userId);
+        await supabase
+          .from('user_subscriptions' as any)
+          .insert({
+            user_id: userId,
+            tier: 'basic',
+            status: 'inactive',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+      }
+
+      // Check if quotas record exists
+      const { data: quotaExists } = await supabase
+        .from('user_quotas' as any)
+        .select('user_id')
+        .eq('user_id', userId)
+        .single();
+
+      if (!quotaExists) {
+        console.log("Creating basic quotas record for user:", userId);
+        await supabase
+          .from('user_quotas' as any)
+          .insert({
+            user_id: userId,
+            connection_requests_remaining: 1,
+            connection_requests_purchased: 0,
+            first_impressions_remaining: 0,
+            first_impressions_purchased: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+      }
+
+      console.log("✅ User records ensured for:", userId);
+    } catch (error) {
+      console.error("❌ Error ensuring user records:", error);
+      // Don't throw - we'll try upsert anyway
+    }
+  }
+
+  // Activate subscription in database
+  private async activateSubscription(userId: string, productId: string, purchase: any): Promise<void> {
+    try{
+    console.log("🚀 ~ SubscriptionService ~ activateSubscription ~ userId:", userId, "productId:", productId, "purchase:", purchase);
+    const billingPeriod: BillingPeriod = productId.includes('yearly') ? 'yearly' : 'monthly';
+    const daysToAdd = billingPeriod === 'yearly' ? 365 : 30;
     
-    // Update user subscription
-    await supabase
-      .from('user_subscriptions')
+    const currentPeriodEnd = new Date();
+    currentPeriodEnd.setDate(currentPeriodEnd.getDate() + daysToAdd);
+
+    // Update subscription using upsert with proper WHERE clause
+    const { data: subData, error: subError } = await supabase
+      .from('user_subscriptions' as any)
       .upsert({
         user_id: userId,
         tier: 'premium',
-        billing_period: planDetails.billingPeriod,
+        billing_period: billingPeriod,
         status: 'active',
+        product_id: productId,
+        iap_transaction_id: purchase.transactionId,
+        payment_method: Platform.OS === 'ios' ? 'apple' : 'google',
         current_period_start: new Date().toISOString(),
-        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        current_period_end: currentPeriodEnd.toISOString(),
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id',
-        ignoreDuplicates: false
       });
-    
-    // Update user quotas
-    await supabase
-      .from('user_quotas')
+
+    if (subError) {
+      console.error("❌ Subscription upsert error:", subError);
+      throw subError;
+    }
+
+    console.log("✅ Subscription upserted successfully:", subData);
+
+    // Update quotas using upsert with proper WHERE clause
+    const { data: quotaData, error: quotaError } = await supabase
+      .from('user_quotas' as any)
       .upsert({
         user_id: userId,
-        connection_requests_remaining: planDetails.features.connectionRequests,
-        first_impressions_remaining: planDetails.features.firstImpressions,
+        connection_requests_remaining: 10,
+        first_impressions_remaining: 3,
+        connection_requests_purchased: 0, // Reset purchased ones
+        first_impressions_purchased: 0,   // Reset purchased ones
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id',
-        ignoreDuplicates: false
       });
+
+    if (quotaError) {
+      console.error("❌ Quotas upsert error:", quotaError);
+      throw quotaError;
+    }
+
+    console.log("✅ Quotas upserted successfully:", quotaData);
+
+    console.log("✅ Subscription activated:", { billingPeriod, productId });
+    }
+    catch(error){
+      console.error("Error in activateSubscription:", error); 
+    }
   }
 
-  // Create Stripe checkout session for extra purchases
-  async createExtraPurchaseCheckout(userId: string, productType: keyof typeof EXTRA_PURCHASES, quantity: number = 1) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
+  // Add consumable to user's quotas
+  private async addConsumable(userId: string, productId: string): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_EXTRA_PURCHASE_CHECKOUT}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          productType,
-          quantity,
-          email: user.email,
-        }),
-      });
+      const quotas = await this.getUserQuotas(userId);
+      const updates: any = { 
+        user_id: userId, // Always include user_id for upsert
+        updated_at: new Date().toISOString(),
+        // Preserve existing values
+        connection_requests_remaining: quotas.connection_requests_remaining || 0,
+        first_impressions_remaining: quotas.first_impressions_remaining || 0,
+        connection_requests_purchased: quotas.connection_requests_purchased || 0,
+        first_impressions_purchased: quotas.first_impressions_purchased || 0,
+      };
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('Checkout session error:', errorData);
-        throw new Error(errorData.error || 'Failed to create checkout session');
+      switch (productId) {
+        case 'lovemap_connection_request':
+          updates.connection_requests_purchased = (quotas.connection_requests_purchased || 0) + 1;
+          break;
+        case 'lovemap_first_impression':
+          updates.first_impressions_purchased = (quotas.first_impressions_purchased || 0) + 1;
+          break;
+        case 'lovemap_invisible_mode':
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + 30);
+          updates.invisible_mode_expires_at = expiresAt.toISOString();
+          break;
       }
 
-      const responseData = await response.json();
-      return { url: responseData.checkoutUrl, sessionId: responseData.sessionId };
+      const { data, error } = await supabase
+        .from('user_quotas' as any)
+        .upsert(updates, {
+          onConflict: 'user_id',
+        });
+
+      if (error) {
+        console.error("❌ Consumable upsert error:", error);
+        throw error;
+      }
+
+      console.log("✅ Consumable added:", { productId, updates, data });
     } catch (error) {
-      console.error('Error creating checkout session:', error);
-      Alert.alert(
-        'Connection Error',
-        'Unable to connect to payment server. Please try again later.',
-        [{ text: 'OK' }]
-      );
+      console.error("❌ Error in addConsumable:", error);
       throw error;
     }
   }
 
-  // Legacy payment intent method (kept for compatibility)
-  async createExtraPurchase(userId: string, productType: keyof typeof EXTRA_PURCHASES, quantity: number = 1) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
+  // Use a connection request (deduct from available balance)
+  async useConnectionRequest(userId: string): Promise<{ success: boolean; remaining: number }> {
     try {
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_EXTRA_PURCHASE}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          productType,
-          quantity,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create payment');
+      const quotas = await this.getUserQuotas(userId);
+      
+      // Calculate total available (remaining + purchased)
+      const totalAvailable = (quotas.connection_requests_remaining || 0) + (quotas.connection_requests_purchased || 0);
+      
+      if (totalAvailable <= 0) {
+        return { success: false, remaining: 0 };
       }
 
-      const { clientSecret, paymentIntentId } = await response.json();
+      // Deduct from purchased first, then remaining
+      let newPurchased = quotas.connection_requests_purchased || 0;
+      let newRemaining = quotas.connection_requests_remaining || 0;
 
-      return { 
-        success: false, 
-        clientSecret, 
-        paymentIntentId,
-        message: 'Payment sheet integration needed' 
+      if (newPurchased > 0) {
+        newPurchased -= 1;
+      } else if (newRemaining > 0) {
+        newRemaining -= 1;
+      }
+
+      const { error } = await supabase
+        .from('user_quotas' as any)
+        .upsert({
+          user_id: userId,
+          connection_requests_remaining: newRemaining,
+          connection_requests_purchased: newPurchased,
+          first_impressions_remaining: quotas.first_impressions_remaining || 0,
+          first_impressions_purchased: quotas.first_impressions_purchased || 0,
+          invisible_mode_expires_at: quotas.invisible_mode_expires_at,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',
+        });
+
+      if (error) throw error;
+
+      const remaining = newPurchased + newRemaining;
+      console.log(`✅ Connection request used. Remaining: ${remaining}`);
+      
+      return { success: true, remaining };
+    } catch (error) {
+      console.error("❌ Error using connection request:", error);
+      return { success: false, remaining: 0 };
+    }
+  }
+
+  // Use a first impression (deduct from available balance)
+  async useFirstImpression(userId: string): Promise<{ success: boolean; remaining: number }> {
+    try {
+      const quotas = await this.getUserQuotas(userId);
+      
+      // Calculate total available (remaining + purchased)
+      const totalAvailable = (quotas.first_impressions_remaining || 0) + (quotas.first_impressions_purchased || 0);
+      
+      if (totalAvailable <= 0) {
+        return { success: false, remaining: 0 };
+      }
+
+      // Deduct from purchased first, then remaining
+      let newPurchased = quotas.first_impressions_purchased || 0;
+      let newRemaining = quotas.first_impressions_remaining || 0;
+
+      if (newPurchased > 0) {
+        newPurchased -= 1;
+      } else if (newRemaining > 0) {
+        newRemaining -= 1;
+      }
+
+      const { error } = await supabase
+        .from('user_quotas' as any)
+        .upsert({
+          user_id: userId,
+          connection_requests_remaining: quotas.connection_requests_remaining || 0,
+          connection_requests_purchased: quotas.connection_requests_purchased || 0,
+          first_impressions_remaining: newRemaining,
+          first_impressions_purchased: newPurchased,
+          invisible_mode_expires_at: quotas.invisible_mode_expires_at,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',
+        });
+
+      if (error) throw error;
+
+      const remaining = newPurchased + newRemaining;
+      console.log(`✅ First impression used. Remaining: ${remaining}`);
+      
+      return { success: true, remaining };
+    } catch (error) {
+      console.error("❌ Error using first impression:", error);
+      return { success: false, remaining: 0 };
+    }
+  }
+
+  // Check if user has invisible mode active
+  async hasInvisibleMode(userId: string): Promise<{ active: boolean; expiresAt?: string }> {
+    try {
+      // Check if premium subscriber
+      const subscription = await this.getUserSubscription(userId);
+      if (subscription.tier === 'premium' && subscription.status === 'active') {
+        return { active: true };
+      }
+
+      // Check purchased invisible mode
+      const quotas = await this.getUserQuotas(userId);
+      if (quotas.invisible_mode_expires_at) {
+        const expiryDate = new Date(quotas.invisible_mode_expires_at);
+        const now = new Date();
+        
+        if (now < expiryDate) {
+          return { active: true, expiresAt: quotas.invisible_mode_expires_at };
+        }
+      }
+
+      return { active: false };
+    } catch (error) {
+      console.error("❌ Error checking invisible mode:", error);
+      return { active: false };
+    }
+  }
+
+  // Get comprehensive user quotas with calculated totals
+  async getDetailedQuotas(userId: string): Promise<{
+    connectionRequests: { remaining: number; purchased: number; total: number };
+    firstImpressions: { remaining: number; purchased: number; total: number };
+    invisibleMode: { active: boolean; expiresAt?: string; source: 'premium' | 'purchased' | 'none' };
+  }> {
+    try {
+      const [quotas, subscription, invisibleStatus] = await Promise.all([
+        this.getUserQuotas(userId),
+        this.getUserSubscription(userId),
+        this.hasInvisibleMode(userId)
+      ]);
+
+      // Connection requests
+      const connectionRequestsRemaining = quotas.connection_requests_remaining || 0;
+      const connectionRequestsPurchased = quotas.connection_requests_purchased || 0;
+      const connectionRequestsTotal = connectionRequestsRemaining + connectionRequestsPurchased;
+
+      // First impressions  
+      const firstImpressionsRemaining = quotas.first_impressions_remaining || 0;
+      const firstImpressionsPurchased = quotas.first_impressions_purchased || 0;
+      const firstImpressionsTotal = firstImpressionsRemaining + firstImpressionsPurchased;
+
+      // Invisible mode source
+      let invisibleSource: 'premium' | 'purchased' | 'none' = 'none';
+      if (subscription.tier === 'premium' && subscription.status === 'active') {
+        invisibleSource = 'premium';
+      } else if (invisibleStatus.active && invisibleStatus.expiresAt) {
+        invisibleSource = 'purchased';
+      }
+
+      return {
+        connectionRequests: {
+          remaining: connectionRequestsRemaining,
+          purchased: connectionRequestsPurchased,
+          total: connectionRequestsTotal
+        },
+        firstImpressions: {
+          remaining: firstImpressionsRemaining,
+          purchased: firstImpressionsPurchased,
+          total: firstImpressionsTotal
+        },
+        invisibleMode: {
+          active: invisibleStatus.active,
+          expiresAt: invisibleStatus.expiresAt,
+          source: invisibleSource
+        }
       };
     } catch (error) {
-      console.error('Error processing purchase:', error);
-      Alert.alert(
-        'Connection Error',
-        'Unable to connect to payment server. Please try again later.',
-        [{ text: 'OK' }]
-      );
-      throw error;
+      console.error("❌ Error getting detailed quotas:", error);
+      // Return safe defaults
+      return {
+        connectionRequests: { remaining: 0, purchased: 0, total: 0 },
+        firstImpressions: { remaining: 0, purchased: 0, total: 0 },
+        invisibleMode: { active: false, source: 'none' }
+      };
     }
   }
-  
-  // Confirm extra purchase after payment
-  async confirmExtraPurchase(paymentIntentId: string) {
+  async cancelSubscription(userId: string, productId: string): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CONFIRM_EXTRA_PURCHASE}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          paymentIntentId,
-        }),
-      });
+      const isIAP = this.isSubscription(productId);
+      
+      if (isIAP) {
+        // For IAP subscriptions, user must cancel through device settings
+        Alert.alert(
+          'Cancel Subscription',
+          'To cancel your subscription, please go to your device settings:\n\n' +
+          (Platform.OS === 'ios' 
+            ? '1. Open Settings app\n2. Tap your name at top\n3. Tap Subscriptions\n4. Select LoveMap\n5. Tap Cancel Subscription'
+            : '1. Open Google Play Store\n2. Tap Menu → Subscriptions\n3. Select LoveMap\n4. Tap Cancel Subscription'),
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Take Me There', 
+              onPress: () => {
+                // Show final confirmation before updating database and redirecting
+                Alert.alert(
+                  'Final Confirmation',
+                  'By proceeding, we\'ll update your subscription status to "cancelled" in our database and redirect you to cancel in your device settings.\n\nNote: It may take Google Play several hours to reflect the cancellation.',
+                  [
+                    { text: 'Go Back', style: 'cancel' },
+                    {
+                      text: 'OK, Update & Go',
+                      style: 'destructive',
+                      onPress: async () => {
+                        try {
+                          console.log('🔄 Updating subscription status to cancelled before redirect');
+                          
+                          // Update database immediately to mark as cancelled
+                          await supabase
+                            .from('user_subscriptions' as any)
+                            .update({
+                              status: 'cancelled',
+                              updated_at: new Date().toISOString(),
+                            })
+                            .eq('user_id', userId);
 
-      if (!response.ok) {
-        throw new Error('Failed to confirm purchase');
+                          console.log('✅ Subscription marked as cancelled in database');
+
+                          // Now redirect to device settings
+                          if (Platform.OS === 'ios') {
+                            Linking.openURL('App-Prefs:APPLE_ID&path=SUBSCRIPTIONS');
+                          } else {
+                            Linking.openURL('https://play.google.com/store/account/subscriptions');
+                          }
+                          
+                        } catch (error) {
+                          console.error('❌ Error updating subscription status:', error);
+                          Alert.alert('Error', 'Failed to update subscription status. Please try again.');
+                        }
+                      }
+                    }
+                  ]
+                );
+              }
+            }
+          ]
+        );
+        return true;
       }
 
-      return await response.json();
+      return false;
     } catch (error) {
-      console.error('Error confirming purchase:', error);
-      throw error;
-    }
-  }
-  
-  // Simulate extra purchase for development
-  async simulateExtraPurchase(userId: string, productType: keyof typeof EXTRA_PURCHASES, quantity: number = 1) {
-    const product = EXTRA_PURCHASES[productType];
-    const totalAmount = product.price * quantity;
-
-    // Record purchase in database
-    const { data: purchase } = await supabase
-      .from('purchase_history')
-      .insert({
-        user_id: userId,
-        product_type: productType,
-        quantity: quantity,
-        amount_cents: totalAmount,
-        status: 'completed',
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (purchase) {
-      // Apply the purchase immediately
-      await this.applyExtraPurchase(userId, productType, quantity);
-    }
-
-    return { success: true };
-  }
-  
-  // Apply extra purchase to user's account
-  async applyExtraPurchase(userId: string, productType: keyof typeof EXTRA_PURCHASES, quantity: number = 1) {
-    const { data: quotas } = await supabase
-      .from('user_quotas')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (!quotas) throw new Error('User quotas not found');
-
-    const updates: any = { updated_at: new Date().toISOString() };
-
-    switch (productType) {
-      case 'connection_request':
-        updates.connection_requests_purchased = (quotas.connection_requests_purchased || 0) + quantity;
-        break;
-      case 'first_impression':
-        updates.first_impressions_purchased = (quotas.first_impressions_purchased || 0) + quantity;
-        break;
-      case 'invisible_mode':
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
-        updates.invisible_mode_expires_at = expiresAt.toISOString();
-        break;
-    }
-
-    await supabase
-      .from('user_quotas')
-      .update(updates)
-      .eq('user_id', userId);
-  }
-
-
-  // Handle referral
-  async createReferral(referrerId: string, referredEmail: string) {
-    // Generate unique referral code
-    const referralCode = `LM${referrerId.substring(0, 8).toUpperCase()}${Date.now().toString(36).toUpperCase()}`;
-
-    const { data, error } = await supabase
-      .from('referrals')
-      .insert({
-        referrer_id: referrerId,
-        referred_email: referredEmail,
-        referral_code: referralCode,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return data;
-  }
-
-  // Claim referral reward
-  async claimReferralReward(referralCode: string, newUserId: string) {
-    const { data: referral } = await supabase
-      .from('referrals')
-      .select('*')
-      .eq('referral_code', referralCode)
-      .single();
-
-    if (!referral || referral.reward_claimed) {
+      console.error("Error with cancellation:", error);
       return false;
     }
-
-    // Update referral
-    await supabase
-      .from('referrals')
-      .update({
-        referred_user_id: newUserId,
-        reward_claimed: true,
-        claimed_at: new Date().toISOString(),
-      })
-      .eq('id', referral.id);
-
-    // Add 5 connection requests to referrer
-    const { data: quotas } = await supabase
-      .from('user_quotas')
-      .select('*')
-      .eq('user_id', referral.referrer_id)
-      .single();
-
-    if (quotas) {
-      await supabase
-        .from('user_quotas')
-        .update({
-          connection_requests_purchased: (quotas.connection_requests_purchased || 0) + 5,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', referral.referrer_id);
-    }
-
-    return true;
   }
 
-  // Check if user has invisible mode
-  async hasInvisibleMode(userId: string): Promise<boolean> {
-    const subscription = await this.getUserSubscription(userId);
-    if (subscription.tier === 'premium' && (subscription.status === 'active' || subscription.status === 'cancelled')) {
-      return true;
-    }
+  // Handle subscription state changes (when user cancels through device)
+  async handleSubscriptionStateChange(userId: string, newState: any): Promise<void> {
+    try {
+      if (!newState) {
+        // Subscription cancelled - downgrade to basic
+        await supabase
+          .from('user_subscriptions' as any)
+          .update({
+            tier: 'basic',
+            status: 'cancelled',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId);
 
-    const quotas = await this.getUserQuotas(userId);
-    if (quotas.invisible_mode_expires_at) {
-      return new Date(quotas.invisible_mode_expires_at) > new Date();
-    }
+        // Reset quotas to basic
+        await supabase
+          .from('user_quotas' as any)
+          .update({
+            connection_requests_remaining: 1,
+            first_impressions_remaining: 0,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId);
 
-    return false;
+        console.log("✅ User downgraded to basic");
+      }
+    } catch (error) {
+      console.error("Error handling state change:", error);
+    }
+  }
+
+  // Legacy methods for compatibility - these do nothing now
+  async createSubscriptionCheckout(): Promise<any> {
+    throw new Error("Stripe removed - use IAP only");
+  }
+
+  async createReferral(userId: string, code: string): Promise<any> {
+    return { referral_code: `LM${userId.substring(0, 8).toUpperCase()}` };
+  }
+
+  // Helper method
+  private isSubscription(productId: string): boolean {
+    return productId.includes('monthly') || productId.includes('yearly') || productId.includes('premium');
   }
 }
 
