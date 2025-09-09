@@ -1,8 +1,7 @@
 // CLEAN IAP Service - No more confusion!
 import { Product, Purchase, useIAP, PurchaseError } from "react-native-iap";
-import { Platform } from "react-native";
+import { Alert, Platform } from "react-native";
 import { supabase } from "../integrations/supabase/client";
-import { Alert } from "react-native";
 import { useSubscription } from "../contexts/SubscriptionContext";
 
 // Product IDs - these match Google Play Console
@@ -10,22 +9,53 @@ export const IAP_PRODUCTS = {
   subscriptions: ["lovemap_premium_monthly", "lovemap_premium_yearly"],
   consumables: [
     "lovemap_connection_request",
-    "lovemap_first_impression", 
+    "lovemap_first_impression",
     "lovemap_invisible_mode",
   ],
   // All products combined for loading
   all: [
-    "lovemap_premium_monthly", 
+    "lovemap_premium_monthly",
     "lovemap_premium_yearly",
     "lovemap_connection_request",
-    "lovemap_first_impression", 
+    "lovemap_first_impression",
     "lovemap_invisible_mode",
   ],
 };
 
-export const useLoveMapIAP = () => {
-    const { refreshSubscription } = useSubscription();
-  
+// Types for modal callbacks
+interface ModalCallbacks {
+  showLoading?: (message?: string) => void;
+  showSuccess?: (title?: string, message?: string) => void;
+  showError?: (title?: string, message?: string, onRetry?: () => void) => void;
+  showInfo?: (
+    title: string,
+    message: string,
+    type?: "info" | "warning" | "success",
+    onConfirm?: () => void
+  ) => void;
+  hideModals?: () => void;
+}
+
+export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
+  const { refreshSubscription } = useSubscription();
+
+  // Fallback to console.log if no modal callbacks provided
+  const showLoading =
+    modalCallbacks?.showLoading ||
+    ((message?: string) => console.log("Loading:", message));
+  const showSuccess =
+    modalCallbacks?.showSuccess ||
+    ((title?: string, message?: string) =>
+      console.log("Success:", title, message));
+  const showError =
+    modalCallbacks?.showError ||
+    ((title?: string, message?: string) =>
+      console.log("Error:", title, message));
+  const showInfo =
+    modalCallbacks?.showInfo ||
+    ((title: string, message: string) => console.log("Info:", title, message));
+  const hideModals = modalCallbacks?.hideModals || (() => {});
+
   const {
     connected,
     products,
@@ -37,38 +67,42 @@ export const useLoveMapIAP = () => {
     requestPurchase,
     getAvailablePurchases,
     finishTransaction,
-    hasActiveSubscriptions
+    hasActiveSubscriptions,
   } = useIAP({
-
     onPurchaseSuccess: async (purchase: Purchase) => {
       console.log("🎉 Purchase successful:", purchase.productId);
 
       try {
         // 1. Get current user
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) {
           console.error("❌ No authenticated user for purchase");
           return;
         }
 
         // 2. Process with subscription service (updates database)
-        const { default: subscriptionService } = await import("./subscriptionService");
+        const { default: subscriptionService } = await import(
+          "./subscriptionService"
+        );
         await subscriptionService.processIAPPurchase(user.id, purchase);
-await refreshSubscription();
         // 3. Acknowledge purchase to prevent refunds
         await finishTransaction({
           purchase,
           isConsumable: !isSubscriptionProduct(purchase.productId),
         });
+        await refreshSubscription();
 
         // 4. Show success
-        Alert.alert("Success!", "Purchase completed successfully!");
-
-        console.log("✅ Purchase processed and acknowledged");
+        showSuccess(
+          "Purchase Successful! 🎉",
+          "Your purchase has been completed successfully!"
+        );
 
       } catch (error) {
         console.error("❌ Error processing purchase:", error);
-        
+
         // Still acknowledge to prevent stuck state
         try {
           await finishTransaction({
@@ -78,110 +112,106 @@ await refreshSubscription();
         } catch (finishError) {
           console.error("Error finishing transaction:", finishError);
         }
-        
-        Alert.alert("Error", "Failed to process purchase. Contact support.");
+
+        showError(
+          "Purchase Failed",
+          "Failed to process purchase. Please contact support if this continues."
+        );
       }
     },
 
     onPurchaseError: (error: PurchaseError) => {
+      hideModals();
+      console.log("🚀 ~ useLoveMapIAP ~ error:", error);
       if (error.code !== "E_USER_CANCELLED") {
         console.error("❌ Purchase failed:", error);
-        Alert.alert("Purchase Failed", error.message);
+        showError("Purchase Failed", error.message);
       }
     },
   });
 
   // Load products when connected
-// Load products when connected - FIXED VERSION
-const loadProducts = async () => {
-  if (!connected) {
-    console.log("IAP not connected yet");
-    return;
-  }
+  // Load products when connected - FIXED VERSION
+  const loadProducts = async () => {
+    if (!connected) {
+      console.log("IAP not connected yet");
+      return;
+    }
 
-  try {
-    console.log("🔄 Loading products...");
-    
-    // Load consumables first and wait for them
-    console.log("Loading consumables:", IAP_PRODUCTS.consumables);
-    const consumableResult = await fetchProducts({
-      skus: IAP_PRODUCTS.consumables,
-      type: "inapp",
-    });
-    console.log("Consumables result:", consumableResult);
+    try {
+      // Load consumables first and wait for them
+      const consumableResult = await fetchProducts({
+        skus: IAP_PRODUCTS.consumables,
+        type: "inapp",
+      });
 
-    // Load subscriptions and wait for them
-    console.log("Loading subscriptions:", IAP_PRODUCTS.subscriptions);
-    const subscriptionResult = await fetchProducts({
-      skus: IAP_PRODUCTS.subscriptions,
-      type: "subs",
-    });
-    console.log("Subscriptions result:", subscriptionResult);
+      // Load subscriptions and wait for them
+      const subscriptionResult = await fetchProducts({
+        skus: IAP_PRODUCTS.subscriptions,
+        type: "subs",
+      });
 
-    // Add a small delay to ensure products are loaded
-    await new Promise(resolve => setTimeout(resolve, 1000));
+      // Add a small delay to ensure products are loaded
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    console.log("✅ Products loaded:", {
-      consumables: products.length,
-      subscriptions: subscriptions.length,
-      allProducts: [...products, ...subscriptions].map(p => ({ id: p.id, price: p.price }))
-    });
-
-    // Process any pending purchases after loading products
-    // await processPendingPurchases();
-    
-  } catch (error) {
-    console.error("❌ Error loading products:", error);
-  }
-};
+      // Process any pending purchases after loading products
+      // await processPendingPurchases();
+    } catch (error) {
+      console.error("❌ Error loading products:", error);
+    }
+  };
 
   // Process any pending/unacknowledged purchases (standard approach)
   const processPendingPurchases = async () => {
     try {
-      console.log("🔄 Checking for pending purchases...");
-      
+
       // Get available purchases
       await getAvailablePurchases();
-      
+
       if (availablePurchases.length === 0) {
         console.log("✅ No pending purchases");
         return;
       }
 
-      console.log(`📦 Found ${availablePurchases.length} pending purchases`);
-      
+
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         console.error("❌ No authenticated user to process purchases");
         return;
       }
 
       // Process each pending purchase
-      const { default: subscriptionService } = await import("./subscriptionService");
-      
+      const { default: subscriptionService } = await import(
+        "./subscriptionService"
+      );
+
       for (const purchase of availablePurchases) {
         try {
-          console.log(`🔄 Processing pending purchase: ${purchase.productId}`);
-          
+
           // Process with subscription service
           await subscriptionService.processIAPPurchase(user.id, purchase);
-          
+
           // Acknowledge the purchase
           await finishTransaction({
             purchase,
             isConsumable: !isSubscriptionProduct(purchase.productId),
           });
-          
-          console.log(`✅ Processed pending purchase: ${purchase.productId}`);
-          
+
         } catch (error) {
-          console.error(`❌ Error processing purchase ${purchase.productId}:`, error);
+          console.error(
+            `❌ Error processing purchase ${purchase.productId}:`,
+            error
+          );
         }
       }
-      
-      Alert.alert("Purchases Restored", "Your previous purchases have been restored!");
-      
+
+      showSuccess(
+        "Purchases Restored",
+        "Your previous purchases have been restored!"
+      );
     } catch (error) {
       console.error("❌ Error processing pending purchases:", error);
     }
@@ -190,17 +220,21 @@ const loadProducts = async () => {
   // Purchase any product
   const purchaseProduct = async (productId: string, callBack: () => void) => {
     if (!connected) {
-      Alert.alert("Error", "Store not connected");
+      showError("Store Error", "Store not connected. Please try again.");
       return;
     }
 
+    // Show loading immediately when purchase starts
+    showLoading("Processing your purchase...");
+
     try {
       const isSubscription = isSubscriptionProduct(productId);
-      console.log(`🛒 Purchasing ${productId} (subscription: ${isSubscription})`);
+ 
 
       if (isSubscription && Platform.OS === "android") {
-        const subscription = subscriptions.find(s => s.id === productId);
-        if (!subscription) throw new Error(`Subscription not found: ${productId}`);
+        const subscription = subscriptions.find((s) => s.id === productId);
+        if (!subscription)
+          throw new Error(`Subscription not found: ${productId}`);
 
         const offerToken = getOfferToken(productId);
         if (!offerToken) throw new Error(`No offer token for: ${productId}`);
@@ -210,11 +244,13 @@ const loadProducts = async () => {
             ios: { sku: productId },
             android: {
               skus: [productId],
-              subscriptionOffers: [{ sku: productId, offerToken }]
+              subscriptionOffers: [{ sku: productId, offerToken }],
             },
           },
           type: "subs",
-        }).then(() => { callBack(); });
+        }).then(() => {
+          callBack();
+        });
       } else {
         await requestPurchase({
           request: {
@@ -222,43 +258,40 @@ const loadProducts = async () => {
             android: { skus: [productId] },
           },
           type: isSubscription ? "subs" : "inapp",
-        }).then(() => { callBack(); });
+        }).then(() => {
+          callBack();
+        });
       }
     } catch (error) {
       console.error("❌ Purchase failed:", error);
-      Alert.alert("Purchase Failed", error instanceof Error ? error.message : "Unknown error");
+      showError(
+        "Purchase Failed",
+        error instanceof Error ? error.message : "Unknown error occurred"
+      );
     }
   };
 
   // Get offer token for Android subscriptions
   const getOfferToken = (productId: string): string | undefined => {
     if (Platform.OS !== "android") return undefined;
-    
-    const subscription = subscriptions.find(sub => sub.id === productId);
+
+    const subscription = subscriptions.find((sub) => sub.id === productId);
     if (subscription && (subscription as any).subscriptionOfferDetailsAndroid) {
-      return (subscription as any).subscriptionOfferDetailsAndroid[0]?.offerToken;
+      return (subscription as any).subscriptionOfferDetailsAndroid[0]
+        ?.offerToken;
     }
     return undefined;
   };
 
   // Get purchase history (mainly for debugging)
-  const getPurchaseHistory = async () => {
+  const getPurchaseHistory = async (callBack: () => void) => {
     if (!connected) return [];
 
     try {
-      console.log("🔄 Getting purchase history...");
-      
+
       // This fetches all purchases (including acknowledged ones on iOS)
-      await getAvailablePurchases()
-      
-      
-      console.log("📦 Purchase history:", availablePurchases.map((p: any) => ({
-        productId: p.productId,
-        transactionId: p.transactionId,
-        purchaseTime: new Date(p.transactionDate).toLocaleString(),
-        acknowledged: p.isAcknowledgedAndroid,
-      })));
-      
+      await getAvailablePurchases().then(()=>callBack())
+
       return availablePurchases;
     } catch (error) {
       console.error("❌ Error getting purchase history:", error);
@@ -271,11 +304,10 @@ const loadProducts = async () => {
     if (!connected) return [];
 
     try {
-      console.log("🔄 Restoring purchases...");
-      
+
       // Process pending purchases which will restore subscriptions
       await processPendingPurchases();
-      
+
       return availablePurchases;
     } catch (error) {
       console.error("❌ Error restoring:", error);
@@ -286,7 +318,7 @@ const loadProducts = async () => {
 
   // Get product info
   const getProduct = (productId: string): Product | undefined => {
-    return [...products, ...subscriptions].find(p => p.id === productId);
+    return [...products, ...subscriptions].find((p) => p.id === productId);
   };
 
   // Get formatted price
@@ -316,41 +348,52 @@ const loadProducts = async () => {
     reason?: string;
   }> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return { hasActiveSubscription: false, shouldUpdate: false };
 
       // Get database subscription
-      const { default: subscriptionService } = await import("./subscriptionService");
-      const dbSubscription = await subscriptionService.getUserSubscription(user.id);
-      
-      console.log("📊 Database subscription:", dbSubscription);
+      const { default: subscriptionService } = await import(
+        "./subscriptionService"
+      );
+      const dbSubscription = await subscriptionService.getUserSubscription(
+        user.id
+      );
+
 
       // Check expiry first (most reliable)
       if (dbSubscription.current_period_end) {
         const expiryDate = new Date(dbSubscription.current_period_end);
         const now = new Date();
-        
-        if (now > expiryDate && dbSubscription.status === 'active') {
-          console.log("⏰ Subscription expired based on period_end");
+
+        if (now > expiryDate && dbSubscription.status === "active") {
           return {
             hasActiveSubscription: false,
             shouldUpdate: true,
-            reason: 'subscription_expired'
+            reason: "subscription_expired",
           };
         }
       }
 
       // If premium and active, verify with availablePurchases (but account for Google delay)
-      if (dbSubscription.tier === 'premium' && dbSubscription.status === 'active') {
-        console.log("🔍 Verifying premium subscription with IAP...");
-        
+      if (
+        dbSubscription.tier === "premium" &&
+        dbSubscription.status === "active"
+      ) {
+
         await getAvailablePurchases();
-        
+
         // Check if we have any active subscription purchases
-        const hasActiveIAPSubscription = availablePurchases.some((purchase: any) => {
-          const isSubscriptionProduct = ['lovemap_premium_monthly', 'lovemap_premium_yearly'].includes(purchase.productId);
-          return isSubscriptionProduct;
-        });
+        const hasActiveIAPSubscription = availablePurchases.some(
+          (purchase: any) => {
+            const isSubscriptionProduct = [
+              "lovemap_premium_monthly",
+              "lovemap_premium_yearly",
+            ].includes(purchase.productId);
+            return isSubscriptionProduct;
+          }
+        );
 
         // IMPORTANT: Only downgrade if subscription has been cancelled for more than 24 hours
         // This accounts for Google Play's delay in updating availablePurchases
@@ -358,51 +401,55 @@ const loadProducts = async () => {
           const periodEnd = new Date(dbSubscription.current_period_end);
           const timeSincePeriodEnd = Date.now() - periodEnd.getTime();
           const oneDayInMs = 24 * 60 * 60 * 1000;
-          
+
           // Only consider downgrading if more than 1 day has passed since period end
           if (timeSincePeriodEnd > oneDayInMs) {
-            console.log("❌ No active IAP subscription found after grace period, should downgrade");
+          
             return {
               hasActiveSubscription: false,
               shouldUpdate: true,
-              reason: 'no_active_iap_subscription_after_grace'
+              reason: "no_active_iap_subscription_after_grace",
             };
           } else {
-            console.log("⏳ Within grace period, keeping subscription active");
             return { hasActiveSubscription: true, shouldUpdate: false };
           }
         }
 
         if (hasActiveIAPSubscription) {
-          console.log("✅ Active IAP subscription confirmed");
           return { hasActiveSubscription: true, shouldUpdate: false };
         }
       }
 
       // If database says basic, check if we actually have an active subscription
-      if (dbSubscription.tier === 'basic' || dbSubscription.status !== 'active') {
-        console.log("🔍 Checking for unreflected IAP subscriptions...");
-        
+      if (
+        dbSubscription.tier === "basic" ||
+        dbSubscription.status !== "active"
+      ) {
+
         await getAvailablePurchases();
-        
-        const hasActiveIAPSubscription = availablePurchases.some((purchase: any) => {
-          const isSubscriptionProduct = ['lovemap_premium_monthly', 'lovemap_premium_yearly'].includes(purchase.productId);
-          return isSubscriptionProduct;
-        });
+
+        const hasActiveIAPSubscription = availablePurchases.some(
+          (purchase: any) => {
+            const isSubscriptionProduct = [
+              "lovemap_premium_monthly",
+              "lovemap_premium_yearly",
+            ].includes(purchase.productId);
+            return isSubscriptionProduct;
+          }
+        );
 
         if (hasActiveIAPSubscription) {
-          console.log("✅ Found unreflected IAP subscription, should upgrade");
           return {
             hasActiveSubscription: true,
             shouldUpdate: true,
-            reason: 'unreflected_iap_subscription'
+            reason: "unreflected_iap_subscription",
           };
         }
       }
 
-      const hasActive = dbSubscription.tier === 'premium' && dbSubscription.status === 'active';
+      const hasActive =
+        dbSubscription.tier === "premium" && dbSubscription.status === "active";
       return { hasActiveSubscription: hasActive, shouldUpdate: false };
-
     } catch (error) {
       console.error("❌ Error checking subscription status:", error);
       return { hasActiveSubscription: false, shouldUpdate: false };
@@ -412,20 +459,22 @@ const loadProducts = async () => {
   // Simple status check - just check database
   const checkSubscriptionStatus = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return { hasActiveSubscription: false };
 
-      const { default: subscriptionService } = await import("./subscriptionService");
-      const subscription = await subscriptionService.getUserSubscription(user.id);
-      
-      const hasActive = subscription.tier === 'premium' && subscription.status === 'active';
-      
-      console.log("📊 Subscription status:", {
-        tier: subscription.tier,
-        status: subscription.status,
-        hasActive
-      });
+      const { default: subscriptionService } = await import(
+        "./subscriptionService"
+      );
+      const subscription = await subscriptionService.getUserSubscription(
+        user.id
+      );
 
+      const hasActive =
+        subscription.tier === "premium" && subscription.status === "active";
+
+    
       return { hasActiveSubscription: hasActive };
     } catch (error) {
       console.error("❌ Error checking status:", error);
@@ -458,7 +507,8 @@ const loadProducts = async () => {
     // Convenience methods
     purchaseSubscription: purchaseProduct,
     purchaseConsumable: purchaseProduct,
-    areProductsLoaded: () => connected && (products.length > 0 || subscriptions.length > 0),
+    areProductsLoaded: () =>
+      connected && (products.length > 0 || subscriptions.length > 0),
   };
 };
 

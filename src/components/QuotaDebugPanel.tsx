@@ -57,7 +57,7 @@ export const QuotaDebugPanel: React.FC = () => {
           <Text style={styles.sectionTitle}>Subscription</Text>
           <Text style={styles.debugText}>Tier: {subscription?.tier || 'unknown'}</Text>
           <Text style={styles.debugText}>Status: {subscription?.status || 'unknown'}</Text>
-          <Text style={styles.debugText}>Product: {subscription?.product_id || 'none'}</Text>
+          <Text style={styles.debugText}>Product: {subscription?.productId || 'none'}</Text>
           <Text style={styles.debugText}>Period End: {subscription?.current_period_end || 'none'}</Text>
         </View>
 

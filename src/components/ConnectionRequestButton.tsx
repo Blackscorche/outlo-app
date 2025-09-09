@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import { useQuotaManager } from '../hooks/useQuotaManager';
 import { useNavigation } from '@react-navigation/native';
+import { useToast } from '../contexts/ToastContext';
 
 interface ConnectionRequestButtonProps {
   targetUserId: string;
@@ -16,61 +17,44 @@ export const ConnectionRequestButton: React.FC<ConnectionRequestButtonProps> = (
 }) => {
   const { useConnectionRequest, canUseConnectionRequest, loading } = useQuotaManager();
   const navigation = useNavigation();
+  const { showToast } = useToast();
   
   const handleConnectionRequest = async () => {
     // Check if user can send connection request
     const canSend = await canUseConnectionRequest();
     if (!canSend) {
-      Alert.alert(
-        'No Connection Requests Left',
-        'You have no connection requests remaining. Would you like to purchase more or upgrade to Premium?',
-        [
-          { text: 'Not Now', style: 'cancel' },
-          { 
-            text: 'Get More', 
-            style: 'default', 
-            onPress: () => {
-              // Navigate to subscription screen
-              navigation.navigate('Subscription' as never);
-            }
-          }
-        ]
-      );
+      showToast({
+        type: 'connection_request',
+        title: 'No Connection Requests Left',
+        message: 'Tap to get more connection requests',
+        senderName: 'LoveMap',
+        onPress: () => navigation.navigate('Subscription' as never),
+      });
       return;
     }
 
-    // Confirm connection request
-    Alert.alert(
-      'Send Connection Request',
-      `Send a connection request to ${targetUserName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Send',
-          style: 'default',
-          onPress: async () => {
-            // Use the connection request
-            const success = await useConnectionRequest(false); // Don't show default alert
-            
-            if (success) {
-              Alert.alert(
-                'Request Sent! 💕',
-                `Your connection request has been sent to ${targetUserName}.`
-              );
-              
-              // Here you would call your API to actually send the connection request
-              // await sendConnectionRequestAPI(targetUserId);
-              
-            } else {
-              Alert.alert(
-                'Failed to Send',
-                'Unable to send connection request. Please try again.'
-              );
-            }
-          }
-        }
-      ]
-    );
+    // Use the connection request immediately (with visual feedback)
+    const success = await useConnectionRequest(false); // Don't show default alert
+    
+    if (success) {
+      showToast({
+        type: 'connection_request',
+        title: 'Request Sent! 💕',
+        message: `Your connection request has been sent to ${targetUserName}`,
+        senderName: targetUserName,
+      });
+      
+      // Here you would call your API to actually send the connection request
+      // await sendConnectionRequestAPI(targetUserId);
+      
+    } else {
+      showToast({
+        type: 'connection_request',
+        title: 'Unable to Send',
+        message: 'Failed to send connection request. Please try again.',
+        senderName: 'LoveMap',
+      });
+    }
   };
 
   return (
