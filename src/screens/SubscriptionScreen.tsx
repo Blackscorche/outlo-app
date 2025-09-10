@@ -279,7 +279,7 @@ console.log(iap.availablePurchases,subscription,"iap.availablePurchasess")
         
         showInfo(
           "Switch Subscription Plan",
-          `You're currently on Premium ${currentPlan}. Switching to Premium ${newPlan} will:\n\n• Start your new ${newPlan} subscription immediately\n• Your current ${currentPlan} subscription will continue until ${new Date(subscription?.current_period_end || '').toLocaleDateString()}\n• No double billing - you'll only pay for the new plan going forward\n\nProceed with switching to ${productName}?`,
+          `You're currently on Premium ${currentPlan}. Switching to Premium ${newPlan} will:\n\n${productId.includes("yearly") ? "• You'll be charged immediately for the yearly plan\n• You'll get a prorated refund for unused time on your monthly plan\n• Your new yearly subscription starts right away\n• Benefits still renew monthly (10 requests, 3 impressions each month)" : "• Your monthly subscription will start at your next renewal date\n• You'll continue with your current yearly plan until then\n• No immediate charge - billing happens at renewal"}\n\nProceed with switching to ${productName}?`,
           "info",
           async () => {
             try {
@@ -690,16 +690,13 @@ console.log(iap.availablePurchases,subscription,"iap.availablePurchasess")
                   disabled={!iap.connected || loading || (isCurrentPlan && !isCancelledButActive)}
                 >
                   {isCurrentPlan && (
-                    <View style={styles.currentPlanBadge}>
-                      <Text style={styles.currentPlanText}>
-                        {isCancelledButActive ? "ENDS" : "CURRENT"}
+                    <View style={isCancelledButActive ? styles.activeUntilBadge : styles.currentPlanBadge}>
+                      <Text style={isCancelledButActive ? styles.activeUntilText : styles.currentPlanText}>
+                        {isCancelledButActive ? "ACTIVE UNTIL" : "CURRENT"}
                       </Text>
                       {isCancelledButActive && (
-                        <Text style={styles.expiryText}>
-                          {new Date(subscription?.current_period_end || '').toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
+                        <Text style={styles.activeUntilDate}>
+                          {new Date(subscription?.current_period_end || '').toLocaleDateString()}
                         </Text>
                       )}
                     </View>
@@ -762,16 +759,13 @@ console.log(iap.availablePurchases,subscription,"iap.availablePurchasess")
                   disabled={!iap.connected || loading || (isCurrentPlan && !isCancelledButActive)}
                 >
                   {isCurrentPlan ? (
-                    <View style={styles.currentPlanBadge}>
-                      <Text style={styles.currentPlanText}>
-                        {isCancelledButActive ? "ENDS" : "CURRENT"}
+                    <View style={isCancelledButActive ? styles.activeUntilBadge : styles.currentPlanBadge}>
+                      <Text style={isCancelledButActive ? styles.activeUntilText : styles.currentPlanText}>
+                        {isCancelledButActive ? "ACTIVE UNTIL" : "CURRENT"}
                       </Text>
                       {isCancelledButActive && (
-                        <Text style={styles.expiryText}>
-                          {new Date(subscription?.current_period_end || '').toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
+                        <Text style={styles.activeUntilDate}>
+                          {new Date(subscription?.current_period_end || '').toLocaleDateString()}
                         </Text>
                       )}
                     </View>
@@ -796,7 +790,10 @@ console.log(iap.availablePurchases,subscription,"iap.availablePurchasess")
                         • All Premium features
                       </Text>
                       <Text style={styles.featureItem}>
-                        • Save money annually
+                        • Benefits renewed every month
+                      </Text>
+                      <Text style={styles.featureItem}>
+                        • Save money with yearly billing
                       </Text>
                     </View>
                   </View>
@@ -1349,6 +1346,36 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: theme.fontSize.xs,
     fontWeight: "700",
+  },
+  activeUntilBadge: {
+    position: "absolute",
+    top: -12,
+    right: 20,
+    backgroundColor: theme.colors.success,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 6,
+    borderRadius: theme.borderRadius.md,
+    minWidth: 85,
+    shadowColor: theme.colors.success,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  activeUntilText: {
+    color: "white",
+    fontSize: 8,
+    fontWeight: "700",
+    textAlign: "center",
+    letterSpacing: 0.5,
+  },
+  activeUntilDate: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: 2,
+    opacity: 0.9,
   },
 });
 
