@@ -33,6 +33,11 @@ yarn-error.*
 .env*.local
 .env
 
+# Google service account credentials
+*-service-account*.json
+lovemap-*.json
+google-credentials*.json
+
 # typescript
 *.tsbuildinfo
 *.aab
