@@ -86,6 +86,13 @@
             "kotlinVersion": "2.1.20"
           }
         }
+      ],
+      [
+        "react-native-maps",
+        {
+          "iosGoogleMapsApiKey": "AIzaSyACvyzzNdarbci_i_HYUH9s6Dl3TsFSZY0",
+          "androidGoogleMapsApiKey": "AIzaSyACvyzzNdarbci_i_HYUH9s6Dl3TsFSZY0"
+        }
       ]
     ],
     "extra": {
