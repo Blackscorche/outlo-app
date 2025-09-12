@@ -139,10 +139,16 @@ export default function HomeScreen({ navigation, route }: any) {
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const [mapKey, setMapKey] = useState(0); // Force map re-render when needed
   const [isMapInteracting, setIsMapInteracting] = useState(false); // Track user interaction
+  const [locationUpdateCount, setLocationUpdateCount] = useState(0); // Force marker re-render
   const mapRef = useRef<MapView>(null);
   
   // Extract values from settings context
   const { location } = settings;
+
+  // Force refresh markers (useful for Android rendering issues)  
+  const forceRefreshMarkers = () => {
+    setLocationUpdateCount(prev => prev + 1);
+  };
   
   // Handle focus location from navigation params
   useEffect(() => {
@@ -545,6 +551,7 @@ export default function HomeScreen({ navigation, route }: any) {
 
       
       setNearbyUsers(usersWithUnreadCounts);
+      setLocationUpdateCount(prev => prev + 1); // Force re-render like FindEvents
     } catch (error) {
       console.error('HomeScreenTest: Error in fetchNearbyUsers:', error);
     }
@@ -733,7 +740,6 @@ export default function HomeScreen({ navigation, route }: any) {
       </SafeAreaView>
     );
   }
-
   if (locationError) {
     return (
       <SafeAreaView style={styles.container}>
@@ -837,13 +843,14 @@ export default function HomeScreen({ navigation, route }: any) {
             isLocationEnabled && isVisible ? location : null
           ).map((user) => (
             <Marker
-              key={user.id}
+              key={`current-location-${user.id}-${locationUpdateCount}`}
               coordinate={{
                 latitude: user.current_latitude,
                 longitude: user.current_longitude + (user.longitude_offset || 0),
               }}
               title={user.name || 'User'}
               description={user.isCurrentUser ? "Your location" : `Age: ${user.age || 'Unknown'}`}
+              tracksViewChanges={false}
               onPress={() => {
                 if (!user.isCurrentUser) {
                   navigation.navigate('UserProfile', { userId: user.id });
@@ -1132,6 +1139,8 @@ export default function HomeScreen({ navigation, route }: any) {
                   // Fetch fresh data with updated statuses
                   await fetchNearbyUsers();
                   await fetchCheckIns();
+                  // Force refresh markers
+                  forceRefreshMarkers();
                   Alert.alert('Refreshed', 'Map and user statuses have been updated');
                 } else {
                   Alert.alert('Location Off', 'Please turn on location to refresh');
