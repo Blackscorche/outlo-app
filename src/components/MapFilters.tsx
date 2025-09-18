@@ -39,7 +39,7 @@ export default function MapFilters({ visible, onClose, filters, onFiltersChange 
       genderPreference: 'Everyone' as const,
       maxDistance: 50,
       minAge: 18,
-      maxAge: 65,
+      maxAge: 100,
     };
     setLocalFilters(defaultFilters);
     onFiltersChange(defaultFilters);
@@ -121,7 +121,7 @@ export default function MapFilters({ visible, onClose, filters, onFiltersChange 
                 <Slider
                   style={styles.slider}
                   minimumValue={18}
-                  maximumValue={65}
+                  maximumValue={100}
                   value={localFilters.minAge}
                   onValueChange={(value) => {
                     const newMinAge = Math.round(value);
@@ -140,7 +140,7 @@ export default function MapFilters({ visible, onClose, filters, onFiltersChange 
                 <Slider
                   style={styles.slider}
                   minimumValue={18}
-                  maximumValue={65}
+                  maximumValue={100}
                   value={localFilters.maxAge}
                   onValueChange={(value) => {
                     const newMaxAge = Math.round(value);
