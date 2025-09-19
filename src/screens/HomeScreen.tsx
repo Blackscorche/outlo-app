@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   Platform,
   TouchableOpacity,
-  Linking,
   Image,
   AppState,
   AppStateStatus,
