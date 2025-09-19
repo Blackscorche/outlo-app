@@ -65,6 +65,7 @@
     "scheme": "lovemap",
     
     "plugins": [
+      "expo-notifications",
       [
         "expo-location",
         {
