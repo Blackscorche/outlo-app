@@ -659,6 +659,18 @@ class SubscriptionService {
     return { referral_code: `LM${userId.substring(0, 8).toUpperCase()}` };
   }
 
+  // Check if user can send first impression
+  async canSendFirstImpression(userId: string): Promise<boolean> {
+    try {
+      const quotas = await this.getUserQuotas(userId);
+      const totalAvailable = (quotas.first_impressions_remaining || 0) + (quotas.first_impressions_purchased || 0);
+      return totalAvailable > 0;
+    } catch (error) {
+      console.error("❌ Error checking first impression availability:", error);
+      return false;
+    }
+  }
+
   // Helper method
   private isSubscription(productId: string): boolean {
     return productId.includes('monthly') || productId.includes('yearly') || productId.includes('premium');
