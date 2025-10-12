@@ -34,6 +34,7 @@ interface UserLocation {
   interests?: string[];
   is_online?: boolean;
   last_seen?: string;
+  show_on_map?: boolean;
   unreadCount?: number;
   isCurrentUser?: boolean;
   offsetIndex?: number;
@@ -377,7 +378,6 @@ export default function HomeScreen({ navigation, route }: any) {
           .from('blocked_users')
           .select('blocker_id, blocked_id')
           .or(`blocker_id.eq.${user.id},blocked_id.eq.${user.id}`);
-        
         const blockedUserIds = new Set<string>();
         blockedUsers?.forEach(b => {
           if (b.blocker_id === user.id) {
@@ -393,7 +393,6 @@ export default function HomeScreen({ navigation, route }: any) {
           .select('id, current_latitude, current_longitude, name, age, gender, bio, photos, interests, is_online, last_seen, show_on_map, location')
           .neq('id', user.id)
           .limit(50); // Limit to prevent too many results
-        
         // Exclude blocked users
         if (blockedUserIds.size > 0) {
           query = query.not('id', 'in', `(${Array.from(blockedUserIds).join(',')})`);
@@ -405,7 +404,6 @@ export default function HomeScreen({ navigation, route }: any) {
           console.error('Error fetching users:', error);
           return;
         }
-        
         setNearbyUsers(profiles || []);
       } catch (error) {
         console.error('Error fetching users without location:', error);
@@ -458,7 +456,7 @@ export default function HomeScreen({ navigation, route }: any) {
         query = query.not('id', 'in', `(${Array.from(blockedUserIds).join(',')})`);
       }
 
-      // Apply gender filter
+      // Apply gender filter - debug logging
       if (activeFilters.gender !== 'all') {
         query = query.eq('gender', activeFilters.gender);
       }
@@ -477,8 +475,8 @@ export default function HomeScreen({ navigation, route }: any) {
 
       // Filter by distance only - show ALL users regardless of last_seen time
       const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
-      const currentLat = location.coords.latitude;
-      const currentLng = location.coords.longitude;
+      const currentLat = location?.coords.latitude || 0;
+      const currentLng = location?.coords.longitude || 0;
       
       const filteredByDistance = (data || []).filter(user => {
         if (!user.current_latitude || !user.current_longitude) return false;
@@ -493,9 +491,8 @@ export default function HomeScreen({ navigation, route }: any) {
           Math.sin(dLon/2) * Math.sin(dLon/2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         const distance = R * c;
-        
         return distance <= activeFilters.distance;
-      });
+      });   
       
       // Update is_online status and calculate unread counts
       const usersWithUnreadCounts = await Promise.allSettled(
@@ -507,6 +504,22 @@ export default function HomeScreen({ navigation, route }: any) {
           } else {
             nearbyUser.is_online = false;
           }
+          
+          // Refresh user photos to catch any missing photos after signup
+          try {
+            const { data: freshProfile } = await supabase
+              .from('profiles')
+              .select('photos')
+              .eq('id', nearbyUser.id)
+              .single();
+            
+            if (freshProfile && freshProfile.photos) {
+              nearbyUser.photos = freshProfile.photos;
+            }
+          } catch (photoError) {
+            console.log('Could not refresh photos for user:', nearbyUser.id);
+          }
+          
           try {
             // Check if there's a chat room with this user
             const { data: chatRoom } = await supabase
@@ -549,6 +562,45 @@ export default function HomeScreen({ navigation, route }: any) {
       );
 
       
+      // Check for users who sent connection requests but might not be visible
+      try {
+        const { data: connectionRequests } = await supabase
+          .from('connection_requests')
+          .select('sender_id')
+          .eq('receiver_id', user.id)
+          .eq('status', 'pending');
+        
+        if (connectionRequests && connectionRequests.length > 0) {
+          console.log(`Found ${connectionRequests.length} pending connection requests`);
+          
+          // Get profiles of connection request senders
+          const senderIds = connectionRequests.map(req => req.sender_id);
+          const { data: senderProfiles } = await supabase
+            .from('profiles')
+            .select('id, name, current_latitude, current_longitude, gender, age, photos')
+            .in('id', senderIds);
+          
+          // Add connection request senders to nearby users if they're not already there
+          senderProfiles?.forEach(sender => {
+            if (sender && !usersWithUnreadCounts.find(u => u.id === sender.id)) {
+              console.log('Adding connection request sender to nearby users:', sender.name);
+              usersWithUnreadCounts.push({
+                id: sender.id,
+                name: sender.name,
+                current_latitude: sender.current_latitude || 0,
+                current_longitude: sender.current_longitude || 0,
+                gender: sender.gender,
+                age: sender.age,
+                photos: sender.photos,
+                is_online: false,
+                unreadCount: 0,
+              });
+            }
+          });
+        }
+      } catch (requestError) {
+        console.log('Could not fetch connection requests:', requestError);
+      }
       setNearbyUsers(usersWithUnreadCounts);
       setLocationUpdateCount(prev => prev + 1); // Force re-render like FindEvents
     } catch (error) {
@@ -826,7 +878,7 @@ export default function HomeScreen({ navigation, route }: any) {
                 return false;
               }
               
-              // Don't show on map if they opted out
+             // Don't show on map if they opted out
               if (user.show_on_map === false) return false;
               
               // Only show users who have been active in the last 15 minutes on the map
@@ -840,10 +892,11 @@ export default function HomeScreen({ navigation, route }: any) {
             }),
             isLocationEnabled && isVisible ? currentUserProfile : null,
             isLocationEnabled && isVisible ? location : null
-          ).map((user) => (
-            <Marker
-              key={`current-location-${user.id}-${locationUpdateCount}`}
-              coordinate={{
+          ).map((user) => {
+            return(
+              <Marker
+                key={`current-location-${user.id}-${locationUpdateCount}`}
+                coordinate={{
                 latitude: user.current_latitude,
                 longitude: user.current_longitude + (user.longitude_offset || 0),
               }}
@@ -870,7 +923,7 @@ export default function HomeScreen({ navigation, route }: any) {
                       { 
                         borderColor: highlightedUserId === user.id 
                           ? '#FFD700' 
-                          : (user.gender === 'male' ? '#FF1744' : '#2196F3'),
+                          : (user.gender === 'male' ? '#2196F3' : '#FF1744'),
                         borderWidth: highlightedUserId === user.id ? 4 : 3
                       }
                     ]}
@@ -879,10 +932,10 @@ export default function HomeScreen({ navigation, route }: any) {
                   <View style={[
                     user.isCurrentUser ? styles.userMarker : styles.marker, 
                     { 
-                      backgroundColor: user.gender === 'male' ? '#FF1744' : '#2196F3',
+                      backgroundColor: user.gender === 'male' ? '#2196F3' : '#FF1744',
                       borderColor: highlightedUserId === user.id 
                         ? '#FFD700' 
-                        : (user.gender === 'male' ? '#FF1744' : '#2196F3'),
+                        : (user.gender === 'male' ? '#2196F3' : '#FF1744'),
                       borderWidth: highlightedUserId === user.id ? 4 : 3
                     }
                   ]}>
@@ -897,8 +950,8 @@ export default function HomeScreen({ navigation, route }: any) {
                 ]} />
               </View>
             </Marker>
-          ))}
-          
+          )})}
+
           {/* Check-in markers - only show when check-ins are activated */}
           {showCheckInsOnly && checkIns.map((checkIn) => (
             <Marker

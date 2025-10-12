@@ -344,10 +344,9 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const updateFilters = async (newFilters: any) => {
     try {
       const updatedFilters = {
-        gender: newFilters.genderPreference === 'Everyone' ? 'all' :
-               newFilters.genderPreference === 'Men' ? 'male' : 'female',
-        ageRange: [newFilters.minAge, newFilters.maxAge],
-        distance: newFilters.maxDistance,
+        gender: (newFilters.genderPreference === 'Men' ? 'male' : 'female') as 'male' | 'female', // Only male or female now
+        ageRange: [18, 100] as [number, number], // Fixed age range
+        distance: newFilters.maxDistance as number,
       };
       
       setSettings(prev => ({ ...prev, activeFilters: updatedFilters }));

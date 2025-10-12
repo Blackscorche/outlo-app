@@ -36,7 +36,7 @@ export default function MapFilters({ visible, onClose, filters, onFiltersChange 
 
   const resetFilters = () => {
     const defaultFilters = {
-      genderPreference: 'Everyone' as const,
+      genderPreference: 'Men' as const,
       maxDistance: 50,
       minAge: 18,
       maxAge: 100,
@@ -68,7 +68,7 @@ export default function MapFilters({ visible, onClose, filters, onFiltersChange 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Show me</Text>
             <View style={styles.optionsContainer}>
-              {['Everyone', 'Men', 'Women'].map((option) => (
+              {['Men', 'Women'].map((option) => (
                 <TouchableOpacity
                   key={option}
                   style={[
@@ -101,7 +101,7 @@ export default function MapFilters({ visible, onClose, filters, onFiltersChange 
               onValueChange={(value) => updateFilter('maxDistance', Math.round(value))}
               minimumTrackTintColor={theme.colors.primary}
               maximumTrackTintColor={theme.colors.gray[300]}
-              thumbStyle={styles.sliderThumb}
+
             />
             <View style={styles.sliderLabels}>
               <Text style={styles.sliderLabel}>1 km</Text>
@@ -109,51 +109,14 @@ export default function MapFilters({ visible, onClose, filters, onFiltersChange 
             </View>
           </View>
 
-          {/* Age Range */}
+          {/* Age Range - Fixed */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              Age: {localFilters.minAge} - {localFilters.maxAge}
+              Age: Fixed range (18 - 100)
             </Text>
-            
-            <View style={styles.ageContainer}>
-              <View style={styles.ageSliderContainer}>
-                <Text style={styles.ageLabel}>Min Age: {localFilters.minAge}</Text>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={18}
-                  maximumValue={100}
-                  value={localFilters.minAge}
-                  onValueChange={(value) => {
-                    const newMinAge = Math.round(value);
-                    updateFilter('minAge', newMinAge);
-                    if (newMinAge > localFilters.maxAge) {
-                      updateFilter('maxAge', newMinAge);
-                    }
-                  }}
-                  minimumTrackTintColor={theme.colors.primary}
-                  maximumTrackTintColor={theme.colors.gray[300]}
-                />
-              </View>
-              
-              <View style={styles.ageSliderContainer}>
-                <Text style={styles.ageLabel}>Max Age: {localFilters.maxAge}</Text>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={18}
-                  maximumValue={100}
-                  value={localFilters.maxAge}
-                  onValueChange={(value) => {
-                    const newMaxAge = Math.round(value);
-                    updateFilter('maxAge', newMaxAge);
-                    if (newMaxAge < localFilters.minAge) {
-                      updateFilter('minAge', newMaxAge);
-                    }
-                  }}
-                  minimumTrackTintColor={theme.colors.primary}
-                  maximumTrackTintColor={theme.colors.gray[300]}
-                />
-              </View>
-            </View>
+            <Text style={styles.ageDisabledText}>
+              Age filtering has been disabled. All ages (18-100) are shown.
+            </Text>
           </View>
         </View>
 
@@ -270,5 +233,12 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  ageDisabledText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 16,
   },
 });
