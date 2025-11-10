@@ -87,7 +87,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
   } | null>(null);
 
   const userId = route?.params?.userId;
-
+console.log(profile,"profile")
   // Memoize timeline posts for better performance
   const timelinePosts = useMemo(() => 
     timeline.filter(item => item.type === 'post'), 
@@ -158,10 +158,10 @@ const UserProfileScreen = ({ navigation, route }: any) => {
     
     // Check if we already loaded data for this user recently (within 5 seconds)
     const now = Date.now();
+
     if (lastLoadedUserIdRef.current === userId && 
         dataCache.current && 
         (now - dataCache.current.timestamp) < 5000) {
-      console.log('=== UserProfileScreen: Using cached data ===');
       setProfile(dataCache.current.profile);
       setConnectionStatus(dataCache.current.connectionStatus);
       setIsConnected(dataCache.current.isConnected);

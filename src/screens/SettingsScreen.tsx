@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Switch,
   Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -88,6 +89,91 @@ const SettingsScreen = ({ navigation }) => {
               }
               await supabase.auth.signOut();
             }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: () => {
+            // Second confirmation
+            Alert.alert(
+              'Final Confirmation',
+              'This will permanently delete your account and all associated data. Type DELETE to confirm.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Confirm Delete',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      setLoading(true);
+                      const { data: { user } } = await supabase.auth.getUser();
+                      
+                      if (!user) {
+                        Alert.alert('Error', 'User not found');
+                        return;
+                      }
+
+                      // Call the delete account function
+                      const { error: deleteError } = await supabase.functions.invoke('delete-account', {
+                        body: { userId: user.id }
+                      });
+
+                      if (deleteError) {
+                        console.error('Error deleting account:', deleteError);
+                        Alert.alert(
+                          'Account Deletion',
+                          'We were unable to automatically delete your account. Please contact support at support@lovemapapp.com to complete your account deletion request.',
+                          [
+                            { 
+                              text: 'Email Support', 
+                              onPress: () => {
+                                const email = 'support@lovemapapp.com';
+                                const subject = 'Account Deletion Request';
+                                const body = `Please delete my account (User ID: ${user.id})`;
+                                const url = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                                Linking.openURL(url);
+                              }
+                            },
+                            { text: 'OK' }
+                          ]
+                        );
+                        return;
+                      }
+
+                      // Clear local data
+                      await clearStoredSettings();
+                      
+                      // Sign out
+                      await supabase.auth.signOut();
+                      
+                      Alert.alert(
+                        'Account Deleted',
+                        'Your account has been successfully deleted. We hope to see you again in the future!'
+                      );
+                    } catch (error) {
+                      console.error('Error deleting account:', error);
+                      Alert.alert(
+                        'Error',
+                        'Failed to delete account. Please contact support at support@lovemapapp.com for assistance.'
+                      );
+                    } finally {
+                      setLoading(false);
+                    }
+                  },
+                },
+              ]
+            );
           },
         },
       ]
@@ -282,6 +368,16 @@ const SettingsScreen = ({ navigation }) => {
             <View style={styles.accountItemLeft}>
               <Ionicons name="card" size={24} color={theme.colors.primary} />
               <Text style={styles.accountItemText}>Manage Subscription</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.accountItem}
+            onPress={handleDeleteAccount}
+          >
+            <View style={styles.accountItemLeft}>
+              <Ionicons name="trash-outline" size={24} color={theme.colors.error} />
+              <Text style={[styles.accountItemText, { color: theme.colors.error }]}>Delete Account</Text>
             </View>
             <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
           </TouchableOpacity>

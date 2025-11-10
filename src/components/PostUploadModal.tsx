@@ -10,13 +10,14 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
+  ActionSheetIOS,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { theme } from '../styles/theme';
 import { supabase } from '../integrations/supabase/client';
-import { showImagePickerOptions, showVideoPickerOptions } from '../utils/imagePicker';
 
 interface PostUploadModalProps {
   visible: boolean;
@@ -30,24 +31,95 @@ const PostUploadModal = ({ visible, onClose, onPostCreated }: PostUploadModalPro
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  const pickMedia = async (type: 'photo' | 'video') => {
-    if (type === 'photo') {
-      showImagePickerOptions(
+  const pickMediaFromGallery = async (type: 'photo' | 'video') => {
+    try {
+      // Request media library permissions
+      const mediaPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (mediaPermission.status !== 'granted') {
+        Alert.alert('Permission Denied', `Media library permission is required to ${type === 'photo' ? 'select photos' : 'select videos'}`);
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: type === 'photo' 
+          ? ImagePicker.MediaTypeOptions.Images 
+          : ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: true,
+        aspect: type === 'photo' ? [1, 1] : undefined,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setMediaUri(result.assets[0].uri);
+        setMediaType(type);
+      }
+    } catch (error) {
+      console.error('Error picking from gallery:', error);
+      Alert.alert('Error', 'Failed to select media from gallery');
+    }
+  };
+
+  const pickMediaFromCamera = async (type: 'photo' | 'video') => {
+    try {
+      // Request camera permissions
+      const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
+      if (cameraPermission.status !== 'granted') {
+        Alert.alert('Permission Denied', `Camera permission is required to ${type === 'photo' ? 'take photos' : 'record videos'}`);
+        return;
+      }
+
+      // For Android, also check media library permissions
+      const mediaPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (mediaPermission.status !== 'granted') {
+        Alert.alert('Permission Denied', 'Media library permission is required');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: type === 'photo' 
+          ? ImagePicker.MediaTypeOptions.Images 
+          : ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: true,
+        aspect: type === 'photo' ? [1, 1] : undefined,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setMediaUri(result.assets[0].uri);
+        setMediaType(type);
+      }
+    } catch (error) {
+      console.error('Error using camera:', error);
+      Alert.alert('Error', 'Failed to use camera');
+    }
+  };
+
+  const showMediaOptions = (type: 'photo' | 'video') => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
         {
-          allowsEditing: true,
-          aspect: [1, 1],
-          quality: 0.8,
+          options: ['Cancel', 'Take Photo/Video', 'Choose from Library'],
+          cancelButtonIndex: 0,
         },
-        (uri) => {
-          setMediaUri(uri);
-          setMediaType(type);
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            pickMediaFromCamera(type);
+          } else if (buttonIndex === 2) {
+            pickMediaFromGallery(type);
+          }
         }
       );
     } else {
-      showVideoPickerOptions((uri) => {
-        setMediaUri(uri);
-        setMediaType(type);
-      });
+      // For Android, show a simple alert
+      Alert.alert(
+        `Select ${type === 'photo' ? 'Photo' : 'Video'}`,
+        'Choose an option',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Camera', onPress: () => pickMediaFromCamera(type) },
+          { text: 'Gallery', onPress: () => pickMediaFromGallery(type) },
+        ]
+      );
     }
   };
 
@@ -97,7 +169,7 @@ const PostUploadModal = ({ visible, onClose, onPostCreated }: PostUploadModalPro
 
           // Create post record
           const { error: postError } = await supabase
-            .from('posts')
+            .from('posts' as any)
             .insert({
               user_id: user.id,
               media_url: publicUrl,
@@ -166,14 +238,14 @@ const PostUploadModal = ({ visible, onClose, onPostCreated }: PostUploadModalPro
             <View style={styles.mediaOptions}>
               <TouchableOpacity 
                 style={styles.mediaOption}
-                onPress={() => pickMedia('photo')}
+                onPress={() => showMediaOptions('photo')}
               >
                 <Ionicons name="image" size={40} color={theme.colors.primary} />
                 <Text style={styles.mediaOptionText}>Photo</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.mediaOption}
-                onPress={() => pickMedia('video')}
+                onPress={() => showMediaOptions('video')}
               >
                 <Ionicons name="videocam" size={40} color={theme.colors.primary} />
                 <Text style={styles.mediaOptionText}>Video</Text>

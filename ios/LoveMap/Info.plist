@@ -54,11 +54,11 @@
     <key>NSLocationAlwaysUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your location</string>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to use your location</string>
+    <string>LoveMap needs your location to display your position on the interactive map and help you discover nearby users. For example, when you open the map, your pin will appear at your current location, and you'll see other users within your area. Your location is also used when you post photos or check in at places to share where you are with your connections.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to save photos to your photo library</string>
+    <string>LoveMap needs permission to save photos to your library. For example, you can save photos from posts you've created or photos you've received from other users to your device's photo library.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>The app accesses your photos to let you share them with your connections.</string>
     <key>SKStoreProductParameterITunesItemIdentifier</key>
