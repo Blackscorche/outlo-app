@@ -708,6 +708,9 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                     <Text style={styles.planOptionPrice}>
                       {monthlyData.price}/month
                     </Text>
+                    <Text style={styles.planDuration}>
+                      Length: 1 month • Auto-renews monthly
+                    </Text>
                     <View style={styles.planFeatures}>
                       <Text style={styles.featureItem}>
                         • 10 connection requests/month
@@ -784,6 +787,9 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                     </Text>
                     <Text style={styles.planOptionPrice}>
                       {yearlyData.price}/year
+                    </Text>
+                    <Text style={styles.planDuration}>
+                      Length: 12 months • Auto-renews yearly
                     </Text>
                     <View style={styles.planFeatures}>
                       <Text style={styles.featureItem}>
@@ -938,6 +944,74 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
             );
           })()}
         </View>
+
+        {/* Apple Required: Subscription Details Box - Moved to bottom */}
+        <View style={styles.subscriptionInfoBox}>
+          <Text style={styles.subscriptionInfoTitle}>📋 Auto-Renewable Subscription Details</Text>
+          
+          <View style={styles.subscriptionInfoDivider} />
+          
+          {/* Monthly Subscription Details */}
+          <View style={styles.subscriptionDetailBlock}>
+            <Text style={styles.subscriptionDetailTitle}>Premium Monthly Subscription</Text>
+            <View style={styles.subscriptionInfoItem}>
+              <Ionicons name="time-outline" size={14} color={theme.colors.primary} />
+              <Text style={styles.subscriptionInfoText}>
+                <Text style={styles.subscriptionBold}>Duration:</Text> 1 month (30 days)
+              </Text>
+            </View>
+            <View style={styles.subscriptionInfoItem}>
+              <Ionicons name="pricetag-outline" size={14} color={theme.colors.primary} />
+              <Text style={styles.subscriptionInfoText}>
+                <Text style={styles.subscriptionBold}>Price:</Text> {iap.getFormattedPrice("lovemap_premium_monthly")} per month
+              </Text>
+            </View>
+            <View style={styles.subscriptionInfoItem}>
+              <Ionicons name="star-outline" size={14} color={theme.colors.primary} />
+              <Text style={styles.subscriptionInfoText}>
+                <Text style={styles.subscriptionBold}>Content/Services:</Text> 10 connection requests + 3 first impressions monthly + unlimited invisible mode access
+              </Text>
+            </View>
+            <View style={styles.subscriptionInfoItem}>
+              <Ionicons name="sync-outline" size={14} color={theme.colors.primary} />
+              <Text style={styles.subscriptionInfoText}>
+                <Text style={styles.subscriptionBold}>Renewal:</Text> Automatically renews every month unless cancelled 24 hours before period ends
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.subscriptionInfoDivider} />
+          
+          {/* Yearly Subscription Details */}
+          <View style={styles.subscriptionDetailBlock}>
+            <Text style={styles.subscriptionDetailTitle}>Premium Yearly Subscription</Text>
+            <View style={styles.subscriptionInfoItem}>
+              <Ionicons name="time-outline" size={14} color={theme.colors.primary} />
+              <Text style={styles.subscriptionInfoText}>
+                <Text style={styles.subscriptionBold}>Duration:</Text> 12 months (365 days)
+              </Text>
+            </View>
+            <View style={styles.subscriptionInfoItem}>
+              <Ionicons name="pricetag-outline" size={14} color={theme.colors.primary} />
+              <Text style={styles.subscriptionInfoText}>
+                <Text style={styles.subscriptionBold}>Price:</Text> {iap.getFormattedPrice("lovemap_premium_yearly")} per year (save 20%)
+              </Text>
+            </View>
+            <View style={styles.subscriptionInfoItem}>
+              <Ionicons name="star-outline" size={14} color={theme.colors.primary} />
+              <Text style={styles.subscriptionInfoText}>
+                <Text style={styles.subscriptionBold}>Content/Services:</Text> 10 connection requests + 3 first impressions monthly + unlimited invisible mode access
+              </Text>
+            </View>
+            <View style={styles.subscriptionInfoItem}>
+              <Ionicons name="sync-outline" size={14} color={theme.colors.primary} />
+              <Text style={styles.subscriptionInfoText}>
+                <Text style={styles.subscriptionBold}>Renewal:</Text> Automatically renews every year unless cancelled 24 hours before period ends
+              </Text>
+            </View>
+          </View>
+        </View>
+
         {/* Debug Panel (Development Only) */}
         <QuotaDebugPanel />
 
@@ -1197,6 +1271,12 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     marginBottom: theme.spacing.sm,
   },
+  planDuration: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.sm,
+    fontStyle: 'italic',
+  },
   planFeatures: {
     gap: 4,
   },
@@ -1373,6 +1453,73 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 2,
     opacity: 0.9,
+  },
+  legalLinks: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.sm,
+  },
+  legalLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
+  legalLinkText: {
+    flex: 1,
+    fontSize: theme.fontSize.base,
+    color: theme.colors.text,
+    fontWeight: "500",
+  },
+  subscriptionDisclaimer: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.md,
+    lineHeight: 18,
+  },
+  subscriptionInfoBox: {
+    backgroundColor: theme.colors.primary + '15',
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    marginHorizontal:theme.spacing.md
+  },
+  subscriptionInfoTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+  },
+  subscriptionInfoDivider: {
+    height: 1,
+    backgroundColor: theme.colors.primary + '20',
+    marginVertical: theme.spacing.sm,
+  },
+  subscriptionDetailBlock: {
+    marginBottom: theme.spacing.xs,
+  },
+  subscriptionDetailTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.primary,
+    marginBottom: 6,
+  },
+  subscriptionBold: {
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  subscriptionInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginVertical: 4,
+    gap: 6,
+  },
+  subscriptionInfoText: {
+    flex: 1,
+    fontSize: 11,
+    color: theme.colors.text,
+    lineHeight: 16,
   },
 });
 

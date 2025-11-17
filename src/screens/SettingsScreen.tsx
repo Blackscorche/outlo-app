@@ -381,6 +381,54 @@ const SettingsScreen = ({ navigation }) => {
             </View>
             <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
           </TouchableOpacity>
+
+          {/* Terms of Use */}
+          <TouchableOpacity 
+            style={styles.accountItem}
+            onPress={() => {
+              const url = 'https://www.lovemap.biz/terms';
+              Linking.canOpenURL(url).then(supported => {
+                if (supported) {
+                  Linking.openURL(url);
+                } else {
+                  Alert.alert('Unable to open link', 'Please visit our website: https://www.lovemap.biz/terms');
+                }
+              }).catch(err => {
+                console.error('Error opening Terms URL', err);
+                Alert.alert('Error', 'Unable to open Terms link at this time');
+              });
+            }}
+          >
+            <View style={styles.accountItemLeft}>
+              <Ionicons name="document-text-outline" size={24} color={theme.colors.primary} />
+              <Text style={styles.accountItemText}>Terms of Use</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+
+          {/* Privacy Policy */}
+          <TouchableOpacity 
+            style={styles.accountItem}
+            onPress={() => {
+              const url = 'https://www.lovemap.biz/privacy';
+              Linking.canOpenURL(url).then(supported => {
+                if (supported) {
+                  Linking.openURL(url);
+                } else {
+                  Alert.alert('Unable to open link', 'Please visit our website: https://www.lovemap.biz/privacy');
+                }
+              }).catch(err => {
+                console.error('Error opening Privacy URL', err);
+                Alert.alert('Error', 'Unable to open Privacy link at this time');
+              });
+            }}
+          >
+            <View style={styles.accountItemLeft}>
+              <Ionicons name="shield-checkmark-outline" size={24} color={theme.colors.primary} />
+              <Text style={styles.accountItemText}>Privacy Policy</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -388,7 +436,7 @@ const SettingsScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         <View style={styles.versionInfo}>
-          <Text style={styles.versionText}>LoveMap v1.0.0</Text>
+          <Text style={styles.versionText}>LoveMap v1.0</Text>
         </View>
       </ScrollView>
       
