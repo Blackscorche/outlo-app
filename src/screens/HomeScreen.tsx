@@ -140,6 +140,7 @@ export default function HomeScreen({ navigation, route }: any) {
   const [mapKey, setMapKey] = useState(0); // Force map re-render when needed
   const [isMapInteracting, setIsMapInteracting] = useState(false); // Track user interaction
   const [locationUpdateCount, setLocationUpdateCount] = useState(0); // Force marker re-render
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false); // Control location permission modal
   const mapRef = useRef<MapView>(null);
   
   // Extract values from settings context
@@ -977,82 +978,81 @@ export default function HomeScreen({ navigation, route }: any) {
           ))}
         </MapView>
         
-        {/* Dark overlay and prompt when location is disabled */}
-        {!isLocationEnabled && (
+        {/* Dark overlay and prompt when user tries to enable location */}
+        {showLocationPrompt && (
           <View style={styles.locationDisabledOverlay}>
             <View style={styles.locationPrompt}>
               <Ionicons name="location-outline" size={48} color="#FF1744" />
-              <Text style={styles.locationPromptTitle}>Location is Off</Text>
+              <Text style={styles.locationPromptTitle}>Enable Location</Text>
               <Text style={styles.locationPromptText}>
                 Turn on your location to see who is online nearby
               </Text>
-              <TouchableOpacity
-                style={styles.enableLocationButton}
-                onPress={async () => {
-                  // Clear users first to prevent showing all users
-                  setNearbyUsers([]);
-                  setCheckIns([]);
-                  
-                  await updateLocationEnabled(true);
-                  if (location && mapRef.current) {
-                    mapRef.current.animateToRegion({
-                      latitude: location.coords.latitude,
-                      longitude: location.coords.longitude,
-                      latitudeDelta: 0.0922,
-                      longitudeDelta: 0.0421,
-                    }, 1000);
-                    // Fetch nearby users with a small delay to ensure state is updated
-                    setTimeout(() => {
-                      fetchNearbyUsers();
-                      fetchCheckIns();
-                    }, 150);
-                  }
-                }}
-              >
-                <Text style={styles.enableLocationButtonText}>Enable Location</Text>
-              </TouchableOpacity>
+              <View style={styles.locationPromptButtons}>
+                <TouchableOpacity
+                  style={styles.enableLocationButton}
+                  onPress={async () => {
+                    // Close modal immediately
+                    setShowLocationPrompt(false);
+                    
+                    // Clear users first to prevent showing all users
+                    setNearbyUsers([]);
+                    setCheckIns([]);
+                    
+                    await updateLocationEnabled(true);
+                    
+                    if (location && mapRef.current) {
+                      mapRef.current.animateToRegion({
+                        latitude: location.coords.latitude,
+                        longitude: location.coords.longitude,
+                        latitudeDelta: 0.0922,
+                        longitudeDelta: 0.0421,
+                      }, 1000);
+                      // Fetch nearby users with a small delay to ensure state is updated
+                      setTimeout(() => {
+                        fetchNearbyUsers();
+                        fetchCheckIns();
+                      }, 150);
+                    }
+                  }}
+                >
+                  <Text style={styles.enableLocationButtonText}>Enable Location</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.declineLocationButton}
+                  onPress={() => {
+                    // Close the modal
+                    setShowLocationPrompt(false);
+                  }}
+                >
+                  <Text style={styles.declineLocationButtonText}>Not Now</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        )}
-        
-        {/* Control buttons */}
+        )}        {/* Control buttons */}
         <View style={styles.controlsContainer}>
           {/* Location toggle */}
           <TouchableOpacity
             style={[styles.controlButton, !isLocationEnabled && styles.controlButtonDisabled]}
             onPress={async () => {
               try {
-                const newLocationEnabled = !isLocationEnabled;
+                if (!isLocationEnabled) {
+                  // When location is OFF and user tries to turn it ON, show the modal
+                  setShowLocationPrompt(true);
+                  return;
+                }
+                
+                // When location is ON and user tries to turn it OFF
+                const newLocationEnabled = false;
                 
                 // Update the setting
                 await updateLocationEnabled(newLocationEnabled);
                 
-                if (!newLocationEnabled) {
-                  // When turning location OFF:
-                  // 1. Clear all nearby users immediately
-                  setNearbyUsers([]);
-                  // 2. Clear check-ins
-                  setCheckIns([]);
-                } else if (location && mapRef.current) {
-                  // When turning location ON:
-                  // 1. Clear users first to prevent showing all users
-                  setNearbyUsers([]);
-                  setCheckIns([]);
-                  
-                  // 2. Center map on user's location with animation
-                  mapRef.current.animateToRegion({
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude,
-                    latitudeDelta: 0.0922,
-                    longitudeDelta: 0.0421,
-                  }, 1000);
-                  
-                  // 3. Fetch nearby users and check-ins with a small delay to ensure state is updated
-                  setTimeout(() => {
-                    fetchNearbyUsers();
-                    fetchCheckIns();
-                  }, 150);
-                }
+                // When turning location OFF:
+                // 1. Clear all nearby users immediately
+                setNearbyUsers([]);
+                // 2. Clear check-ins
+                setCheckIns([]);
               } catch (error) {
                 console.error('Error toggling location:', error);
                 Alert.alert('Error', 'Failed to toggle location. Please try again.');
@@ -1525,6 +1525,24 @@ const styles = StyleSheet.create({
   },
   enableLocationButtonText: {
     color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  locationPromptButtons: {
+    flexDirection: 'row',
+    gap: 15,
+    marginTop: 10,
+  },
+  declineLocationButton: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: '#FF1744',
+  },
+  declineLocationButtonText: {
+    color: '#FF1744',
     fontSize: 16,
     fontWeight: '600',
   },

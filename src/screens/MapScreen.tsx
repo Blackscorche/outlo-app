@@ -13,10 +13,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
 
-const MapScreen = ({ navigation }) => {
-  const [location, setLocation] = useState(null);
+const MapScreen = ({ navigation }: { navigation: any }) => {
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<Array<{ id: string; latitude: number; longitude: number; name: string }>>([]);
   const [region, setRegion] = useState({
     latitude: 37.78825,
     longitude: -122.4324,
@@ -25,8 +25,19 @@ const MapScreen = ({ navigation }) => {
   });
 
   useEffect(() => {
-    requestLocationPermission();
+    initializeMap();
   }, []);
+
+  const initializeMap = async () => {
+    try {
+      // Don't automatically request permissions - let Settings control this
+      // Just load the map with default location
+      setLoading(false);
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      setLoading(false);
+    }
+  };
 
   const requestLocationPermission = async () => {
     try {
@@ -34,10 +45,9 @@ const MapScreen = ({ navigation }) => {
       if (status !== 'granted') {
         Alert.alert(
           'Permission Denied',
-          'Location permission is required to use the map feature.'
+          'Location permission is required to show your location on the map. You can enable location sharing in Settings.'
         );
-        setLoading(false);
-        return;
+        return false;
       }
 
       const location = await Location.getCurrentPositionAsync({});
@@ -50,18 +60,18 @@ const MapScreen = ({ navigation }) => {
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       });
-      setLoading(false);
+      return true;
     } catch (error) {
       console.error('Error getting location:', error);
-      setLoading(false);
+      return false;
     }
   };
 
-  const handleMarkerPress = (user) => {
+  const handleMarkerPress = (user: { id: string; latitude: number; longitude: number; name: string }) => {
     navigation.navigate('UserProfile', { userId: user.id });
   };
 
-  const centerOnUserLocation = () => {
+  const centerOnUserLocation = async () => {
     if (location) {
       setRegion({
         latitude: location.latitude,
@@ -69,6 +79,12 @@ const MapScreen = ({ navigation }) => {
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       });
+    } else {
+      // Try to get location if not available
+      const success = await requestLocationPermission();
+      if (!success) {
+        Alert.alert('Location Required', 'Please enable location sharing in Settings to center the map on your location.');
+      }
     }
   };
 
