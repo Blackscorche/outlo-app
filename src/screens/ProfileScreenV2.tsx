@@ -121,6 +121,7 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
   const loadProfile = async () => {
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
+      console.log("🚀 ~ loadProfile ~ currentUser:", currentUser)
       if (!currentUser) return;
 
       const profileId = userId || currentUser.id;

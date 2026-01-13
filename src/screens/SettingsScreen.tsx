@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Switch,
   Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -88,6 +89,91 @@ const SettingsScreen = ({ navigation }) => {
               }
               await supabase.auth.signOut();
             }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: () => {
+            // Second confirmation
+            Alert.alert(
+              'Final Confirmation',
+              'This will permanently delete your account and all associated data. Type DELETE to confirm.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Confirm Delete',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      setLoading(true);
+                      const { data: { user } } = await supabase.auth.getUser();
+                      
+                      if (!user) {
+                        Alert.alert('Error', 'User not found');
+                        return;
+                      }
+
+                      // Call the delete account function
+                      const { error: deleteError } = await supabase.functions.invoke('delete-account', {
+                        body: { userId: user.id }
+                      });
+
+                      if (deleteError) {
+                        console.error('Error deleting account:', deleteError);
+                        Alert.alert(
+                          'Account Deletion',
+                          'We were unable to automatically delete your account. Please contact support at support@lovemapapp.com to complete your account deletion request.',
+                          [
+                            { 
+                              text: 'Email Support', 
+                              onPress: () => {
+                                const email = 'support@lovemapapp.com';
+                                const subject = 'Account Deletion Request';
+                                const body = `Please delete my account (User ID: ${user.id})`;
+                                const url = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                                Linking.openURL(url);
+                              }
+                            },
+                            { text: 'OK' }
+                          ]
+                        );
+                        return;
+                      }
+
+                      // Clear local data
+                      await clearStoredSettings();
+                      
+                      // Sign out
+                      await supabase.auth.signOut();
+                      
+                      Alert.alert(
+                        'Account Deleted',
+                        'Your account has been successfully deleted. We hope to see you again in the future!'
+                      );
+                    } catch (error) {
+                      console.error('Error deleting account:', error);
+                      Alert.alert(
+                        'Error',
+                        'Failed to delete account. Please contact support at support@lovemapapp.com for assistance.'
+                      );
+                    } finally {
+                      setLoading(false);
+                    }
+                  },
+                },
+              ]
+            );
           },
         },
       ]
@@ -285,6 +371,64 @@ const SettingsScreen = ({ navigation }) => {
             </View>
             <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
           </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.accountItem}
+            onPress={handleDeleteAccount}
+          >
+            <View style={styles.accountItemLeft}>
+              <Ionicons name="trash-outline" size={24} color={theme.colors.error} />
+              <Text style={[styles.accountItemText, { color: theme.colors.error }]}>Delete Account</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+
+          {/* Terms of Use */}
+          <TouchableOpacity 
+            style={styles.accountItem}
+            onPress={() => {
+              const url = 'https://www.lovemap.biz/terms';
+              Linking.canOpenURL(url).then(supported => {
+                if (supported) {
+                  Linking.openURL(url);
+                } else {
+                  Alert.alert('Unable to open link', 'Please visit our website: https://www.lovemap.biz/terms');
+                }
+              }).catch(err => {
+                console.error('Error opening Terms URL', err);
+                Alert.alert('Error', 'Unable to open Terms link at this time');
+              });
+            }}
+          >
+            <View style={styles.accountItemLeft}>
+              <Ionicons name="document-text-outline" size={24} color={theme.colors.primary} />
+              <Text style={styles.accountItemText}>Terms of Use</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+
+          {/* Privacy Policy */}
+          <TouchableOpacity 
+            style={styles.accountItem}
+            onPress={() => {
+              const url = 'https://www.lovemap.biz/privacy';
+              Linking.canOpenURL(url).then(supported => {
+                if (supported) {
+                  Linking.openURL(url);
+                } else {
+                  Alert.alert('Unable to open link', 'Please visit our website: https://www.lovemap.biz/privacy');
+                }
+              }).catch(err => {
+                console.error('Error opening Privacy URL', err);
+                Alert.alert('Error', 'Unable to open Privacy link at this time');
+              });
+            }}
+          >
+            <View style={styles.accountItemLeft}>
+              <Ionicons name="shield-checkmark-outline" size={24} color={theme.colors.primary} />
+              <Text style={styles.accountItemText}>Privacy Policy</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -292,7 +436,7 @@ const SettingsScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         <View style={styles.versionInfo}>
-          <Text style={styles.versionText}>LoveMap v1.0.0</Text>
+          <Text style={styles.versionText}>LoveMap v1.0</Text>
         </View>
       </ScrollView>
       

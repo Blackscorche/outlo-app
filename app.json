@@ -13,15 +13,21 @@
     },
     "ios": {
       "supportsTablet": true,
+      "deploymentTarget": "16.0",
+      "newArchEnabled": true,
       "infoPlist": {
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location",
-        "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location",
-        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera to take photos",
-        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photo library to select photos",
-        "NSPhotoLibraryAddUsageDescription": "Allow $(PRODUCT_NAME) to save photos to your photo library",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "LoveMap needs your location to display your position on the interactive map and help you discover nearby users. For example, when you open the map, your pin will appear at your current location, and you'll see other users within your area. Your location is also used when you post photos or check in at places to share where you are with your connections.",
+        "NSLocationWhenInUseUsageDescription": "LoveMap needs your location to display your position on the interactive map and help you discover nearby users. For example, when you open the map, your pin will appear at your current location, and you'll see other users within your area. Your location is also used when you post photos or check in at places to share where you are with your connections.",
+        "NSCameraUsageDescription": "LoveMap needs access to your camera to capture photos for your posts and profile. For example, you can take a photo directly from the app to share a moment on your profile or use it as your profile picture.",
+        "NSPhotoLibraryUsageDescription": "LoveMap needs access to your photo library to select photos for your posts and profile. For example, you can choose an existing photo from your library to share on your profile or set as your profile picture.",
+        "NSPhotoLibraryAddUsageDescription": "LoveMap needs permission to save photos to your library. For example, you can save photos from posts you've created or photos you've received from other users to your device's photo library.",
         "SKStoreProductParameterITunesItemIdentifier": "Enable in-app purchases"
       },
-      "bundleIdentifier": "com.lovemapapp.mobile"
+      "bundleIdentifier": "com.lovemapapp.mobile",
+      "config": {
+        "googleMapsApiKey": "AIzaSyACvyzzNdarbci_i_HYUH9s6Dl3TsFSZY0"
+      },
+      "appleTeamId": "Z26K83743Y"
     },
     "android": {
       "adaptiveIcon": {
@@ -63,7 +69,6 @@
       "favicon": "./assets/favicon.png"
     },
     "scheme": "lovemap",
-    
     "plugins": [
       "expo-notifications",
       [
@@ -86,13 +91,7 @@
           "android": {
             "kotlinVersion": "2.1.20"
           }
-        }
-      ],
-      [
-        "react-native-maps",
-        {
-          "iosGoogleMapsApiKey": "AIzaSyACvyzzNdarbci_i_HYUH9s6Dl3TsFSZY0",
-          "androidGoogleMapsApiKey": "AIzaSyACvyzzNdarbci_i_HYUH9s6Dl3TsFSZY0"
+          
         }
       ]
     ],

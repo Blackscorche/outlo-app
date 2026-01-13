@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { 
@@ -70,7 +69,7 @@ export const useLocationEffects = ({
         
         // Get high precision location when app comes back to foreground
         getHighPrecisionLocation()
-          .then((locationData) => {
+          .then((locationData: any) => {
             console.log('🔍 Updated high precision location on foreground:', locationData);
             setUserLocation({ lat: locationData.lat, lng: locationData.lng });
             setHasRealLocation(true);
@@ -79,10 +78,10 @@ export const useLocationEffects = ({
               updateLocationInDatabase(user.id, locationData.lat, locationData.lng, true);
             }
           })
-          .catch((error) => {
+          .catch((error: any) => {
             console.log('🔍 Could not get high precision location, trying standard:', error);
             getCurrentLocation()
-              .then((newLocation) => {
+              .then((newLocation: any) => {
                 console.log('🔍 Standard location fallback:', newLocation);
                 setUserLocation(newLocation);
                 setHasRealLocation(true);
@@ -91,7 +90,7 @@ export const useLocationEffects = ({
                   updateLocationInDatabase(user.id, newLocation.lat, newLocation.lng, true);
                 }
               })
-              .catch((fallbackError) => {
+              .catch((fallbackError: any) => {
                 console.log('🔍 Could not get any location on foreground:', fallbackError);
                 if (isVisible) {
                   updateLocationInDatabase(user.id, userLocation.lat, userLocation.lng, true);
@@ -133,7 +132,7 @@ export const useLocationEffects = ({
       localStorage.removeItem('appBackgroundedAt');
       
       getHighPrecisionLocation()
-        .then((locationData) => {
+        .then((locationData: any) => {
           console.log('Successfully got high precision location:', locationData, 'accuracy:', locationData.accuracy + 'm');
           setUserLocation({ lat: locationData.lat, lng: locationData.lng });
           setHasRealLocation(true);
@@ -142,10 +141,10 @@ export const useLocationEffects = ({
             updateLocationInDatabase(user.id, locationData.lat, locationData.lng, true);
           }
         })
-        .catch((error) => {
+        .catch((error: any) => {
           console.log('Could not get high precision location, trying standard:', error);
           getCurrentLocation()
-            .then((newLocation) => {
+            .then((newLocation: any) => {
               console.log('Standard location fallback successful:', newLocation);
               setUserLocation(newLocation);
               setHasRealLocation(true);
@@ -154,7 +153,7 @@ export const useLocationEffects = ({
                 updateLocationInDatabase(user.id, newLocation.lat, newLocation.lng, true);
               }
             })
-            .catch((fallbackError) => {
+            .catch((fallbackError: any) => {
               console.log('Could not get any location, using default:', fallbackError);
               setHasRealLocation(false);
               
@@ -171,13 +170,18 @@ export const useLocationEffects = ({
     }
   }, [locationEnabled, user, isVisible]);
 
-  // Watch for location changes in web browsers
+  // Watch for location changes in web browsers (FOREGROUND ONLY - while app is active)
+  // This provides real-time location updates for distance calculation and map positioning
+  // Apple compliance: Location is watched ONLY when user has location enabled (manual opt-in)
+  // Automatic CHECK-INS are still prevented - users must manually check in via CheckInModal
   useEffect(() => {
     if (!locationEnabled || !user || !isVisible || !hasRealLocation || isMobileApp()) return;
 
     let watchId: number | null = null;
 
     if (navigator.geolocation) {
+      // Watch position ONLY while app is active (foreground location tracking)
+      // This is compliant with Apple guidelines for location-based apps
       watchId = navigator.geolocation.watchPosition(
         (position) => {
           const newLocation = {
@@ -185,7 +189,13 @@ export const useLocationEffects = ({
             lng: position.coords.longitude
           };
           console.log('🔍 Web location updated via watch (accuracy: ' + position.coords.accuracy + 'm):', newLocation);
+          
+          // Update location in memory for distance calculations and map display
           setUserLocation(newLocation);
+          
+          // Store in database for nearby user calculations
+          // Note: This is NOT an automatic check-in - it's just updating user's current position
+          // Check-ins are separate and must be done manually via CheckInModal
           updateLocationInDatabase(user.id, newLocation.lat, newLocation.lng, true);
         },
         (error) => {

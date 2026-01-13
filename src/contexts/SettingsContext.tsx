@@ -227,7 +227,11 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         try {
           let { status } = await Location.requestForegroundPermissionsAsync();
           if (status !== 'granted') {
-            throw new Error('Location permission denied');
+            // User declined location permission - this is allowed
+            // App should still function without location access
+            console.log('📍 Location permission declined by user - app continues without location');
+            setSettings(prev => ({ ...prev, isLocationEnabled: false }));
+            throw new Error('Location permission is required to enable location sharing. You can still use other app features without location access.');
           }
 
           const currentLocation = await Location.getCurrentPositionAsync({
@@ -344,10 +348,9 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const updateFilters = async (newFilters: any) => {
     try {
       const updatedFilters = {
-        gender: newFilters.genderPreference === 'Everyone' ? 'all' :
-               newFilters.genderPreference === 'Men' ? 'male' : 'female',
-        ageRange: [newFilters.minAge, newFilters.maxAge],
-        distance: newFilters.maxDistance,
+        gender: (newFilters.genderPreference === 'Men' ? 'male' : 'female') as 'male' | 'female', // Only male or female now
+        ageRange: [18, 100] as [number, number], // Fixed age range
+        distance: newFilters.maxDistance as number,
       };
       
       setSettings(prev => ({ ...prev, activeFilters: updatedFilters }));

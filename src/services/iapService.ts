@@ -70,7 +70,6 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
     hasActiveSubscriptions,
   } = useIAP({
     onPurchaseSuccess: async (purchase: Purchase) => {
-      console.log("🎉 Purchase successful:", purchase.productId);
 
       try {
         // 1. Get current user
@@ -128,36 +127,81 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
         showError("Purchase Failed", error.message);
       }
     },
+    onSyncError: (error: Error) => {
+      console.error("❌ IAP Sync Error:", error);
+    }
   });
 
   // Load products when connected
-  // Load products when connected - FIXED VERSION
+  // Load products when connected - FIXED VERSION with better error handling
   const loadProducts = async () => {
     if (!connected) {
-      console.log("IAP not connected yet");
+      console.log("❌ IAP not connected yet");
       return;
     }
 
     try {
+      console.log("📦 Loading products for platform:", Platform.OS);
+      console.log("📦 Product IDs to load:", IAP_PRODUCTS);
+      
+      // iOS-specific: Check if we're in sandbox mode
+      if (Platform.OS === 'ios') {
+        console.log("🍎 iOS - Make sure you're signed in with a Sandbox Test Account");
+        console.log("🍎 iOS - Products must be 'Ready for Sale' in App Store Connect");
+      }
+      
       // Load consumables first and wait for them
-      const consumableResult = await fetchProducts({
-        skus: IAP_PRODUCTS.consumables,
-        type: "inapp",
-      });
+      try {
+        const consumableProducts = await fetchProducts({
+          skus: IAP_PRODUCTS.consumables,
+          type: "inapp",
+        });
+        console.log("✅ Loaded consumables count:", products.length);
+        console.log("✅ Consumable IDs:", products.map(p => p.id));
+      } catch (consumableError) {
+        console.error("❌ Error loading consumables:", consumableError);
+      }
 
       // Load subscriptions and wait for them
-      const subscriptionResult = await fetchProducts({
-        skus: IAP_PRODUCTS.subscriptions,
-        type: "subs",
-      });
+      try {
+        const subscriptionProducts = await fetchProducts({
+          skus: IAP_PRODUCTS.subscriptions,
+          type: "subs",
+        });
+        console.log("✅ Loaded subscriptions count:", subscriptions.length);
+        console.log("✅ Subscription IDs:", subscriptions.map(s => s.id));
+        
+        // Check if subscriptions are empty (common iOS issue)
+        if (subscriptions.length === 0) {
+          console.error("⚠️ WARNING: No subscriptions loaded!");
+          console.error("⚠️ Possible causes:");
+          console.error("   1. Products not approved in App Store Connect (must be 'Ready for Sale')");
+          console.error("   2. Not using a Sandbox Test Account");
+          console.error("   3. Product IDs don't match App Store Connect");
+          console.error("   4. Signed Agreement not completed in App Store Connect");
+          console.error("   5. Banking info not set up in App Store Connect");
+        }
+      } catch (subscriptionError) {
+        console.error("❌ Error loading subscriptions:", subscriptionError);
+        console.error("❌ Error details:", JSON.stringify(subscriptionError, null, 2));
+      }
 
       // Add a small delay to ensure products are loaded
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
+      // Log loaded products for debugging
+      console.log("📱 All loaded products:", {
+        consumables: products.map(p => ({ id: p.id, title: p.title })),
+        subscriptions: subscriptions.map(s => ({ id: s.id, title: s.title })),
+        total: products.length + subscriptions.length
+      });
+
       // Process any pending purchases after loading products
       // await processPendingPurchases();
     } catch (error) {
-      console.error("❌ Error loading products:", error);
+      console.error("❌ Fatal error loading products:", error);
+      console.error("❌ Error type:", error instanceof Error ? error.name : typeof error);
+      console.error("❌ Error message:", error instanceof Error ? error.message : String(error));
     }
   };
 
@@ -363,8 +407,8 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
 
 
       // Check expiry first (most reliable)
-      if (dbSubscription.current_period_end) {
-        const expiryDate = new Date(dbSubscription.current_period_end);
+      if (dbSubscription.currentPeriodEnd) {
+        const expiryDate = new Date(dbSubscription.currentPeriodEnd);
         const now = new Date();
 
         if (now > expiryDate && dbSubscription.status === "active") {
@@ -397,8 +441,8 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
 
         // IMPORTANT: Only downgrade if subscription has been cancelled for more than 24 hours
         // This accounts for Google Play's delay in updating availablePurchases
-        if (!hasActiveIAPSubscription && dbSubscription.current_period_end) {
-          const periodEnd = new Date(dbSubscription.current_period_end);
+        if (!hasActiveIAPSubscription && dbSubscription.currentPeriodEnd) {
+          const periodEnd = new Date(dbSubscription.currentPeriodEnd);
           const timeSincePeriodEnd = Date.now() - periodEnd.getTime();
           const oneDayInMs = 24 * 60 * 60 * 1000;
 
