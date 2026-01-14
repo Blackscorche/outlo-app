@@ -1029,7 +1029,8 @@ export default function HomeScreen({ navigation, route }: any) {
               </View>
             </View>
           </View>
-        )}        {/* Control buttons */}
+        )}
+        {/* Control buttons */}
         <View style={styles.controlsContainer}>
           {/* Location toggle */}
           <TouchableOpacity
