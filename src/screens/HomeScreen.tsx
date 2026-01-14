@@ -18,6 +18,7 @@ import { supabase } from '../integrations/supabase/client';
 import { Ionicons } from '@expo/vector-icons';
 import MapFilters from '../components/MapFilters';
 import NearbyUsersModal from '../components/NearbyUsersModal';
+import CheckInDetailModal from '../components/CheckInDetailModal';
 import { useSettings } from '../contexts/SettingsContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { useInAppNotifications } from '../hooks/useInAppNotifications';
@@ -57,12 +58,8 @@ const DEFAULT_LOCATION = {
 const getMarkerScale = (latitudeDelta: number) => {
   // Higher latitudeDelta = more zoomed out
   // Scale markers inversely with zoom
-  const minScale = 0.6;
-  const maxScale = 1.2;
-  
-  // Typical latitudeDelta ranges from 0.01 (zoomed in) to 10 (zoomed out)
-  const scaleFactor = Math.max(minScale, Math.min(maxScale, 1 - (latitudeDelta - 0.0922) * 0.5));
-  return scaleFactor;
+  // Keep scale at 1.0 to avoid Android marker clipping issues
+  return 1.0;
 };
 
 // Group all markers by location and calculate offsets for overlapping markers
@@ -130,6 +127,8 @@ export default function HomeScreen({ navigation, route }: any) {
   const [showNearbyUsers, setShowNearbyUsers] = useState(false);
   const [showCheckInsOnly, setShowCheckInsOnly] = useState(false);
   const [highlightedUserId, setHighlightedUserId] = useState<string | null>(null);
+  const [showCheckInDetail, setShowCheckInDetail] = useState(false);
+  const [selectedCheckIn, setSelectedCheckIn] = useState<any>(null);
   const [mapRegion, setMapRegion] = useState<{
     latitude: number;
     longitude: number;
@@ -348,7 +347,7 @@ export default function HomeScreen({ navigation, route }: any) {
     try {
       const { data, error } = await supabase
         .from('check_ins')
-        .select('*, profiles(id, name, photos)')
+        .select('*, profiles(id, name, photos, is_online, last_seen)')
         .eq('is_active', true)
         .gte('expires_at', new Date().toISOString());
 
@@ -823,6 +822,7 @@ export default function HomeScreen({ navigation, route }: any) {
           ref={mapRef}
           style={styles.map}
           provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+          googleRenderer="LEGACY"
           initialRegion={mapRegion}
           onRegionChangeComplete={(region) => {
             // Only update if user is not actively interacting
@@ -903,7 +903,7 @@ export default function HomeScreen({ navigation, route }: any) {
               }}
               title={user.name || 'User'}
               description={user.isCurrentUser ? "Your location" : `Age: ${user.age || 'Unknown'}`}
-              tracksViewChanges={false}
+              tracksViewChanges={true}
               onPress={() => {
                 if (!user.isCurrentUser) {
                   navigation.navigate('UserProfile', { userId: user.id });
@@ -912,41 +912,41 @@ export default function HomeScreen({ navigation, route }: any) {
               zIndex={100 + (user.offsetIndex || 0)}
             >
               <View style={[
-                styles.markerContainer,
-                { transform: [{ scale: getMarkerScale(mapRegion.latitudeDelta) }] },
+                { alignItems: 'center', justifyContent: 'center' },
                 highlightedUserId === user.id && styles.highlightedMarkerContainer
               ]}>
                 {user.photos && user.photos.length > 0 ? (
                   <Image
                     source={{ uri: user.photos[0] }}
-                    style={[
-                      user.isCurrentUser ? styles.userMarkerImage : styles.markerImage,
-                      { 
-                        borderColor: highlightedUserId === user.id 
-                          ? '#FFD700' 
-                          : (user.gender === 'male' ? '#2196F3' : '#FF1744'),
-                        borderWidth: highlightedUserId === user.id ? 4 : 3
-                      }
-                    ]}
+                    style={{
+                      width: 33,
+                      height: 33,
+                      borderRadius: 16.5,
+                      borderWidth: highlightedUserId === user.id ? 4 : 2,
+                      borderColor: highlightedUserId === user.id
+                        ? '#FFD700'
+                        : (user.gender === 'male' ? '#2196F3' : '#FF1744'),
+                    }}
                   />
                 ) : (
-                  <View style={[
-                    user.isCurrentUser ? styles.userMarker : styles.marker, 
-                    { 
-                      backgroundColor: user.gender === 'male' ? '#2196F3' : '#FF1744',
-                      borderColor: highlightedUserId === user.id 
-                        ? '#FFD700' 
-                        : (user.gender === 'male' ? '#2196F3' : '#FF1744'),
-                      borderWidth: highlightedUserId === user.id ? 4 : 3
-                    }
-                  ]}>
-                    <Ionicons name="person" size={20} color="white" />
+                  <View style={{
+                    width: 33,
+                    height: 33,
+                    borderRadius: 16.5,
+                    backgroundColor: user.gender === 'male' ? '#2196F3' : '#FF1744',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: highlightedUserId === user.id ? 4 : 0,
+                    borderColor: highlightedUserId === user.id ? '#FFD700' : 'transparent',
+                  }}>
+                    <Ionicons name="person" size={16} color="white" />
                   </View>
                 )}
+                {/* Current user pulse effect */}
                 {user.isCurrentUser && <View style={styles.userMarkerPulse} />}
                 {/* Online status indicator */}
                 <View style={[
-                  styles.onlineIndicator, 
+                  styles.onlineIndicator,
                   { backgroundColor: user.is_online ? '#4CAF50' : '#9E9E9E' }
                 ]} />
               </View>
@@ -964,14 +964,22 @@ export default function HomeScreen({ navigation, route }: any) {
               title={checkIn.location_name}
               description={checkIn.description || `${checkIn.profiles?.name} is here`}
               onPress={() => {
-                if (checkIn.profiles) {
-                  navigation.navigate('UserProfile', { userId: checkIn.profiles.id });
-                }
+                setSelectedCheckIn(checkIn);
+                setShowCheckInDetail(true);
               }}
             >
-              <View style={styles.checkInMarkerContainer}>
-                <View style={styles.checkInMarker}>
-                  <Ionicons name="location-sharp" size={18} color="white" />
+              <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{
+                  backgroundColor: '#FF1744',
+                  width: 33,
+                  height: 33,
+                  borderRadius: 16.5,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 2,
+                  borderColor: 'white',
+                }}>
+                  <Ionicons name="location-sharp" size={16} color="white" />
                 </View>
               </View>
             </Marker>
@@ -1245,7 +1253,7 @@ export default function HomeScreen({ navigation, route }: any) {
               // Update the map to show only the selected users
               setNearbyUsers(usersToShow);
               setShowNearbyUsers(false);
-              
+
               // Center map on first user if available
               if (usersToShow.length > 0 && usersToShow[0].current_latitude && usersToShow[0].current_longitude) {
                 setMapRegion({
@@ -1258,6 +1266,29 @@ export default function HomeScreen({ navigation, route }: any) {
             }}
           />
         )}
+
+        <CheckInDetailModal
+          visible={showCheckInDetail}
+          onClose={() => {
+            setShowCheckInDetail(false);
+            setSelectedCheckIn(null);
+          }}
+          checkIn={selectedCheckIn}
+          onViewProfile={async (targetUserId) => {
+            setShowCheckInDetail(false);
+            setSelectedCheckIn(null);
+
+            // Check if it's the current user's profile
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.id === targetUserId) {
+              // Navigate to own profile tab
+              navigation.navigate('Profile');
+            } else {
+              // Navigate to other user's profile
+              navigation.navigate('UserProfile', { userId: targetUserId });
+            }
+          }}
+        />
       </View>
     </SafeAreaView>
   );
@@ -1375,8 +1406,8 @@ const styles = StyleSheet.create({
   marker: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    borderWidth: 3,
+    borderRadius: 15,
+    borderWidth: 2,
     borderColor: 'white',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1389,8 +1420,8 @@ const styles = StyleSheet.create({
   markerImage: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    borderWidth: 3,
+    borderRadius: 15,
+    borderWidth: 2,
   },
   markerBadge: {
     position: 'absolute',
@@ -1447,10 +1478,10 @@ const styles = StyleSheet.create({
   },
   onlineIndicator: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 16,
-    height: 16,
+    bottom: -1,
+    right: -1,
+    width: 14,
+    height: 14,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: 'white',
@@ -1548,15 +1579,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   checkInMarkerContainer: {
-    padding: 8,
+    padding: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkInMarker: {
     backgroundColor: '#FF1744',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
