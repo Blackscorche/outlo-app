@@ -380,7 +380,7 @@ const ConnectionRequestsScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={commonStyles.title}>Connection Requests</Text>
+        <Text style={commonStyles.title}>Activity Partner Requests</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -406,7 +406,7 @@ const ConnectionRequestsScreen = ({ navigation }) => {
           onPress={() => setActiveTab('connected')}
         >
           <Text style={[styles.tabText, activeTab === 'connected' && styles.activeTabText]}>
-            Connected ({connectionsWithProfiles.length})
+            Partners ({connectionsWithProfiles.length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -414,13 +414,13 @@ const ConnectionRequestsScreen = ({ navigation }) => {
       {loading ? (
         <View style={commonStyles.centerContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Loading requests...</Text>
+          <Text style={styles.loadingText}>Loading partner requests...</Text>
         </View>
       ) : currentRequests.length === 0 ? (
         <View style={commonStyles.centerContainer}>
           <Ionicons name="people-outline" size={64} color={theme.colors.gray[300]} />
           <Text style={styles.emptyText}>
-            No {activeTab} requests
+            No {activeTab === 'connected' ? 'activity partners' : `${activeTab} requests`}
           </Text>
         </View>
       ) : (

@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import MapFilters from '../components/MapFilters';
 import NearbyUsersModal from '../components/NearbyUsersModal';
 import CheckInDetailModal from '../components/CheckInDetailModal';
+import { getActivityTag } from '../components/CheckInModal';
 import { useSettings } from '../contexts/SettingsContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { useInAppNotifications } from '../hooks/useInAppNotifications';
@@ -954,36 +955,41 @@ export default function HomeScreen({ navigation, route }: any) {
           )})}
 
           {/* Check-in markers - only show when check-ins are activated */}
-          {showCheckInsOnly && checkIns.map((checkIn) => (
-            <Marker
-              key={`checkin-${checkIn.id}`}
-              coordinate={{
-                latitude: checkIn.latitude,
-                longitude: checkIn.longitude,
-              }}
-              title={checkIn.location_name}
-              description={checkIn.description || `${checkIn.profiles?.name} is here`}
-              onPress={() => {
-                setSelectedCheckIn(checkIn);
-                setShowCheckInDetail(true);
-              }}
-            >
-              <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-                <View style={{
-                  backgroundColor: '#FF1744',
-                  width: 33,
-                  height: 33,
-                  borderRadius: 16.5,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderWidth: 2,
-                  borderColor: 'white',
-                }}>
-                  <Ionicons name="location-sharp" size={16} color="white" />
+          {showCheckInsOnly && checkIns.map((checkIn) => {
+            const activityTagInfo = getActivityTag(checkIn.activity_tag);
+            const markerIcon = activityTagInfo?.icon || 'location-sharp';
+
+            return (
+              <Marker
+                key={`checkin-${checkIn.id}`}
+                coordinate={{
+                  latitude: checkIn.latitude,
+                  longitude: checkIn.longitude,
+                }}
+                title={checkIn.location_name}
+                description={checkIn.description || `${checkIn.profiles?.name} is here`}
+                onPress={() => {
+                  setSelectedCheckIn(checkIn);
+                  setShowCheckInDetail(true);
+                }}
+              >
+                <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{
+                    backgroundColor: '#FF1744',
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 2,
+                    borderColor: 'white',
+                  }}>
+                    <Ionicons name={markerIcon.replace('-outline', '') as any} size={18} color="white" />
+                  </View>
                 </View>
-              </View>
-            </Marker>
-          ))}
+              </Marker>
+            );
+          })}
         </MapView>
         
         {/* Dark overlay and prompt when user tries to enable location */}

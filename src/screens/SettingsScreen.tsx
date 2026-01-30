@@ -326,13 +326,13 @@ const SettingsScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Discovery Filters</Text>
+          <Text style={styles.sectionTitle}>Activity Preferences</Text>
           <TouchableOpacity 
             style={styles.preferenceItem}
             onPress={() => setShowFilters(true)}
           >
             <View style={styles.preferenceInfo}>
-              <Text style={styles.preferenceTitle}>Gender Preference</Text>
+              <Text style={styles.preferenceTitle}>Prefer to connect with</Text>
               <Text style={styles.preferenceValue}>{genderPreference}</Text>
             </View>
             <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />

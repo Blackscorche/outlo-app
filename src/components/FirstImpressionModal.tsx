@@ -139,7 +139,7 @@ export const FirstImpressionModal: React.FC<FirstImpressionModalProps> = ({
 
         <View style={styles.content}>
           <Text style={styles.subtitle}>
-            Send a message to {receiverName} before they accept your connection request
+            Send a message to {receiverName} before they accept your partner request
           </Text>
 
           {!canSend && (

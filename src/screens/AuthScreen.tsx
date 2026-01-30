@@ -118,7 +118,7 @@ const AuthScreen = ({ navigation }) => {
       return false;
     }
     if (!profileData.lookingFor) {
-      Alert.alert('Error', 'Please specify what you\'re looking for');
+      Alert.alert('Error', 'Please specify who you prefer to connect with');
       return false;
     }
     if (profileData.interests.length < 3) {
@@ -496,7 +496,7 @@ const AuthScreen = ({ navigation }) => {
                   </View>
 
                   <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Looking For</Text>
+                    <Text style={styles.label}>Prefer to connect with</Text>
                     <View style={styles.optionsRow}>
                       {[
                         { display: 'Men', value: 'men' },
@@ -530,7 +530,7 @@ const AuthScreen = ({ navigation }) => {
                     <Text style={styles.label}>Bio</Text>
                     <TextInput
                       style={[styles.input, styles.bioInput]}
-                      placeholder="Tell us about yourself..."
+                      placeholder="What activities do you enjoy? What are you looking to do?"
                       placeholderTextColor={theme.colors.textSecondary}
                       value={profileData.bio}
                       onChangeText={(text) => updateProfileData('bio', text)}

@@ -208,7 +208,7 @@ export default function NearbyUsersModal({
         // Users are not connected
         Alert.alert(
           'Not Connected',
-          `You need to be connected with ${userName} to send messages. Send a connection request first.`,
+          `You need to be connected with ${userName} to send messages. Send a partner request first.`,
           [
             { text: 'Cancel', style: 'cancel' },
             {

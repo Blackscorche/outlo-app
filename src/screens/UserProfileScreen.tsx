@@ -461,8 +461,8 @@ console.log(profile,"profile")
           const hasFirstImpressionQuota = await checkFirstImpressionQuota(user.id, false);
           if (hasFirstImpressionQuota) {
             Alert.alert(
-              'No Connection Requests',
-              'You have no connection requests left, but you have first impressions available. Would you like to use a first impression instead?',
+              'No Partner Requests',
+              'You have no partner requests left, but you have first impressions available. Would you like to use a first impression instead?',
               [
                 { text: 'Cancel', style: 'cancel' },
                 { text: 'Use First Impression', onPress: () => handleConnect(true) },
@@ -472,8 +472,8 @@ console.log(profile,"profile")
             return;
           } else {
             Alert.alert(
-              'No Connection Requests',
-              'You have no connection requests remaining. Upgrade to Premium or purchase extras to send more requests.',
+              'No Partner Requests',
+              'You have no partner requests remaining. Upgrade to Premium or purchase extras to send more requests.',
               [
                 { text: 'Cancel', style: 'cancel' },
                 { text: 'View Plans', onPress: () => navigation.navigate('Subscription') },
@@ -510,13 +510,13 @@ console.log(profile,"profile")
       } else {
         // Revert status if request failed
         setConnectionStatus('none');
-        Alert.alert('Error', 'Failed to send connection request');
+        Alert.alert('Error', 'Failed to send partner request');
       }
     } catch (error) {
       console.error('Error sending connection request:', error);
       // Revert status on error
       setConnectionStatus('none');
-      Alert.alert('Error', 'Failed to send connection request');
+      Alert.alert('Error', 'Failed to send partner request');
     } finally {
       setIsConnecting(false);
     }

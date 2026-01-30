@@ -10,6 +10,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getActivityTag } from './CheckInModal';
 
 interface CheckInDetailModalProps {
   visible: boolean;
@@ -22,6 +23,7 @@ interface CheckInDetailModalProps {
     longitude: number;
     created_at: string;
     expires_at?: string;
+    activity_tag?: string;
     profiles?: {
       id: string;
       name: string;
@@ -86,10 +88,30 @@ const CheckInDetailModal: React.FC<CheckInDetailModalProps> = ({
               {/* Handle bar */}
               <View style={styles.handleBar} />
 
+              {/* Activity Tag Badge */}
+              {checkIn.activity_tag && (
+                <View style={styles.activityBadge}>
+                  <Ionicons
+                    name={getActivityTag(checkIn.activity_tag)?.icon || 'location'}
+                    size={16}
+                    color="#FF1744"
+                  />
+                  <Text style={styles.activityBadgeText}>
+                    {getActivityTag(checkIn.activity_tag)?.label || 'Activity'}
+                  </Text>
+                </View>
+              )}
+
               {/* Location Info */}
               <View style={styles.locationSection}>
                 <View style={styles.locationIcon}>
-                  <Ionicons name="location" size={24} color="#FF1744" />
+                  <Ionicons
+                    name={checkIn.activity_tag
+                      ? (getActivityTag(checkIn.activity_tag)?.icon || 'location')
+                      : 'location'}
+                    size={24}
+                    color="#FF1744"
+                  />
                 </View>
                 <View style={styles.locationInfo}>
                   <Text style={styles.locationName}>{checkIn.location_name}</Text>
@@ -202,6 +224,22 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 12,
     marginBottom: 20,
+  },
+  activityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFF0F3',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginBottom: 12,
+    gap: 6,
+  },
+  activityBadgeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF1744',
   },
   locationSection: {
     flexDirection: 'row',

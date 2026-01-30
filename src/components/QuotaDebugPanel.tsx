@@ -66,7 +66,7 @@ export const QuotaDebugPanel: React.FC = () => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Quotas</Text>
             
-            <Text style={styles.subTitle}>Connection Requests</Text>
+            <Text style={styles.subTitle}>Partner Requests</Text>
             <Text style={styles.debugText}>Remaining: {quotaDetails.connectionRequests.remaining}</Text>
             <Text style={styles.debugText}>Purchased: {quotaDetails.connectionRequests.purchased}</Text>
             <Text style={styles.debugText}>Total: {quotaDetails.connectionRequests.total}</Text>

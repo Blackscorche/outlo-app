@@ -49,13 +49,13 @@ export const QuotaOverview: React.FC = () => {
       </View>
 
       <View style={styles.quotasList}>
-        {/* Connection Requests */}
+        {/* Partner Requests */}
         <TouchableOpacity style={styles.quotaItem} onPress={navigateToSubscription}>
           <View style={styles.quotaIcon}>
             <Ionicons name="people" size={20} color={theme.colors.primary} />
           </View>
           <View style={styles.quotaInfo}>
-            <Text style={styles.quotaName}>Connection Requests</Text>
+            <Text style={styles.quotaName}>Partner Requests</Text>
             <Text style={styles.quotaDetails}>
               {quotaDetails.connectionRequests.total} available
               {quotaDetails.connectionRequests.purchased > 0 && 
