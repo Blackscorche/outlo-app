@@ -46,7 +46,7 @@ function MainTabs() {
 
     if (route.name === 'Home') {
       iconName = focused ? 'home' : 'home-outline';
-    } else if (route.name === 'Chat') {
+    } else if (route.name === 'Messages') {
       iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
       badgeCount = chatBadgeCount;
     } else if (route.name === 'Connections') {
@@ -87,7 +87,7 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Chat" component={ChatScreen} />
+      <Tab.Screen name="Messages" component={ChatScreen} />
       <Tab.Screen name="Connections" component={ConnectionRequestsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreenV2} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
@@ -105,7 +105,7 @@ function UserProfileWithTabs({ navigation, route }: any) {
 
     if (route.name === 'Home') {
       iconName = 'home-outline'; // Always show outline
-    } else if (route.name === 'Chat') {
+    } else if (route.name === 'Messages') {
       iconName = 'chatbubbles-outline'; // Always show outline
       badgeCount = chatBadgeCount;
     } else if (route.name === 'Connections') {
@@ -167,7 +167,7 @@ function UserProfileWithTabs({ navigation, route }: any) {
       })}
     >
       <Tab.Screen name="Home" component={EmptyComponent} />
-      <Tab.Screen name="Chat" component={EmptyComponent} />
+      <Tab.Screen name="Messages" component={EmptyComponent} />
       <Tab.Screen name="Connections" component={EmptyComponent} />
       <Tab.Screen name="Profile" component={EmptyComponent} />
       <Tab.Screen name="Settings" component={EmptyComponent} />

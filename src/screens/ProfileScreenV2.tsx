@@ -725,7 +725,7 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
                   style={styles.profileBioInput}
                   value={editingProfile?.bio || ''}
                   onChangeText={(text) => setEditingProfile({...editingProfile, bio: text})}
-                  placeholder="Tell us about yourself..."
+                  placeholder="What activities do you enjoy? What are you looking to do?"
                   multiline
                   numberOfLines={3}
                   maxLength={300}
@@ -761,6 +761,9 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
                 <View style={styles.interestsEditContainer}>
                   <Text style={styles.interestsEditTitle}>
                     Interests (Select at least 3) - {editingProfile?.interests?.length || 0} selected
+                  </Text>
+                  <Text style={styles.interestsEditDescription}>
+                    Select activities and interests to connect with like-minded people
                   </Text>
                   <View style={styles.interestsEditGrid}>
                     {INTERESTS_OPTIONS.map((interest) => (
@@ -1201,6 +1204,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: theme.colors.text,
+    marginBottom: 4,
+  },
+  interestsEditDescription: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
     marginBottom: 8,
   },
   interestsEditGrid: {
