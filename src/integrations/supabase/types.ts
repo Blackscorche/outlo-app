@@ -567,6 +567,143 @@ export type Database = {
         }
         Relationships: []
       }
+      activities: {
+        Row: {
+          id: string
+          creator_id: string
+          activity_type: string
+          title: string
+          description: string | null
+          location_name: string
+          latitude: number
+          longitude: number
+          scheduled_at: string
+          max_participants: number
+          current_participants: number
+          status: 'open' | 'full' | 'completed' | 'cancelled'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          creator_id: string
+          activity_type: string
+          title: string
+          description?: string | null
+          location_name: string
+          latitude: number
+          longitude: number
+          scheduled_at: string
+          max_participants?: number
+          current_participants?: number
+          status?: 'open' | 'full' | 'completed' | 'cancelled'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          creator_id?: string
+          activity_type?: string
+          title?: string
+          description?: string | null
+          location_name?: string
+          latitude?: number
+          longitude?: number
+          scheduled_at?: string
+          max_participants?: number
+          current_participants?: number
+          status?: 'open' | 'full' | 'completed' | 'cancelled'
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      activity_participants: {
+        Row: {
+          id: string
+          activity_id: string
+          user_id: string
+          status: 'joined' | 'left'
+          joined_at: string
+        }
+        Insert: {
+          id?: string
+          activity_id: string
+          user_id: string
+          status?: 'joined' | 'left'
+          joined_at?: string
+        }
+        Update: {
+          id?: string
+          activity_id?: string
+          user_id?: string
+          status?: 'joined' | 'left'
+          joined_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_participants_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      activity_comments: {
+        Row: {
+          id: string
+          activity_id: string
+          user_id: string
+          content: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          activity_id: string
+          user_id: string
+          content: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          activity_id?: string
+          user_id?: string
+          content?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_comments_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       verification_requests: {
         Row: {
           admin_notes: string | null

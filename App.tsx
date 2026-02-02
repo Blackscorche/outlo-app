@@ -33,6 +33,7 @@ import PostDetailScreen from './src/screens/PostDetailScreen';
 import SubscriptionScreen from './src/screens/SubscriptionScreen';
 import SubscriptionSuccessScreen from './src/screens/SubscriptionSuccessScreen';
 import ExtraPurchaseSuccessScreen from './src/screens/ExtraPurchaseSuccessScreen';
+import ActivitiesScreen from './src/screens/ActivitiesScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -46,6 +47,8 @@ function MainTabs() {
 
     if (route.name === 'Home') {
       iconName = focused ? 'home' : 'home-outline';
+    } else if (route.name === 'Activities') {
+      iconName = focused ? 'calendar' : 'calendar-outline';
     } else if (route.name === 'Messages') {
       iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
       badgeCount = chatBadgeCount;
@@ -87,6 +90,7 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Activities" component={ActivitiesScreen} />
       <Tab.Screen name="Messages" component={ChatScreen} />
       <Tab.Screen name="Connections" component={ConnectionRequestsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreenV2} />
@@ -105,6 +109,8 @@ function UserProfileWithTabs({ navigation, route }: any) {
 
     if (route.name === 'Home') {
       iconName = 'home-outline'; // Always show outline
+    } else if (route.name === 'Activities') {
+      iconName = 'calendar-outline'; // Always show outline
     } else if (route.name === 'Messages') {
       iconName = 'chatbubbles-outline'; // Always show outline
       badgeCount = chatBadgeCount;
@@ -167,6 +173,7 @@ function UserProfileWithTabs({ navigation, route }: any) {
       })}
     >
       <Tab.Screen name="Home" component={EmptyComponent} />
+      <Tab.Screen name="Activities" component={EmptyComponent} />
       <Tab.Screen name="Messages" component={EmptyComponent} />
       <Tab.Screen name="Connections" component={EmptyComponent} />
       <Tab.Screen name="Profile" component={EmptyComponent} />

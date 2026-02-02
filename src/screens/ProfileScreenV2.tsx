@@ -24,6 +24,9 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useConnectionRequests } from '../hooks/useConnectionRequests';
 import PostUploadModal from '../components/PostUploadModal';
 import CheckInModal from '../components/CheckInModal';
+import ActivityDetailModal from '../components/ActivityDetailModal';
+import { useActivities, Activity } from '../hooks/useActivities';
+import { getActivityType } from '../constants/activityTypes';
 
 interface TimelineItem {
   id: string;
@@ -68,6 +71,14 @@ const INTERESTS_OPTIONS = [
 const ProfileScreenV2 = ({ navigation, route }: any) => {
   const { settings } = useSettings();
   const { getConnectionStatus } = useConnectionRequests();
+  const {
+    joinActivity,
+    leaveActivity,
+    cancelActivity,
+    fetchComments,
+    addComment,
+    deleteComment,
+  } = useActivities();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [profile, setProfile] = useState<any>(null);
@@ -81,10 +92,14 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
   const [editingProfile, setEditingProfile] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [showAllInterests, setShowAllInterests] = useState(false);
+  const [userActivities, setUserActivities] = useState<Activity[]>([]);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [stats, setStats] = useState({
     posts: 0,
     connections: 0,
     checkIns: 0,
+    activities: 0,
   });
 
   const userId = route?.params?.userId;
@@ -110,7 +125,8 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
       cover_photo: null,
     });
     setTimeline([]);
-    setStats({ posts: 0, connections: 0, checkIns: 0 });
+    setUserActivities([]);
+    setStats({ posts: 0, connections: 0, checkIns: 0, activities: 0 });
   }, [userId]);
 
   // Load profile on mount and when userId changes
@@ -123,6 +139,8 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       console.log("🚀 ~ loadProfile ~ currentUser:", currentUser)
       if (!currentUser) return;
+
+      setCurrentUserId(currentUser.id);
 
       const profileId = userId || currentUser.id;
       const isOwn = profileId === currentUser.id;
@@ -180,11 +198,84 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
       // Load timeline
       await loadTimeline(profileId);
       await loadStats(profileId);
+      await loadUserActivities(profileId);
     } catch (error) {
       console.error('Error loading profile:', error);
       Alert.alert('Error', 'Failed to load profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadUserActivities = async (profileId: string) => {
+    try {
+      // Get activities created by the user
+      const { data: createdActivities, error: createdError } = await supabase
+        .from('activities')
+        .select(`
+          *,
+          creator:profiles!creator_id(id, name, photos)
+        `)
+        .eq('creator_id', profileId)
+        .order('scheduled_at', { ascending: false })
+        .limit(6);
+
+      if (createdError) throw createdError;
+
+      // Get activities the user has joined (but not created)
+      const { data: participations, error: partError } = await supabase
+        .from('activity_participants')
+        .select('activity_id')
+        .eq('user_id', profileId)
+        .eq('status', 'joined');
+
+      if (partError) throw partError;
+
+      let joinedActivities: any[] = [];
+      if (participations && participations.length > 0) {
+        const activityIds = participations.map(p => p.activity_id);
+        const { data: joined, error: joinedError } = await supabase
+          .from('activities')
+          .select(`
+            *,
+            creator:profiles!creator_id(id, name, photos)
+          `)
+          .in('id', activityIds)
+          .neq('creator_id', profileId)
+          .order('scheduled_at', { ascending: false })
+          .limit(6);
+
+        if (!joinedError && joined) {
+          joinedActivities = joined;
+        }
+      }
+
+      // Combine and fetch participants for all activities
+      const allActivities = [...(createdActivities || []), ...joinedActivities];
+      const activityIds = allActivities.map(a => a.id);
+
+      if (activityIds.length > 0) {
+        const { data: participants } = await supabase
+          .from('activity_participants')
+          .select(`
+            *,
+            user:profiles!user_id(id, name, photos)
+          `)
+          .in('activity_id', activityIds)
+          .eq('status', 'joined');
+
+        // Combine activities with their participants
+        const activitiesWithParticipants = allActivities.map(activity => ({
+          ...activity,
+          participants: (participants || []).filter(p => p.activity_id === activity.id),
+        }));
+
+        setUserActivities(activitiesWithParticipants);
+      } else {
+        setUserActivities([]);
+      }
+    } catch (error) {
+      console.error('Error loading user activities:', error);
     }
   };
 
@@ -258,10 +349,25 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
         .eq('user_id', profileId)
         .eq('is_active', true);
 
+      // Count activities created by user
+      const { count: activitiesCreatedCount } = await supabase
+        .from('activities')
+        .select('*', { count: 'exact', head: true })
+        .eq('creator_id', profileId)
+        .in('status', ['open', 'full']);
+
+      // Count activities user has joined
+      const { count: activitiesJoinedCount } = await supabase
+        .from('activity_participants')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', profileId)
+        .eq('status', 'joined');
+
       setStats({
         posts: postsCount || 0,
         connections: connectionsCount || 0,
         checkIns: checkInsCount || 0,
+        activities: (activitiesCreatedCount || 0) + (activitiesJoinedCount || 0),
       });
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -935,8 +1041,8 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
               <Text style={styles.statLabel}>Connections</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{stats.checkIns || 0}</Text>
-              <Text style={styles.statLabel}>Check-ins</Text>
+              <Text style={styles.statNumber}>{stats.activities || 0}</Text>
+              <Text style={styles.statLabel}>Activities</Text>
             </View>
           </View>
         </View>
@@ -966,6 +1072,91 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
           ) : (
             <View style={styles.emptyPosts}>
               <Text style={styles.emptyText}>No posts yet</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Activities Section */}
+        <View style={styles.activitiesSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Activities</Text>
+            {userActivities.length > 0 && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Activities')}
+              >
+                <Text style={styles.viewAllLink}>View All</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {userActivities.length > 0 ? (
+            <View style={styles.activitiesList}>
+              {userActivities.slice(0, 3).map((activity) => {
+                const activityTypeInfo = getActivityType(activity.activity_type);
+                const isCreator = activity.creator_id === profile?.id;
+                const spotsLeft = activity.max_participants - activity.current_participants;
+
+                return (
+                  <TouchableOpacity
+                    key={activity.id}
+                    style={styles.activityCard}
+                    onPress={() => setSelectedActivity(activity)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.activityIconContainer}>
+                      <Ionicons
+                        name={(activityTypeInfo?.icon || 'calendar') as any}
+                        size={24}
+                        color={theme.colors.primary}
+                      />
+                    </View>
+                    <View style={styles.activityInfo}>
+                      <Text style={styles.activityTitle} numberOfLines={1}>
+                        {activity.title}
+                      </Text>
+                      <View style={styles.activityMeta}>
+                        <Text style={styles.activityType}>
+                          {activityTypeInfo?.label || 'Activity'}
+                        </Text>
+                        <Text style={styles.activityDot}> • </Text>
+                        <Text style={styles.activitySpots}>
+                          {spotsLeft > 0 ? `${spotsLeft} spots left` : 'Full'}
+                        </Text>
+                      </View>
+                      <Text style={styles.activityDate}>
+                        {new Date(activity.scheduled_at).toLocaleDateString([], {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </Text>
+                    </View>
+                    {isCreator && (
+                      <View style={styles.creatorBadge}>
+                        <Text style={styles.creatorBadgeText}>Creator</Text>
+                      </View>
+                    )}
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color={theme.colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : (
+            <View style={styles.emptyActivities}>
+              <Ionicons name="calendar-outline" size={32} color={theme.colors.gray[300]} />
+              <Text style={styles.emptyText}>No activities yet</Text>
+              {isOwnProfile && (
+                <TouchableOpacity
+                  style={styles.createActivityButton}
+                  onPress={() => navigation.navigate('Activities')}
+                >
+                  <Text style={styles.createActivityButtonText}>Create Activity</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
@@ -1015,6 +1206,54 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
           currentLocation={settings.location}
         />
       )}
+
+      {/* Activity Detail Modal */}
+      <ActivityDetailModal
+        visible={!!selectedActivity}
+        activity={selectedActivity}
+        currentUserId={currentUserId || undefined}
+        onClose={() => setSelectedActivity(null)}
+        onJoin={async () => {
+          if (selectedActivity) {
+            const isParticipant = selectedActivity.participants?.some(
+              p => p.user_id === currentUserId && p.status === 'joined'
+            );
+            if (isParticipant) {
+              await leaveActivity(selectedActivity.id);
+            } else {
+              await joinActivity(selectedActivity.id);
+            }
+            // Reload activities
+            if (profile?.id) {
+              await loadUserActivities(profile.id);
+              await loadStats(profile.id);
+            }
+            setSelectedActivity(null);
+          }
+        }}
+        onViewProfile={(userId) => {
+          setSelectedActivity(null);
+          if (userId === currentUserId) {
+            // Already on own profile, just close modal
+          } else {
+            navigation.navigate('UserProfile', { userId });
+          }
+        }}
+        onCancel={async () => {
+          if (selectedActivity) {
+            await cancelActivity(selectedActivity.id);
+            // Reload activities
+            if (profile?.id) {
+              await loadUserActivities(profile.id);
+              await loadStats(profile.id);
+            }
+            setSelectedActivity(null);
+          }
+        }}
+        fetchComments={fetchComments}
+        addComment={addComment}
+        deleteComment={deleteComment}
+      />
     </SafeAreaView>
   );
 };
@@ -1494,6 +1733,94 @@ const styles = StyleSheet.create({
   emptyCheckIns: {
     padding: theme.spacing.lg,
     alignItems: 'center',
+  },
+  // Activities section styles
+  activitiesSection: {
+    marginTop: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+  },
+  activitiesList: {
+    gap: theme.spacing.sm,
+  },
+  activityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    gap: theme.spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  activityIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activityInfo: {
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: 2,
+  },
+  activityMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  activityType: {
+    fontSize: 13,
+    color: theme.colors.primary,
+    fontWeight: '500',
+  },
+  activityDot: {
+    color: theme.colors.textSecondary,
+  },
+  activitySpots: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  activityDate: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  creatorBadge: {
+    backgroundColor: theme.colors.primary + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  creatorBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: theme.colors.primary,
+  },
+  emptyActivities: {
+    padding: theme.spacing.lg,
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+  },
+  createActivityButton: {
+    marginTop: theme.spacing.md,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+  },
+  createActivityButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
 

@@ -19,10 +19,13 @@ import { Ionicons } from '@expo/vector-icons';
 import MapFilters from '../components/MapFilters';
 import NearbyUsersModal from '../components/NearbyUsersModal';
 import CheckInDetailModal from '../components/CheckInDetailModal';
+import ActivityDetailModal from '../components/ActivityDetailModal';
 import { getActivityTag } from '../components/CheckInModal';
+import { getActivityType } from '../constants/activityTypes';
 import { useSettings } from '../contexts/SettingsContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { useInAppNotifications } from '../hooks/useInAppNotifications';
+import { useActivities, Activity } from '../hooks/useActivities';
 
 interface UserLocation {
   id: string;
@@ -62,6 +65,48 @@ const getMarkerScale = (latitudeDelta: number) => {
   // Keep scale at 1.0 to avoid Android marker clipping issues
   return 1.0;
 };
+
+// Generic function to add offsets to markers at the same location
+const getItemsWithOffsets = <T extends { latitude?: number | null; longitude?: number | null }>(
+  items: T[],
+  offsetFactor: number = 0.0003
+): (T & { offsetIndex: number; longitude_offset: number })[] => {
+  const locationGroups: { [key: string]: T[] } = {};
+
+  // Group items by location (rounded to 4 decimal places)
+  items.forEach(item => {
+    if (item.latitude != null && item.longitude != null) {
+      const key = `${item.latitude.toFixed(4)}_${item.longitude.toFixed(4)}`;
+      if (!locationGroups[key]) {
+        locationGroups[key] = [];
+      }
+      locationGroups[key].push(item);
+    }
+  });
+
+  // Create items with offsets
+  const itemsWithOffsets: (T & { offsetIndex: number; longitude_offset: number })[] = [];
+
+  Object.values(locationGroups).forEach(group => {
+    group.forEach((item, index) => {
+      const longitudeOffset = -index * offsetFactor;
+
+      itemsWithOffsets.push({
+        ...item,
+        offsetIndex: index,
+        longitude_offset: longitudeOffset
+      });
+    });
+  });
+
+  return itemsWithOffsets;
+};
+
+// Helper for check-ins (use same offset as profile markers for visibility)
+const getCheckInsWithOffsets = (checkIns: any[]) => getItemsWithOffsets(checkIns, 0.003);
+
+// Helper for activities (use same offset as profile markers for visibility)
+const getActivitiesWithOffsets = (activities: any[]) => getItemsWithOffsets(activities, 0.003);
 
 // Group all markers by location and calculate offsets for overlapping markers
 const getMarkersWithOffsets = (users: UserLocation[], currentUser?: any, userLocation?: Location.LocationObject | null) => {
@@ -120,6 +165,15 @@ export default function HomeScreen({ navigation, route }: any) {
   const { isInvisibleMode } = useSubscription();
   useInAppNotifications();
   const { isLocationEnabled, isVisible, activeFilters } = settings;
+  const {
+    activities,
+    joinActivity,
+    leaveActivity,
+    cancelActivity,
+    fetchComments,
+    addComment,
+    deleteComment,
+  } = useActivities();
   const [nearbyUsers, setNearbyUsers] = useState<UserLocation[]>([]);
   const [checkIns, setCheckIns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,6 +184,9 @@ export default function HomeScreen({ navigation, route }: any) {
   const [highlightedUserId, setHighlightedUserId] = useState<string | null>(null);
   const [showCheckInDetail, setShowCheckInDetail] = useState(false);
   const [selectedCheckIn, setSelectedCheckIn] = useState<any>(null);
+  const [showActivitiesOnMap, setShowActivitiesOnMap] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [mapRegion, setMapRegion] = useState<{
     latitude: number;
     longitude: number;
@@ -221,13 +278,16 @@ export default function HomeScreen({ navigation, route }: any) {
               
               const { data: authData } = await supabase.auth.getUser();
               if (authData?.user) {
+                if (isMounted) {
+                  setCurrentUserId(authData.user.id);
+                }
                 // Fetch user's profile including visibility status and photo
                 const { data: profile } = await supabase
                   .from('profiles')
                   .select('id, name, photos, is_visible, gender')
                   .eq('id', authData.user.id)
                   .single();
-                
+
                 if (profile && isMounted) {
                   setCurrentUserProfile(profile);
                 }
@@ -296,6 +356,9 @@ export default function HomeScreen({ navigation, route }: any) {
           try {
             const { data: authData } = await supabase.auth.getUser();
             if (authData?.user) {
+              if (isMounted) {
+                setCurrentUserId(authData.user.id);
+              }
               // Fetch user's profile if not already loaded
               if (!currentUserProfile) {
                 const { data: profile } = await supabase
@@ -303,7 +366,7 @@ export default function HomeScreen({ navigation, route }: any) {
                   .select('id, name, photos, is_visible, gender')
                   .eq('id', authData.user.id)
                   .single();
-                
+
                 if (profile) {
                   setCurrentUserProfile(profile);
                 }
@@ -872,8 +935,8 @@ export default function HomeScreen({ navigation, route }: any) {
           zoomEnabled={true}
           pitchEnabled={false}
         >
-          {/* All markers grouped by location - only show when check-ins are deactivated */}
-          {!showCheckInsOnly && getMarkersWithOffsets(
+          {/* All markers grouped by location - only show when check-ins and activities are deactivated */}
+          {!showCheckInsOnly && !showActivitiesOnMap && getMarkersWithOffsets(
             nearbyUsers.filter(user => {
               if (!user || !user.id || !user.current_latitude || !user.current_longitude ||
                   typeof user.current_latitude !== 'number' || typeof user.current_longitude !== 'number') {
@@ -955,7 +1018,7 @@ export default function HomeScreen({ navigation, route }: any) {
           )})}
 
           {/* Check-in markers - only show when check-ins are activated */}
-          {showCheckInsOnly && checkIns.map((checkIn) => {
+          {showCheckInsOnly && getCheckInsWithOffsets(checkIns).map((checkIn) => {
             const activityTagInfo = getActivityTag(checkIn.activity_tag);
             const markerIcon = activityTagInfo?.icon || 'location-sharp';
 
@@ -964,7 +1027,7 @@ export default function HomeScreen({ navigation, route }: any) {
                 key={`checkin-${checkIn.id}`}
                 coordinate={{
                   latitude: checkIn.latitude,
-                  longitude: checkIn.longitude,
+                  longitude: checkIn.longitude + (checkIn.longitude_offset || 0),
                 }}
                 title={checkIn.location_name}
                 description={checkIn.description || `${checkIn.profiles?.name} is here`}
@@ -972,24 +1035,85 @@ export default function HomeScreen({ navigation, route }: any) {
                   setSelectedCheckIn(checkIn);
                   setShowCheckInDetail(true);
                 }}
+                zIndex={200 + (checkIn.offsetIndex || 0)}
               >
                 <View style={{ alignItems: 'center', justifyContent: 'center' }}>
                   <View style={{
                     backgroundColor: '#FF1744',
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
+                    width: 33,
+                    height: 33,
+                    borderRadius: 16.5,
                     alignItems: 'center',
                     justifyContent: 'center',
                     borderWidth: 2,
                     borderColor: 'white',
                   }}>
-                    <Ionicons name={markerIcon.replace('-outline', '') as any} size={18} color="white" />
+                    <Ionicons name={markerIcon.replace('-outline', '') as any} size={16} color="white" />
                   </View>
                 </View>
               </Marker>
             );
           })}
+
+          {/* Activity markers - show when activities toggle is on */}
+          {showActivitiesOnMap && getActivitiesWithOffsets(
+            activities.filter(activity => activity.status === 'open' && activity.latitude != null && activity.longitude != null)
+          ).map((activity) => {
+              const activityTypeInfo = getActivityType(activity.activity_type);
+              const markerIcon = activityTypeInfo?.icon || 'calendar';
+              const spotsLeft = activity.max_participants - activity.current_participants;
+
+              return (
+                <Marker
+                  key={`activity-${activity.id}`}
+                  coordinate={{
+                    latitude: activity.latitude!,
+                    longitude: activity.longitude! + (activity.longitude_offset || 0),
+                  }}
+                  title={activity.title}
+                  description={`${activityTypeInfo?.label || 'Activity'} - ${spotsLeft} spots left`}
+                  onPress={() => {
+                    setSelectedActivity(activity);
+                  }}
+                  zIndex={300 + (activity.offsetIndex || 0)}
+                >
+                  <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                    <View style={{
+                      backgroundColor: '#4CAF50',
+                      width: 33,
+                      height: 33,
+                      borderRadius: 16.5,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderWidth: 2,
+                      borderColor: 'white',
+                    }}>
+                      <Ionicons name={markerIcon.replace('-outline', '') as any} size={16} color="white" />
+                    </View>
+                    {/* Badge showing spots left */}
+                    {spotsLeft > 0 && (
+                      <View style={{
+                        position: 'absolute',
+                        top: -4,
+                        right: -4,
+                        backgroundColor: '#FF9800',
+                        width: 18,
+                        height: 18,
+                        borderRadius: 9,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderWidth: 1,
+                        borderColor: 'white',
+                      }}>
+                        <Text style={{ color: 'white', fontSize: 9, fontWeight: 'bold' }}>
+                          {spotsLeft}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </Marker>
+              );
+            })}
         </MapView>
         
         {/* Dark overlay and prompt when user tries to enable location */}
@@ -1170,18 +1294,44 @@ export default function HomeScreen({ navigation, route }: any) {
             {/* Check-ins toggle button */}
             <TouchableOpacity
               style={[styles.locationButton, { top: Platform.OS === 'ios' ? 100 : 70 }]}
-              onPress={() => setShowCheckInsOnly(!showCheckInsOnly)}
+              onPress={() => {
+                const newValue = !showCheckInsOnly;
+                setShowCheckInsOnly(newValue);
+                // Deactivate activities when check-ins are activated
+                if (newValue) {
+                  setShowActivitiesOnMap(false);
+                }
+              }}
             >
-              <Ionicons 
-                name={showCheckInsOnly ? "location" : "location-outline"} 
-                size={22} 
-                color="#FF1744" 
+              <Ionicons
+                name={showCheckInsOnly ? "location" : "location-outline"}
+                size={22}
+                color="#FF1744"
               />
             </TouchableOpacity>
-            
-            {/* Refresh button */}
+
+            {/* Activities toggle button */}
             <TouchableOpacity
               style={[styles.locationButton, { top: Platform.OS === 'ios' ? 150 : 120 }]}
+              onPress={() => {
+                const newValue = !showActivitiesOnMap;
+                setShowActivitiesOnMap(newValue);
+                // Deactivate check-ins when activities are activated
+                if (newValue) {
+                  setShowCheckInsOnly(false);
+                }
+              }}
+            >
+              <Ionicons
+                name={showActivitiesOnMap ? "calendar" : "calendar-outline"}
+                size={22}
+                color="#FF1744"
+              />
+            </TouchableOpacity>
+
+            {/* Refresh button */}
+            <TouchableOpacity
+              style={[styles.locationButton, { top: Platform.OS === 'ios' ? 200 : 170 }]}
               onPress={async () => {
                 if (isLocationEnabled) {
                   // Force update current user's last_seen first
@@ -1294,6 +1444,44 @@ export default function HomeScreen({ navigation, route }: any) {
               navigation.navigate('UserProfile', { userId: targetUserId });
             }
           }}
+        />
+
+        {/* Activity Detail Modal for map markers */}
+        <ActivityDetailModal
+          visible={!!selectedActivity}
+          activity={selectedActivity}
+          currentUserId={currentUserId || undefined}
+          onClose={() => setSelectedActivity(null)}
+          onJoin={async () => {
+            if (selectedActivity) {
+              const isParticipant = selectedActivity.participants?.some(
+                p => p.user_id === currentUserId && p.status === 'joined'
+              );
+              if (isParticipant) {
+                await leaveActivity(selectedActivity.id);
+              } else {
+                await joinActivity(selectedActivity.id);
+              }
+              setSelectedActivity(null);
+            }
+          }}
+          onViewProfile={(userId) => {
+            setSelectedActivity(null);
+            if (userId === currentUserId) {
+              navigation.navigate('Profile');
+            } else {
+              navigation.navigate('UserProfile', { userId });
+            }
+          }}
+          onCancel={async () => {
+            if (selectedActivity) {
+              await cancelActivity(selectedActivity.id);
+              setSelectedActivity(null);
+            }
+          }}
+          fetchComments={fetchComments}
+          addComment={addComment}
+          deleteComment={deleteComment}
         />
       </View>
     </SafeAreaView>
