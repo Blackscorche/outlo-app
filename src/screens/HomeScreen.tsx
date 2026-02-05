@@ -26,6 +26,10 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { useInAppNotifications } from '../hooks/useInAppNotifications';
 import { useActivities, Activity } from '../hooks/useActivities';
+import { usePlaces, Place } from '../hooks/usePlaces';
+import { getPlaceIcon } from '../constants/placeTypes';
+import PlaceDetailModal from '../components/PlaceDetailModal';
+import PlaceReviewModal from '../components/PlaceReviewModal';
 
 interface UserLocation {
   id: string;
@@ -108,6 +112,9 @@ const getCheckInsWithOffsets = (checkIns: any[]) => getItemsWithOffsets(checkIns
 // Helper for activities (use same offset as profile markers for visibility)
 const getActivitiesWithOffsets = (activities: any[]) => getItemsWithOffsets(activities, 0.003);
 
+// Helper for places (use same offset as profile markers for visibility)
+const getPlacesWithOffsets = (places: any[]) => getItemsWithOffsets(places, 0.003);
+
 // Group all markers by location and calculate offsets for overlapping markers
 const getMarkersWithOffsets = (users: UserLocation[], currentUser?: any, userLocation?: Location.LocationObject | null) => {
   const locationGroups: { [key: string]: UserLocation[] } = {};
@@ -174,6 +181,10 @@ export default function HomeScreen({ navigation, route }: any) {
     addComment,
     deleteComment,
   } = useActivities();
+  const {
+    fetchNearbyPlaces,
+    getPlaceById,
+  } = usePlaces();
   const [nearbyUsers, setNearbyUsers] = useState<UserLocation[]>([]);
   const [checkIns, setCheckIns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -187,6 +198,11 @@ export default function HomeScreen({ navigation, route }: any) {
   const [showActivitiesOnMap, setShowActivitiesOnMap] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showPlacesOnMap, setShowPlacesOnMap] = useState(false);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  const [showPlaceReview, setShowPlaceReview] = useState(false);
+  const [placeForReview, setPlaceForReview] = useState<Place | null>(null);
   const [mapRegion, setMapRegion] = useState<{
     latitude: number;
     longitude: number;
@@ -212,7 +228,7 @@ export default function HomeScreen({ navigation, route }: any) {
   useEffect(() => {
     if (route?.params?.focusLocation) {
       const { latitude, longitude, userId } = route.params.focusLocation;
-      
+
       // Animate to the user's location instead of setting region
       if (mapRef.current) {
         mapRef.current.animateToRegion({
@@ -222,19 +238,49 @@ export default function HomeScreen({ navigation, route }: any) {
           longitudeDelta: 0.005,
         }, 1000); // 1 second animation
       }
-      
+
       // Highlight the user's marker
       setHighlightedUserId(userId);
-      
+
       // Remove highlight after 3 seconds
       setTimeout(() => {
         setHighlightedUserId(null);
       }, 3000);
-      
+
       // Clear the params
       navigation.setParams({ focusLocation: null });
     }
   }, [route?.params?.focusLocation]);
+
+  // Handle showCheckIn from navigation params (after check-in from Profile)
+  useEffect(() => {
+    if (route?.params?.showCheckIn) {
+      const { latitude, longitude, locationName, checkInId } = route.params.showCheckIn;
+
+      // Activate check-ins only mode (hide profile markers)
+      setShowCheckInsOnly(true);
+      setShowActivitiesOnMap(false);
+      setShowPlacesOnMap(false);
+
+      // Refresh check-ins to include the new one
+      fetchCheckIns();
+
+      // Animate to the check-in location
+      if (mapRef.current) {
+        setTimeout(() => {
+          mapRef.current?.animateToRegion({
+            latitude,
+            longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }, 1000);
+        }, 500);
+      }
+
+      // Clear the params
+      navigation.setParams({ showCheckIn: null });
+    }
+  }, [route?.params?.showCheckIn]);
   
 
   // location setup (without complex logic for now)
@@ -423,6 +469,22 @@ export default function HomeScreen({ navigation, route }: any) {
       setCheckIns(data || []);
     } catch (error) {
       console.error('Error in fetchCheckIns:', error);
+    }
+  };
+
+  // Fetch places in current map view
+  const fetchPlacesInView = async () => {
+    if (!mapRegion || !showPlacesOnMap) return;
+
+    try {
+      const placesData = await fetchNearbyPlaces(
+        mapRegion.latitude,
+        mapRegion.longitude,
+        Math.max(mapRegion.latitudeDelta, mapRegion.longitudeDelta) * 111 // Convert to km
+      );
+      setPlaces(placesData);
+    } catch (error) {
+      console.error('Error fetching places:', error);
     }
   };
 
@@ -744,6 +806,15 @@ export default function HomeScreen({ navigation, route }: any) {
     updateLocationOnVisibilityChange();
   }, [isVisible]); // Only depend on isVisible to avoid loops
 
+  // Fetch places when toggle is on or map region changes
+  useEffect(() => {
+    if (showPlacesOnMap && mapRegion) {
+      fetchPlacesInView();
+    } else if (!showPlacesOnMap) {
+      setPlaces([]);
+    }
+  }, [showPlacesOnMap, mapRegion?.latitude, mapRegion?.longitude]);
+
   // real-time subscription and periodic refresh
   useEffect(() => {
     let subscription: any;
@@ -935,8 +1006,8 @@ export default function HomeScreen({ navigation, route }: any) {
           zoomEnabled={true}
           pitchEnabled={false}
         >
-          {/* All markers grouped by location - only show when check-ins and activities are deactivated */}
-          {!showCheckInsOnly && !showActivitiesOnMap && getMarkersWithOffsets(
+          {/* All markers grouped by location - only show when check-ins, activities, and places are deactivated */}
+          {!showCheckInsOnly && !showActivitiesOnMap && !showPlacesOnMap && getMarkersWithOffsets(
             nearbyUsers.filter(user => {
               if (!user || !user.id || !user.current_latitude || !user.current_longitude ||
                   typeof user.current_latitude !== 'number' || typeof user.current_longitude !== 'number') {
@@ -1110,6 +1181,44 @@ export default function HomeScreen({ navigation, route }: any) {
                         </Text>
                       </View>
                     )}
+                  </View>
+                </Marker>
+              );
+            })}
+
+          {/* Place markers - show when places toggle is on */}
+          {showPlacesOnMap && getPlacesWithOffsets(
+            places.filter(place => place.latitude != null && place.longitude != null)
+          ).map((place) => {
+              const markerIcon = getPlaceIcon(place.place_type);
+
+              return (
+                <Marker
+                  key={`place-${place.id}`}
+                  coordinate={{
+                    latitude: place.latitude!,
+                    longitude: place.longitude! + (place.longitude_offset || 0),
+                  }}
+                  title={place.name}
+                  description={`${place.average_rating > 0 ? `⭐ ${place.average_rating.toFixed(1)}` : 'No reviews'} • ${place.review_count} reviews`}
+                  onPress={() => {
+                    setSelectedPlaceId(place.id);
+                  }}
+                  zIndex={400 + (place.offsetIndex || 0)}
+                >
+                  <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                    <View style={{
+                      backgroundColor: '#9C27B0',
+                      width: 33,
+                      height: 33,
+                      borderRadius: 16.5,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderWidth: 2,
+                      borderColor: 'white',
+                    }}>
+                      <Ionicons name={markerIcon.replace('-outline', '') as any} size={16} color="white" />
+                    </View>
                   </View>
                 </Marker>
               );
@@ -1297,9 +1406,10 @@ export default function HomeScreen({ navigation, route }: any) {
               onPress={() => {
                 const newValue = !showCheckInsOnly;
                 setShowCheckInsOnly(newValue);
-                // Deactivate activities when check-ins are activated
+                // Deactivate other toggles when check-ins are activated
                 if (newValue) {
                   setShowActivitiesOnMap(false);
+                  setShowPlacesOnMap(false);
                 }
               }}
             >
@@ -1316,9 +1426,10 @@ export default function HomeScreen({ navigation, route }: any) {
               onPress={() => {
                 const newValue = !showActivitiesOnMap;
                 setShowActivitiesOnMap(newValue);
-                // Deactivate check-ins when activities are activated
+                // Deactivate other toggles when activities are activated
                 if (newValue) {
                   setShowCheckInsOnly(false);
+                  setShowPlacesOnMap(false);
                 }
               }}
             >
@@ -1329,9 +1440,29 @@ export default function HomeScreen({ navigation, route }: any) {
               />
             </TouchableOpacity>
 
-            {/* Refresh button */}
+            {/* Places toggle button */}
             <TouchableOpacity
               style={[styles.locationButton, { top: Platform.OS === 'ios' ? 200 : 170 }]}
+              onPress={() => {
+                const newValue = !showPlacesOnMap;
+                setShowPlacesOnMap(newValue);
+                // Deactivate other toggles when places are activated
+                if (newValue) {
+                  setShowCheckInsOnly(false);
+                  setShowActivitiesOnMap(false);
+                }
+              }}
+            >
+              <Ionicons
+                name={showPlacesOnMap ? "business" : "business-outline"}
+                size={22}
+                color="#FF1744"
+              />
+            </TouchableOpacity>
+
+            {/* Refresh button */}
+            <TouchableOpacity
+              style={[styles.locationButton, { top: Platform.OS === 'ios' ? 250 : 220 }]}
               onPress={async () => {
                 if (isLocationEnabled) {
                   // Force update current user's last_seen first
@@ -1482,6 +1613,59 @@ export default function HomeScreen({ navigation, route }: any) {
           fetchComments={fetchComments}
           addComment={addComment}
           deleteComment={deleteComment}
+        />
+
+        {/* Place Detail Modal */}
+        <PlaceDetailModal
+          visible={!!selectedPlaceId}
+          placeId={selectedPlaceId}
+          onClose={() => setSelectedPlaceId(null)}
+          onCheckIn={(place) => {
+            setSelectedPlaceId(null);
+            // Navigate to check-in - user can use check-in from profile
+            Alert.alert(
+              'Check In',
+              `Would you like to check in at ${place.name}?`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Go to Profile', onPress: () => navigation.navigate('Profile') },
+              ]
+            );
+          }}
+          onCreateActivity={(place) => {
+            setSelectedPlaceId(null);
+            // Navigate to activities screen
+            navigation.navigate('Activities');
+          }}
+          onWriteReview={(place) => {
+            setSelectedPlaceId(null);
+            setPlaceForReview(place);
+            setShowPlaceReview(true);
+          }}
+          onViewProfile={(userId) => {
+            setSelectedPlaceId(null);
+            if (userId === currentUserId) {
+              navigation.navigate('Profile');
+            } else {
+              navigation.navigate('UserProfile', { userId });
+            }
+          }}
+        />
+
+        {/* Place Review Modal */}
+        <PlaceReviewModal
+          visible={showPlaceReview}
+          place={placeForReview}
+          onClose={() => {
+            setShowPlaceReview(false);
+            setPlaceForReview(null);
+          }}
+          onSubmitted={() => {
+            // Refresh places after submitting review
+            if (showPlacesOnMap) {
+              fetchPlacesInView();
+            }
+          }}
         />
       </View>
     </SafeAreaView>

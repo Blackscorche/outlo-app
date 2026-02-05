@@ -74,6 +74,10 @@ const CheckInDetailModal: React.FC<CheckInDetailModalProps> = ({
     return `${diffHours}h ${diffMins % 60}m remaining`;
   };
 
+  const isExpired = checkIn.expires_at
+    ? new Date(checkIn.expires_at).getTime() < Date.now()
+    : false;
+
   return (
     <Modal
       visible={visible}
@@ -181,11 +185,14 @@ const CheckInDetailModal: React.FC<CheckInDetailModalProps> = ({
                 )}
                 {onGetDirections && (
                   <TouchableOpacity
-                    style={styles.secondaryButton}
-                    onPress={() => onGetDirections(checkIn.latitude, checkIn.longitude)}
+                    style={[styles.secondaryButton, isExpired && styles.disabledButton]}
+                    onPress={() => !isExpired && onGetDirections(checkIn.latitude, checkIn.longitude)}
+                    disabled={isExpired}
                   >
-                    <Ionicons name="navigate" size={20} color="#FF1744" />
-                    <Text style={styles.secondaryButtonText}>Directions</Text>
+                    <Ionicons name="navigate" size={20} color={isExpired ? '#999' : '#FF1744'} />
+                    <Text style={[styles.secondaryButtonText, isExpired && styles.disabledButtonText]}>
+                      {isExpired ? 'Expired' : 'View on Map'}
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -373,6 +380,13 @@ const styles = StyleSheet.create({
     color: '#FF1744',
     fontSize: 16,
     fontWeight: '600',
+  },
+  disabledButton: {
+    borderColor: '#DDD',
+    backgroundColor: '#F5F5F5',
+  },
+  disabledButtonText: {
+    color: '#999',
   },
   closeButton: {
     alignItems: 'center',

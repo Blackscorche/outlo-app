@@ -1,7 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 
-// Activity types for the Activity Hub feature
-// Extends the check-in activity tags with scheduled activity-specific options
 export const ACTIVITY_TYPES = [
   { id: 'coffee', label: 'Coffee Meetup', icon: 'cafe-outline' as const },
   { id: 'study', label: 'Study Session', icon: 'book-outline' as const },

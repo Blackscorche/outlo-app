@@ -359,9 +359,24 @@ const SettingsScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
+        {/* Community Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Community</Text>
+          <TouchableOpacity
+            style={styles.accountItem}
+            onPress={() => navigation.navigate('SkillMatching')}
+          >
+            <View style={styles.accountItemLeft}>
+              <Ionicons name="school-outline" size={24} color={theme.colors.primary} />
+              <Text style={styles.accountItemText}>Skill Exchange</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.accountItem}
             onPress={() => navigation.navigate('Subscription')}
           >

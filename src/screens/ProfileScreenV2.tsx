@@ -25,8 +25,10 @@ import { useConnectionRequests } from '../hooks/useConnectionRequests';
 import PostUploadModal from '../components/PostUploadModal';
 import CheckInModal from '../components/CheckInModal';
 import ActivityDetailModal from '../components/ActivityDetailModal';
+import CheckInDetailModal from '../components/CheckInDetailModal';
 import { useActivities, Activity } from '../hooks/useActivities';
-import { getActivityType } from '../constants/activityTypes';
+import { getActivityType, ACTIVITY_TYPES } from '../constants/activityTypes';
+import SkillEditSection from '../components/SkillEditSection';
 
 interface TimelineItem {
   id: string;
@@ -44,6 +46,8 @@ interface TimelineItem {
   longitude?: number;
   description?: string;
   is_active?: boolean;
+  expires_at?: string;
+  activity_tag?: string;
   // User info
   user?: {
     id: string;
@@ -94,6 +98,7 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
   const [showAllInterests, setShowAllInterests] = useState(false);
   const [userActivities, setUserActivities] = useState<Activity[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [selectedCheckIn, setSelectedCheckIn] = useState<TimelineItem | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [stats, setStats] = useState({
     posts: 0,
@@ -682,35 +687,55 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
         </View>
       );
     } else {
-      // Check-in item
+      // Check-in item - simplified view
+      const isExpired = item.expires_at ? new Date(item.expires_at).getTime() < Date.now() : false;
+      const activityInfo = item.activity_tag ? ACTIVITY_TYPES.find(t => t.id === item.activity_tag) : null;
+
       return (
-        <View key={item.id} style={styles.timelineCard}>
-          <View style={styles.timelineHeader}>
-            <Image 
-              source={{ uri: item.user?.photos?.[0] || `${DEFAULT_PROFILE_PHOTO}&name=${encodeURIComponent(item.user?.name || 'User')}&size=100` }} 
-              style={styles.timelineAvatar}
+        <TouchableOpacity
+          key={item.id}
+          style={styles.checkInSimpleCard}
+          onPress={() => setSelectedCheckIn(item)}
+          activeOpacity={0.7}
+        >
+          {/* Activity Icon */}
+          <View style={styles.checkInIconContainer}>
+            <Ionicons
+              name={(activityInfo?.icon || 'location') as any}
+              size={24}
+              color={theme.colors.primary}
             />
-            <View style={styles.timelineHeaderText}>
-              <Text style={styles.timelineName}>{item.user?.name || 'User'}</Text>
-              <View style={styles.checkInInfo}>
-                <Ionicons name="location" size={16} color={theme.colors.primary} />
-                <Text style={styles.checkInText}>checked in at {item.location_name}</Text>
-              </View>
-              <Text style={styles.timelineTime}>
-                {new Date(item.created_at).toLocaleDateString()}
+          </View>
+
+          {/* Check-in Info */}
+          <View style={styles.checkInSimpleInfo}>
+            <Text style={styles.checkInSimpleLocation} numberOfLines={1}>
+              {item.location_name}
+            </Text>
+            <View style={styles.checkInSimpleMeta}>
+              <Text style={styles.checkInSimpleActivity}>
+                {activityInfo?.label || 'Check-in'}
               </Text>
             </View>
+            <Text style={styles.checkInSimpleDate}>
+              {new Date(item.created_at).toLocaleDateString([], {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+              })}
+            </Text>
           </View>
-          
-          {item.description && (
-            <Text style={styles.checkInDescription}>{item.description}</Text>
+
+          {/* Expired Badge or Chevron */}
+          {isExpired ? (
+            <View style={styles.expiredBadgeInline}>
+              <Ionicons name="time-outline" size={12} color={theme.colors.textSecondary} />
+              <Text style={styles.expiredBadgeText}>Expired</Text>
+            </View>
+          ) : (
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
           )}
-          
-          <View style={styles.checkInCard}>
-            <Ionicons name="location-sharp" size={24} color={theme.colors.primary} />
-            <Text style={styles.checkInLocationName}>{item.location_name}</Text>
-          </View>
-        </View>
+        </TouchableOpacity>
       );
     }
   };
@@ -901,7 +926,7 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
                         </View>
                       ))}
                       {!showAllInterests && profile.interests.length > 4 && (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           style={styles.interestTag}
                           onPress={() => setShowAllInterests(true)}
                         >
@@ -909,7 +934,7 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
                         </TouchableOpacity>
                       )}
                       {showAllInterests && profile.interests.length > 4 && (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           style={styles.interestTag}
                           onPress={() => setShowAllInterests(false)}
                         >
@@ -920,114 +945,121 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
                   </View>
                 )
               )}
-              
-              {/* Action Buttons */}
-              <View style={styles.profileActions}>
-                {isOwnProfile ? (
-                  isEditing ? (
-                    <TouchableOpacity 
-                      style={[styles.primaryButton, saving && styles.buttonDisabled]}
-                      onPress={saveProfile}
-                      disabled={saving}
-                    >
-                      {saving ? (
-                        <ActivityIndicator size="small" color="white" />
-                      ) : (
-                        <Ionicons name="checkmark" size={16} color="white" />
-                      )}
-                      <Text style={styles.primaryButtonText}>
-                        {saving ? 'Saving...' : 'Save Changes'}
-                      </Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <>
-                      <TouchableOpacity 
-                        style={styles.primaryButton}
-                        onPress={() => setShowPostModal(true)}
-                      >
-                        <Ionicons name="camera" size={16} color="white" />
-                        <Text style={styles.primaryButtonText}>Add Post</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={styles.secondaryButton}
-                        onPress={() => setShowCheckInModal(true)}
-                      >
-                        <Ionicons name="location" size={16} color={theme.colors.primary} />
-                        <Text style={styles.secondaryButtonText}>Check In</Text>
-                      </TouchableOpacity>
-                    </>
-                  )
-                ) : (
-                  <>
-                    {isConnected && profile?.is_online && (
-                      <TouchableOpacity 
-                        style={styles.primaryButton}
-                        onPress={handleViewOnMap}
-                      >
-                        <Ionicons name="map" size={16} color="white" />
-                        <Text style={styles.primaryButtonText}>View on Map</Text>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity 
-                      style={styles.secondaryButton}
-                      onPress={async () => {
-                        if (!profile?.id) {
-                          Alert.alert('Error', 'Unable to start chat. Please try again.');
-                          return;
-                        }
-                        
-                        try {
-                          // Get current user
-                          const { data: { user: currentUser } } = await supabase.auth.getUser();
-                          if (!currentUser) {
-                            Alert.alert('Error', 'You must be logged in to start a chat.');
-                            return;
-                          }
-                          
-                          // Create or find existing chat room
-                          const { data: existingRoom } = await supabase
-                            .from('chat_rooms')
-                            .select('id')
-                            .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${profile.id}),and(user1_id.eq.${profile.id},user2_id.eq.${currentUser.id})`)
-                            .single();
-                          
-                          let roomId;
-                          if (existingRoom) {
-                            roomId = existingRoom.id;
-                          } else {
-                            // Create new chat room
-                            const { data: newRoom, error } = await supabase
-                              .from('chat_rooms')
-                              .insert({
-                                user1_id: currentUser.id,
-                                user2_id: profile.id,
-                                created_at: new Date().toISOString()
-                              })
-                              .select('id')
-                              .single();
-                              
-                            if (error) throw error;
-                            roomId = newRoom.id;
-                          }
-                          
-                          navigation.navigate('ChatRoom', { 
-                            roomId: roomId,
-                            otherUserId: profile.id, 
-                            otherUserName: profile.name 
-                          });
-                        } catch (error) {
-                          console.error('Error creating/finding chat room:', error);
-                          Alert.alert('Error', 'Unable to start chat. Please try again.');
-                        }
-                      }}
-                    >
-                      <Ionicons name="chatbubble" size={16} color={theme.colors.primary} />
-                      <Text style={styles.secondaryButtonText}>Message</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-              </View>
             </View>
+          </View>
+
+          {/* Skills Section - Full width outside profileHeader */}
+          {isOwnProfile && (
+            <View style={styles.skillsSection}>
+              <SkillEditSection isEditing={isEditing} showTitle={true} />
+            </View>
+          )}
+
+          {/* Action Buttons - Below Skills Section */}
+          <View style={styles.profileActions}>
+            {isOwnProfile ? (
+              isEditing ? (
+                <TouchableOpacity
+                  style={[styles.primaryButton, saving && styles.buttonDisabled]}
+                  onPress={saveProfile}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Ionicons name="checkmark" size={16} color="white" />
+                  )}
+                  <Text style={styles.primaryButtonText}>
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => setShowPostModal(true)}
+                  >
+                    <Ionicons name="camera" size={16} color="white" />
+                    <Text style={styles.primaryButtonText}>Add Post</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.secondaryButton}
+                    onPress={() => setShowCheckInModal(true)}
+                  >
+                    <Ionicons name="location" size={16} color={theme.colors.primary} />
+                    <Text style={styles.secondaryButtonText}>Check In</Text>
+                  </TouchableOpacity>
+                </>
+              )
+            ) : (
+              <>
+                {isConnected && profile?.is_online && (
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={handleViewOnMap}
+                  >
+                    <Ionicons name="map" size={16} color="white" />
+                    <Text style={styles.primaryButtonText}>View on Map</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={styles.secondaryButton}
+                  onPress={async () => {
+                    if (!profile?.id) {
+                      Alert.alert('Error', 'Unable to start chat. Please try again.');
+                      return;
+                    }
+
+                    try {
+                      // Get current user
+                      const { data: { user: currentUser } } = await supabase.auth.getUser();
+                      if (!currentUser) {
+                        Alert.alert('Error', 'You must be logged in to start a chat.');
+                        return;
+                      }
+
+                      // Create or find existing chat room
+                      const { data: existingRoom } = await supabase
+                        .from('chat_rooms')
+                        .select('id')
+                        .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${profile.id}),and(user1_id.eq.${profile.id},user2_id.eq.${currentUser.id})`)
+                        .single();
+
+                      let roomId;
+                      if (existingRoom) {
+                        roomId = existingRoom.id;
+                      } else {
+                        // Create new chat room
+                        const { data: newRoom, error } = await supabase
+                          .from('chat_rooms')
+                          .insert({
+                            user1_id: currentUser.id,
+                            user2_id: profile.id,
+                            created_at: new Date().toISOString()
+                          })
+                          .select('id')
+                          .single();
+
+                        if (error) throw error;
+                        roomId = newRoom.id;
+                      }
+
+                      navigation.navigate('ChatRoom', {
+                        roomId: roomId,
+                        otherUserId: profile.id,
+                        otherUserName: profile.name
+                      });
+                    } catch (error) {
+                      console.error('Error creating/finding chat room:', error);
+                      Alert.alert('Error', 'Unable to start chat. Please try again.');
+                    }
+                  }}
+                >
+                  <Ionicons name="chatbubble" size={16} color={theme.colors.primary} />
+                  <Text style={styles.secondaryButtonText}>Message</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
 
           {/* Stats */}
@@ -1095,6 +1127,8 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
                 const activityTypeInfo = getActivityType(activity.activity_type);
                 const isCreator = activity.creator_id === profile?.id;
                 const spotsLeft = activity.max_participants - activity.current_participants;
+                const isPast = new Date(activity.scheduled_at).getTime() < Date.now() - 2 * 60 * 60 * 1000;
+                const isStarted = !isPast && new Date(activity.scheduled_at).getTime() < Date.now();
 
                 return (
                   <TouchableOpacity
@@ -1131,11 +1165,22 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
                         })}
                       </Text>
                     </View>
-                    {isCreator && (
+                    {/* Status badges */}
+                    {isStarted && activity.status !== 'cancelled' ? (
+                      <View style={styles.inProgressBadge}>
+                        <Ionicons name="play-circle" size={12} color="#fff" />
+                        <Text style={styles.inProgressBadgeText}>Live</Text>
+                      </View>
+                    ) : isPast && activity.status !== 'cancelled' ? (
+                      <View style={styles.pastActivityBadge}>
+                        <Ionicons name="time-outline" size={12} color={theme.colors.textSecondary} />
+                        <Text style={styles.pastActivityBadgeText}>Past</Text>
+                      </View>
+                    ) : isCreator ? (
                       <View style={styles.creatorBadge}>
                         <Text style={styles.creatorBadgeText}>Creator</Text>
                       </View>
-                    )}
+                    ) : null}
                     <Ionicons
                       name="chevron-forward"
                       size={20}
@@ -1163,13 +1208,15 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
 
         {/* Check-ins */}
         <View style={styles.checkInsSection}>
-          <Text style={styles.sectionTitle}>Recent Check-ins</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Check-ins</Text>
+          </View>
           {timeline.filter(item => item.type === 'checkin').length > 0 ? (
-            <>
+            <View style={styles.checkInsList}>
               {timeline
                 .filter(item => item.type === 'checkin')
                 .map(renderTimelineItem)}
-            </>
+            </View>
           ) : (
             <View style={styles.emptyCheckIns}>
               <Text style={styles.emptyText}>No recent check-ins</Text>
@@ -1253,6 +1300,46 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
         fetchComments={fetchComments}
         addComment={addComment}
         deleteComment={deleteComment}
+      />
+
+      {/* Check-in Detail Modal */}
+      <CheckInDetailModal
+        visible={!!selectedCheckIn}
+        onClose={() => setSelectedCheckIn(null)}
+        checkIn={selectedCheckIn ? {
+          id: selectedCheckIn.id,
+          location_name: selectedCheckIn.location_name || '',
+          description: selectedCheckIn.description,
+          latitude: selectedCheckIn.latitude || 0,
+          longitude: selectedCheckIn.longitude || 0,
+          created_at: selectedCheckIn.created_at,
+          expires_at: selectedCheckIn.expires_at,
+          activity_tag: selectedCheckIn.activity_tag,
+          profiles: selectedCheckIn.user ? {
+            id: selectedCheckIn.user.id,
+            name: selectedCheckIn.user.name,
+            photos: selectedCheckIn.user.photos,
+          } : undefined,
+        } : null}
+        onViewProfile={(userId) => {
+          setSelectedCheckIn(null);
+          if (userId === currentUserId) {
+            // Already on own profile, just close modal
+          } else {
+            navigation.navigate('UserProfile', { userId });
+          }
+        }}
+        onGetDirections={(lat, lng) => {
+          setSelectedCheckIn(null);
+          navigation.navigate('Home', {
+            showCheckIn: {
+              latitude: lat,
+              longitude: lng,
+              locationName: selectedCheckIn?.location_name || '',
+              checkInId: selectedCheckIn?.id || '',
+            },
+          });
+        }}
       />
     </SafeAreaView>
   );
@@ -1477,8 +1564,11 @@ const styles = StyleSheet.create({
   },
   profileActions: {
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     gap: theme.spacing.sm,
     marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
   },
   primaryButton: {
     backgroundColor: theme.colors.primary,
@@ -1623,11 +1713,115 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     gap: theme.spacing.sm,
+    borderLeftWidth: 3,
+    borderLeftColor: theme.colors.primary,
   },
   checkInLocationName: {
     fontSize: 16,
     fontWeight: '500',
     color: theme.colors.text,
+    flex: 1,
+  },
+  viewOnMapHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewOnMapText: {
+    fontSize: 12,
+    color: theme.colors.primary,
+    fontWeight: '500',
+  },
+  expiredContainer: {
+    opacity: 0.6,
+  },
+  expiredBadge: {
+    position: 'absolute',
+    top: theme.spacing.sm,
+    right: theme.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.gray[200],
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    gap: 4,
+    zIndex: 10,
+  },
+  expiredBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  expiredText: {
+    color: theme.colors.textSecondary,
+  },
+  expiredCard: {
+    borderLeftColor: theme.colors.gray[300],
+  },
+  expiredLocationName: {
+    color: theme.colors.textSecondary,
+  },
+  // Simplified check-in card styles (matching activity card)
+  checkInSimpleCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    gap: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  checkInIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkInIconExpired: {
+    backgroundColor: theme.colors.gray[200],
+  },
+  checkInSimpleInfo: {
+    flex: 1,
+  },
+  checkInSimpleLocation: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: 2,
+  },
+  checkInSimpleMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkInSimpleActivity: {
+    fontSize: 13,
+    color: theme.colors.primary,
+    fontWeight: '500',
+  },
+  checkInSimpleDot: {
+    color: theme.colors.textSecondary,
+  },
+  checkInSimpleDate: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  expiredBadgeInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.gray[200],
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
   },
   emptyTimeline: {
     padding: theme.spacing.xl,
@@ -1726,21 +1920,30 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     alignItems: 'center',
   },
+  skillsSection: {
+    marginTop: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.lg,
+    width: '100%',
+    alignSelf: 'stretch',
+  },
   checkInsSection: {
     marginTop: theme.spacing.lg,
+  },
+  checkInsList: {
     paddingHorizontal: theme.spacing.lg,
   },
   emptyCheckIns: {
+    marginHorizontal: theme.spacing.lg,
     padding: theme.spacing.lg,
     alignItems: 'center',
   },
   // Activities section styles
   activitiesSection: {
     marginTop: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.lg,
   },
   activitiesList: {
     gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
   },
   activityCard: {
     flexDirection: 'row',
@@ -1804,11 +2007,40 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: theme.colors.primary,
   },
+  inProgressBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.success,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  inProgressBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  pastActivityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.gray[200],
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  pastActivityBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
   emptyActivities: {
     padding: theme.spacing.lg,
     alignItems: 'center',
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.md,
+    marginHorizontal: theme.spacing.lg,
   },
   createActivityButton: {
     marginTop: theme.spacing.md,

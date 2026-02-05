@@ -34,6 +34,7 @@ import SubscriptionScreen from './src/screens/SubscriptionScreen';
 import SubscriptionSuccessScreen from './src/screens/SubscriptionSuccessScreen';
 import ExtraPurchaseSuccessScreen from './src/screens/ExtraPurchaseSuccessScreen';
 import ActivitiesScreen from './src/screens/ActivitiesScreen';
+import SkillMatchingScreen from './src/screens/SkillMatchingScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -215,6 +216,7 @@ function AuthenticatedApp({ user, navigation }: { user: any; navigation?: any })
       <Stack.Screen name="AllPosts" component={AllPostsScreen} />
       <Stack.Screen name="PostDetail" component={PostDetailScreen} />
       <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+      <Stack.Screen name="SkillMatching" component={SkillMatchingScreen} />
       <Stack.Screen name="SubscriptionSuccess" component={SubscriptionSuccessScreen} />
       <Stack.Screen name="ExtraPurchaseSuccess" component={ExtraPurchaseSuccessScreen} />
       <Stack.Screen name="UserProfile">

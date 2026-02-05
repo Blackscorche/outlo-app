@@ -28,7 +28,7 @@ const MainTabs = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
       tabBarIcon: ({ focused, color, size }) => {
-        let iconName;
+        let iconName: keyof typeof Ionicons.glyphMap = 'help-outline';
 
         if (route.name === 'Map') {
           iconName = focused ? 'map' : 'map-outline';
@@ -54,21 +54,14 @@ const MainTabs = () => (
 );
 
 const AppNavigator = () => {
-  const isAuthenticated = false; // This will be replaced with actual auth state
-
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!isAuthenticated ? (
-          <Stack.Screen name="Auth" component={AuthScreen} />
-        ) : (
-          <>
-            <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen name="ConnectionRequests" component={ConnectionRequestsScreen} />
-            <Stack.Screen name="Favorites" component={FavoritesScreen} />
-            <Stack.Screen name="Friends" component={FriendsScreen} />
-          </>
-        )}
+        <Stack.Screen name="Auth" component={AuthScreen} />
+        <Stack.Screen name="Main" component={MainTabs} />
+        <Stack.Screen name="ConnectionRequests" component={ConnectionRequestsScreen} />
+        <Stack.Screen name="Favorites" component={FavoritesScreen} />
+        <Stack.Screen name="Friends" component={FriendsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

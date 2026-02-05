@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { theme } from '../styles/theme';
 import { supabase } from '../integrations/supabase/client';
+import { Place } from '../hooks/usePlaces';
 
 // Activity tags for check-in feature
 export const ACTIVITY_TAGS = [
@@ -35,14 +36,23 @@ export const ACTIVITY_TAGS = [
 // Helper to get activity tag info by id
 export const getActivityTag = (id: string) => ACTIVITY_TAGS.find(tag => tag.id === id);
 
+export interface CheckInSuccessData {
+  checkInId: string;
+  placeId: string | null;
+  locationName: string;
+  latitude: number;
+  longitude: number;
+}
+
 interface CheckInModalProps {
   visible: boolean;
   onClose: () => void;
   onCheckIn: () => void;
+  onCheckInSuccess?: (data: CheckInSuccessData) => void;
   currentLocation: Location.LocationObject | null;
 }
 
-const CheckInModal = ({ visible, onClose, onCheckIn, currentLocation }: CheckInModalProps) => {
+const CheckInModal = ({ visible, onClose, onCheckIn, onCheckInSuccess, currentLocation }: CheckInModalProps) => {
   const [locationName, setLocationName] = useState('');
   const [description, setDescription] = useState('');
   const [activityTag, setActivityTag] = useState<string | null>(null);
@@ -110,7 +120,7 @@ const CheckInModal = ({ visible, onClose, onCheckIn, currentLocation }: CheckInM
         .eq('is_active', true);
 
       // Create new check-in
-      const { error } = await supabase
+      const { data: checkInData, error } = await supabase
         .from('check_ins')
         .insert({
           user_id: user.id,
@@ -120,17 +130,76 @@ const CheckInModal = ({ visible, onClose, onCheckIn, currentLocation }: CheckInM
           description: description.trim() || null,
           activity_tag: activityTag,
           expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
 
-      Alert.alert('Success', 'Checked in successfully!');
-      onCheckIn();
-      
-      // Reset form
+      // Find or create a place for this location
+      let placeId: string | null = null;
+      try {
+        const threshold = 0.0001; // ~11 meters
+
+        // First try to find existing place
+        const { data: existingPlaces } = await supabase
+          .from('places')
+          .select('id, name')
+          .gte('latitude', userLocation.latitude - threshold)
+          .lte('latitude', userLocation.latitude + threshold)
+          .gte('longitude', userLocation.longitude - threshold)
+          .lte('longitude', userLocation.longitude + threshold)
+          .limit(5);
+
+        // Check if any existing place matches the name
+        const matchingPlace = existingPlaces?.find(p =>
+          p.name.toLowerCase() === locationName.trim().toLowerCase()
+        );
+
+        if (matchingPlace) {
+          placeId = matchingPlace.id;
+        } else if (existingPlaces && existingPlaces.length > 0) {
+          // If very close place exists, use that
+          placeId = existingPlaces[0].id;
+        } else {
+          // Create new place
+          const { data: newPlace } = await supabase
+            .from('places')
+            .insert({
+              name: locationName.trim(),
+              latitude: userLocation.latitude,
+              longitude: userLocation.longitude,
+              place_type: 'other',
+            })
+            .select('id')
+            .single();
+
+          placeId = newPlace?.id || null;
+        }
+      } catch (placeError) {
+        console.log('Place creation skipped:', placeError);
+      }
+
+      const checkInSuccessData: CheckInSuccessData = {
+        checkInId: checkInData.id,
+        placeId,
+        locationName: locationName.trim(),
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+      };
+
+      // Reset form first
+      const savedLocationName = locationName.trim();
       setLocationName('');
       setDescription('');
       setActivityTag(null);
+
+      onCheckIn();
+
+      // Call success callback with check-in data
+      if (onCheckInSuccess) {
+        onCheckInSuccess(checkInSuccessData);
+      }
     } catch (error) {
       console.error('Error creating check-in:', error);
       Alert.alert('Error', 'Failed to create check-in');

@@ -47,6 +47,9 @@ export default function ActivityCard({
   // Check if activity is in the past (more than 2 hours ago)
   const isPast = new Date(activity.scheduled_at).getTime() < Date.now() - 2 * 60 * 60 * 1000;
 
+  // Check if activity has started (scheduled time has passed but not past yet)
+  const isStarted = !isPast && new Date(activity.scheduled_at).getTime() < Date.now();
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -91,6 +94,14 @@ export default function ActivityCard({
         <View style={styles.pastBadge}>
           <Ionicons name="time" size={12} color={theme.colors.textSecondary} />
           <Text style={styles.pastBadgeText}>Past</Text>
+        </View>
+      )}
+
+      {/* In Progress Badge */}
+      {isStarted && activity.status !== 'cancelled' && (
+        <View style={styles.inProgressBadge}>
+          <Ionicons name="play-circle" size={12} color="#fff" />
+          <Text style={styles.inProgressBadgeText}>In Progress</Text>
         </View>
       )}
 
@@ -375,5 +386,23 @@ const styles = StyleSheet.create({
   },
   pastTypeText: {
     color: theme.colors.textSecondary,
+  },
+  inProgressBadge: {
+    position: 'absolute',
+    top: theme.spacing.sm,
+    right: theme.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.success,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    gap: 4,
+    zIndex: 10,
+  },
+  inProgressBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

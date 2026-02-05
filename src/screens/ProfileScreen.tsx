@@ -20,17 +20,36 @@ import { supabase } from '../integrations/supabase/client';
 import { showImagePickerOptions } from '../utils/imagePicker';
 import { useSettings } from '../contexts/SettingsContext';
 import PostUploadModal from '../components/PostUploadModal';
-import CheckInModal from '../components/CheckInModal';
+import CheckInModal, { CheckInSuccessData } from '../components/CheckInModal';
+import PlaceReviewModal from '../components/PlaceReviewModal';
+import { usePlaces, Place } from '../hooks/usePlaces';
+
+interface CheckIn {
+  id: string;
+  user_id: string;
+  location_name: string;
+  latitude: number;
+  longitude: number;
+  description?: string;
+  activity_tag?: string;
+  is_active: boolean;
+  created_at: string;
+  expires_at: string;
+}
 
 const ProfileScreen = ({ navigation }) => {
   const { settings } = useSettings();
+  const { getPlaceById } = usePlaces();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [placeForReview, setPlaceForReview] = useState<Place | null>(null);
+  const [lastCheckInId, setLastCheckInId] = useState<string | null>(null);
   const [posts, setPosts] = useState([]);
-  const [activeCheckIn, setActiveCheckIn] = useState(null);
+  const [activeCheckIn, setActiveCheckIn] = useState<CheckIn | null>(null);
   const [profile, setProfile] = useState({
     id: '',
     email: '',
@@ -725,7 +744,21 @@ const ProfileScreen = ({ navigation }) => {
           </View>
           
           {activeCheckIn ? (
-            <View style={styles.checkInCard}>
+            <TouchableOpacity
+              style={styles.checkInCard}
+              onPress={() => {
+                // Navigate to map and show check-in marker
+                navigation.navigate('Home', {
+                  showCheckIn: {
+                    latitude: activeCheckIn.latitude,
+                    longitude: activeCheckIn.longitude,
+                    locationName: activeCheckIn.location_name,
+                    checkInId: activeCheckIn.id,
+                  },
+                });
+              }}
+              activeOpacity={0.7}
+            >
               <View style={styles.checkInInfo}>
                 <Ionicons name="location-sharp" size={20} color={theme.colors.primary} />
                 <Text style={styles.checkInLocation}>{activeCheckIn.location_name}</Text>
@@ -733,10 +766,16 @@ const ProfileScreen = ({ navigation }) => {
               {activeCheckIn.description && (
                 <Text style={styles.checkInDescription}>{activeCheckIn.description}</Text>
               )}
-              <Text style={styles.checkInTime}>
-                Checked in {new Date(activeCheckIn.created_at).toLocaleTimeString()}
-              </Text>
-            </View>
+              <View style={styles.checkInFooter}>
+                <Text style={styles.checkInTime}>
+                  Checked in {new Date(activeCheckIn.created_at).toLocaleTimeString()}
+                </Text>
+                <View style={styles.viewOnMapHint}>
+                  <Ionicons name="map-outline" size={14} color={theme.colors.primary} />
+                  <Text style={styles.viewOnMapText}>View on map</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
           ) : (
             <TouchableOpacity 
               style={styles.checkInPrompt}
@@ -771,9 +810,61 @@ const ProfileScreen = ({ navigation }) => {
             loadStats(); // Reload stats to update check-in count
             setShowCheckInModal(false);
           }}
+          onCheckInSuccess={async (data: CheckInSuccessData) => {
+            setLastCheckInId(data.checkInId);
+
+            // Navigate to map and show check-in marker
+            navigation.navigate('Home', {
+              showCheckIn: {
+                latitude: data.latitude,
+                longitude: data.longitude,
+                locationName: data.locationName,
+                checkInId: data.checkInId,
+              },
+            });
+
+            // If we have a place ID, fetch the place and prompt for review
+            if (data.placeId) {
+              const place = await getPlaceById(data.placeId);
+              if (place) {
+                // Small delay to let the navigation and modal close first
+                setTimeout(() => {
+                  Alert.alert(
+                    'Write a Review?',
+                    `Would you like to share your experience at ${data.locationName}?`,
+                    [
+                      { text: 'Not Now', style: 'cancel' },
+                      {
+                        text: 'Write Review',
+                        onPress: () => {
+                          setPlaceForReview(place);
+                          setShowReviewModal(true);
+                        },
+                      },
+                    ]
+                  );
+                }, 1000);
+              }
+            }
+          }}
           currentLocation={settings.location}
         />
       )}
+
+      {/* Place Review Modal */}
+      <PlaceReviewModal
+        visible={showReviewModal}
+        place={placeForReview}
+        checkInId={lastCheckInId || undefined}
+        onClose={() => {
+          setShowReviewModal(false);
+          setPlaceForReview(null);
+          setLastCheckInId(null);
+        }}
+        onSubmitted={() => {
+          Alert.alert('Thank you!', 'Your review has been submitted.');
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -1060,6 +1151,22 @@ const styles = StyleSheet.create({
   checkInTime: {
     fontSize: theme.fontSize.xs,
     color: theme.colors.textSecondary,
+  },
+  checkInFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: theme.spacing.xs,
+  },
+  viewOnMapHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewOnMapText: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.primary,
+    fontWeight: '500',
   },
   checkInPrompt: {
     backgroundColor: theme.colors.surface,

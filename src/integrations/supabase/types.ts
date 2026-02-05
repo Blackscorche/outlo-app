@@ -704,6 +704,157 @@ export type Database = {
           }
         ]
       }
+      places: {
+        Row: {
+          id: string
+          name: string
+          latitude: number
+          longitude: number
+          address: string | null
+          place_type: string
+          average_rating: number
+          review_count: number
+          check_in_count: number
+          activity_count: number
+          tags: string[]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          latitude: number
+          longitude: number
+          address?: string | null
+          place_type: string
+          average_rating?: number
+          review_count?: number
+          check_in_count?: number
+          activity_count?: number
+          tags?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          latitude?: number
+          longitude?: number
+          address?: string | null
+          place_type?: string
+          average_rating?: number
+          review_count?: number
+          check_in_count?: number
+          activity_count?: number
+          tags?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      place_reviews: {
+        Row: {
+          id: string
+          place_id: string
+          user_id: string
+          check_in_id: string | null
+          rating: number
+          review_text: string | null
+          tags: Record<string, boolean>
+          best_for: string[]
+          photos: string[]
+          helpful_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          place_id: string
+          user_id: string
+          check_in_id?: string | null
+          rating: number
+          review_text?: string | null
+          tags?: Record<string, boolean>
+          best_for?: string[]
+          photos?: string[]
+          helpful_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          place_id?: string
+          user_id?: string
+          check_in_id?: string | null
+          rating?: number
+          review_text?: string | null
+          tags?: Record<string, boolean>
+          best_for?: string[]
+          photos?: string[]
+          helpful_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_reviews_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_reviews_check_in_id_fkey"
+            columns: ["check_in_id"]
+            isOneToOne: false
+            referencedRelation: "check_ins"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      review_helpful: {
+        Row: {
+          id: string
+          review_id: string
+          user_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          review_id: string
+          user_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          review_id?: string
+          user_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_helpful_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "place_reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_helpful_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       verification_requests: {
         Row: {
           admin_notes: string | null
@@ -739,6 +890,419 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      skill_categories: {
+        Row: {
+          id: string
+          name: string
+          icon: string
+          display_order: number
+          created_at: string
+        }
+        Insert: {
+          id: string
+          name: string
+          icon: string
+          display_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          icon?: string
+          display_order?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      skills: {
+        Row: {
+          id: string
+          category_id: string
+          name: string
+          icon: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          category_id: string
+          name: string
+          icon?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          category_id?: string
+          name?: string
+          icon?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skills_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "skill_categories"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      user_skills: {
+        Row: {
+          id: string
+          user_id: string
+          skill_id: string
+          level: 'beginner' | 'intermediate' | 'advanced' | 'expert'
+          description: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          skill_id: string
+          level: 'beginner' | 'intermediate' | 'advanced' | 'expert'
+          description?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          skill_id?: string
+          level?: 'beginner' | 'intermediate' | 'advanced' | 'expert'
+          description?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_skills_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_skills_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      user_skill_wants: {
+        Row: {
+          id: string
+          user_id: string
+          skill_id: string
+          description: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          skill_id: string
+          description?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          skill_id?: string
+          description?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_skill_wants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_skill_wants_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      skill_exchange_proposals: {
+        Row: {
+          id: string
+          proposer_id: string
+          receiver_id: string
+          skill_to_learn_id: string
+          skill_to_offer_id: string | null
+          location_name: string
+          latitude: number
+          longitude: number
+          proposed_date: string
+          duration_minutes: number
+          message: string | null
+          status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'completed'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          proposer_id: string
+          receiver_id: string
+          skill_to_learn_id: string
+          skill_to_offer_id?: string | null
+          location_name: string
+          latitude: number
+          longitude: number
+          proposed_date: string
+          duration_minutes?: number
+          message?: string | null
+          status?: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'completed'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          proposer_id?: string
+          receiver_id?: string
+          skill_to_learn_id?: string
+          skill_to_offer_id?: string | null
+          location_name?: string
+          latitude?: number
+          longitude?: number
+          proposed_date?: string
+          duration_minutes?: number
+          message?: string | null
+          status?: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'completed'
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_exchange_proposals_proposer_id_fkey"
+            columns: ["proposer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_exchange_proposals_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_exchange_proposals_skill_to_learn_id_fkey"
+            columns: ["skill_to_learn_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_exchange_proposals_skill_to_offer_id_fkey"
+            columns: ["skill_to_offer_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      skill_exchange_sessions: {
+        Row: {
+          id: string
+          proposal_id: string
+          teacher_id: string
+          student_id: string
+          skill_id: string
+          session_date: string
+          status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          proposal_id: string
+          teacher_id: string
+          student_id: string
+          skill_id: string
+          session_date: string
+          status?: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          proposal_id?: string
+          teacher_id?: string
+          student_id?: string
+          skill_id?: string
+          session_date?: string
+          status?: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_exchange_sessions_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "skill_exchange_proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_exchange_sessions_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_exchange_sessions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_exchange_sessions_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      skill_reviews: {
+        Row: {
+          id: string
+          session_id: string
+          reviewer_id: string
+          reviewed_user_id: string
+          skill_id: string
+          teaching_quality: number
+          punctuality: number
+          knowledge_level: number
+          review_text: string | null
+          would_recommend: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          reviewer_id: string
+          reviewed_user_id: string
+          skill_id: string
+          teaching_quality: number
+          punctuality: number
+          knowledge_level: number
+          review_text?: string | null
+          would_recommend?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          reviewer_id?: string
+          reviewed_user_id?: string
+          skill_id?: string
+          teaching_quality?: number
+          punctuality?: number
+          knowledge_level?: number
+          review_text?: string | null
+          would_recommend?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_reviews_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "skill_exchange_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_reviews_reviewed_user_id_fkey"
+            columns: ["reviewed_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_reviews_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      skill_badges: {
+        Row: {
+          id: string
+          user_id: string
+          skill_id: string
+          badge_level: 'bronze' | 'silver' | 'gold' | 'diamond'
+          sessions_completed: number
+          average_rating: number | null
+          earned_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          skill_id: string
+          badge_level: 'bronze' | 'silver' | 'gold' | 'diamond'
+          sessions_completed?: number
+          average_rating?: number | null
+          earned_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          skill_id?: string
+          badge_level?: 'bronze' | 'silver' | 'gold' | 'diamond'
+          sessions_completed?: number
+          average_rating?: number | null
+          earned_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_badges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_badges_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
