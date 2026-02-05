@@ -22,6 +22,7 @@ export default function SkillMatchingScreen({ navigation }: any) {
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [showProposalModal, setShowProposalModal] = useState(false);
+  const [showInfoTooltip, setShowInfoTooltip] = useState(false);
 
   const {
     matches,
@@ -132,17 +133,35 @@ export default function SkillMatchingScreen({ navigation }: any) {
         >
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Skill Exchange</Text>
+        <View style={styles.headerTitleRow}>
+          <Text style={styles.headerTitle}>Skill Exchange</Text>
+          <TouchableOpacity
+            style={styles.infoButton}
+            onPress={() => setShowInfoTooltip(!showInfoTooltip)}
+          >
+            <Ionicons name="information-circle-outline" size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
         <View style={styles.headerRight} />
       </View>
 
-      {/* Info Banner */}
-      <View style={styles.infoBanner}>
-        <Ionicons name="information-circle" size={20} color={theme.colors.primary} />
-        <Text style={styles.infoText}>
-          Find people to exchange skills with! Teach what you know, learn what you want.
-        </Text>
-      </View>
+      {/* Info Tooltip */}
+      {showInfoTooltip && (
+        <TouchableOpacity
+          style={styles.tooltipOverlay}
+          activeOpacity={1}
+          onPress={() => setShowInfoTooltip(false)}
+        >
+          <View style={styles.tooltipContainer}>
+            <View style={styles.tooltipArrow} />
+            <View style={styles.tooltip}>
+              <Text style={styles.tooltipText}>
+                Find people to exchange skills with! Teach what you know, learn what you want.
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
 
       {/* Tabs */}
       <View style={styles.tabsContainer}>
@@ -247,24 +266,56 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: theme.colors.text,
   },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  infoButton: {
+    padding: 2,
+  },
   headerRight: {
     width: 32,
   },
-  infoBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.primary + '10',
-    marginHorizontal: theme.spacing.md,
-    marginTop: theme.spacing.md,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    gap: 10,
+  tooltipOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 99,
   },
-  infoText: {
-    flex: 1,
+  tooltipContainer: {
+    position: 'absolute',
+    top: 90,
+    left: 0,
+    right: -10,
+    zIndex: 100,
+    alignItems: 'center',
+  },
+  tooltipArrow: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderBottomWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: theme.colors.gray[700],
+    marginLeft: 80,
+  },
+  tooltip: {
+    backgroundColor: theme.colors.gray[700],
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.sm,
+    maxWidth: 240,
+  },
+  tooltipText: {
     fontSize: 13,
-    color: theme.colors.primary,
+    color: 'white',
     lineHeight: 18,
+    textAlign: 'center',
   },
   tabsContainer: {
     flexDirection: 'row',
