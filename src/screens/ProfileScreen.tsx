@@ -467,7 +467,7 @@ const ProfileScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={commonStyles.title}>My Profile</Text>
+          <View />
           <TouchableOpacity onPress={() => setIsEditing(!isEditing)}>
             <Ionicons
               name={isEditing ? 'close' : 'create-outline'}

@@ -19,6 +19,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { showImagePickerOptions } from '../utils/imagePicker';
 import { theme } from '../styles/theme';
+import { commonStyles } from '../styles/common';
 import { supabase } from '../integrations/supabase/client';
 import { useSettings } from '../contexts/SettingsContext';
 import { useConnectionRequests } from '../hooks/useConnectionRequests';
@@ -752,7 +753,15 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
+      {/* Header */}
+      <View style={styles.navHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+        </TouchableOpacity>
+        <Text style={commonStyles.title}>My Profile</Text>
+        <View style={{ width: 24 }} />
+      </View>
+      <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -1349,6 +1358,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  navHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
   },
   nameContainer: {
     flexDirection: 'row',

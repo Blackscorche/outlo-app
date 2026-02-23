@@ -213,6 +213,23 @@ const SettingsScreen = ({ navigation }) => {
           <Text style={commonStyles.title}>Settings</Text>
         </View>
 
+        {/* My Profile */}
+        <TouchableOpacity
+          style={styles.profileNavItem}
+          onPress={() => navigation.navigate('Profile')}
+        >
+          <View style={styles.profileNavLeft}>
+            <View style={styles.profileNavIcon}>
+              <Ionicons name="person" size={24} color="#FF4A6E" />
+            </View>
+            <View>
+              <Text style={styles.profileNavTitle}>My Profile</Text>
+              <Text style={styles.profileNavSubtitle}>View and edit your profile</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
+        </TouchableOpacity>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Map Settings</Text>
           <SettingItem
@@ -597,6 +614,40 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: theme.fontSize.sm,
     color: theme.colors.textSecondary,
+  },
+  profileNavItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    marginHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+  },
+  profileNavLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  profileNavIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FF4A6E' + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: theme.spacing.md,
+  },
+  profileNavTitle: {
+    fontSize: theme.fontSize.base,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  profileNavSubtitle: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
   },
 });
 

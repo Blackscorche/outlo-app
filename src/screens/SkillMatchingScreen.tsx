@@ -71,7 +71,7 @@ export default function SkillMatchingScreen({ navigation }: any) {
           </Text>
           <TouchableOpacity
             style={styles.emptyButton}
-            onPress={() => navigation.navigate('Profile')}
+            onPress={() => navigation.navigate('Settings', { screen: 'Profile' })}
           >
             <Ionicons name="person" size={20} color="white" />
             <Text style={styles.emptyButtonText}>Go to Profile</Text>

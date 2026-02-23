@@ -277,7 +277,7 @@ console.log(profile,"profile")
 
       // Don't allow viewing own profile through this screen
       if (userId === currentUser.id) {
-        navigation.navigate('Profile');
+        navigation.navigate('Settings', { screen: 'Profile' });
         return;
       }
 

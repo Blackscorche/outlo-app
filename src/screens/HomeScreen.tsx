@@ -1569,7 +1569,7 @@ export default function HomeScreen({ navigation, route }: any) {
             const { data: { user } } = await supabase.auth.getUser();
             if (user && user.id === targetUserId) {
               // Navigate to own profile tab
-              navigation.navigate('Profile');
+              navigation.navigate('Settings', { screen: 'Profile' });
             } else {
               // Navigate to other user's profile
               navigation.navigate('UserProfile', { userId: targetUserId });
@@ -1599,7 +1599,7 @@ export default function HomeScreen({ navigation, route }: any) {
           onViewProfile={(userId) => {
             setSelectedActivity(null);
             if (userId === currentUserId) {
-              navigation.navigate('Profile');
+              navigation.navigate('Settings', { screen: 'Profile' });
             } else {
               navigation.navigate('UserProfile', { userId });
             }
@@ -1628,7 +1628,7 @@ export default function HomeScreen({ navigation, route }: any) {
               `Would you like to check in at ${place.name}?`,
               [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Go to Profile', onPress: () => navigation.navigate('Profile') },
+                { text: 'Go to Profile', onPress: () => navigation.navigate('Settings', { screen: 'Profile' }) },
               ]
             );
           }}
@@ -1645,7 +1645,7 @@ export default function HomeScreen({ navigation, route }: any) {
           onViewProfile={(userId) => {
             setSelectedPlaceId(null);
             if (userId === currentUserId) {
-              navigation.navigate('Profile');
+              navigation.navigate('Settings', { screen: 'Profile' });
             } else {
               navigation.navigate('UserProfile', { userId });
             }
