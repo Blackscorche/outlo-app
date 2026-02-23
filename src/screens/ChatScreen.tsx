@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +15,7 @@ import { supabase } from '../integrations/supabase/client';
 import { useConnectionRequests } from '../hooks/useConnectionRequests';
 import { useBadgeCounts } from '../hooks/useBadgeCounts';
 import { usePinnedUsers } from '../hooks/usePinnedUsers';
+import AppLoading from '../components/AppLoading';
 
 interface ChatRoom {
   id: string;
@@ -452,8 +452,7 @@ export default function ChatScreen({ navigation }: any) {
       
       {connectionsLoading || loading || !initialLoadComplete ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF1744" />
-          <Text style={styles.loadingText}>Loading chats...</Text>
+          <AppLoading />
         </View>
       ) : connections.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -465,8 +464,7 @@ export default function ChatScreen({ navigation }: any) {
         </View>
       ) : connectedUsers.length === 0 && connections.length > 0 ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF1744" />
-          <Text style={styles.loadingText}>Loading user profiles...</Text>
+          <AppLoading />
         </View>
       ) : (
         <FlatList

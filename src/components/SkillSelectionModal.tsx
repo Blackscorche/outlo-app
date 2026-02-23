@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
+import AppLoading from './AppLoading';
 import { SKILL_LEVELS, SkillLevelId } from '../constants/skillTypes';
 import { useSkills, SkillWithCategory } from '../hooks/useSkills';
 import { Tables } from '../integrations/supabase/types';
@@ -298,7 +298,7 @@ export default function SkillSelectionModal({
 
         {loadingCategories ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <AppLoading />
           </View>
         ) : (
           <>

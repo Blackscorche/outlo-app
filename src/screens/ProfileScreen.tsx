@@ -19,6 +19,7 @@ import { commonStyles } from '../styles/common';
 import { supabase } from '../integrations/supabase/client';
 import { showImagePickerOptions } from '../utils/imagePicker';
 import { useSettings } from '../contexts/SettingsContext';
+import AppLoading from '../components/AppLoading';
 import PostUploadModal from '../components/PostUploadModal';
 import CheckInModal, { CheckInSuccessData } from '../components/CheckInModal';
 import PlaceReviewModal from '../components/PlaceReviewModal';
@@ -456,8 +457,7 @@ const ProfileScreen = ({ navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Loading profile...</Text>
+          <AppLoading />
         </View>
       </SafeAreaView>
     );

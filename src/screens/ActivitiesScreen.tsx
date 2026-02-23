@@ -6,15 +6,16 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { theme } from '../styles/theme';
+import { commonStyles } from '../styles/common';
 import { useActivities, Activity } from '../hooks/useActivities';
 import { ACTIVITY_TYPES } from '../constants/activityTypes';
+import AppLoading from '../components/AppLoading';
 import ActivityCard from '../components/ActivityCard';
 import CreateActivityModal from '../components/CreateActivityModal';
 import ActivityDetailModal from '../components/ActivityDetailModal';
@@ -265,7 +266,7 @@ export default function ActivitiesScreen({ navigation }: any) {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Activities</Text>
+        <Text style={commonStyles.title}>Activities</Text>
         <TouchableOpacity
           style={styles.createButton}
           onPress={() => setShowCreateModal(true)}
@@ -414,7 +415,7 @@ export default function ActivitiesScreen({ navigation }: any) {
       {/* Activities List */}
       {loading && activities.length === 0 ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <AppLoading />
         </View>
       ) : (
         <FlatList
@@ -575,14 +576,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.colors.text,
   },
   createButton: {
     backgroundColor: theme.colors.primary,

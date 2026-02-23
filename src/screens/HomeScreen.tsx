@@ -23,6 +23,8 @@ import ActivityDetailModal from '../components/ActivityDetailModal';
 import { getActivityTag } from '../components/CheckInModal';
 import { getActivityType } from '../constants/activityTypes';
 import { useSettings } from '../contexts/SettingsContext';
+import { theme } from '../styles/theme';
+import { commonStyles } from '../styles/common';
 import { useSubscription } from '../hooks/useSubscription';
 import { useInAppNotifications } from '../hooks/useInAppNotifications';
 import { useActivities, Activity } from '../hooks/useActivities';
@@ -30,6 +32,7 @@ import { usePlaces, Place } from '../hooks/usePlaces';
 import { getPlaceIcon } from '../constants/placeTypes';
 import PlaceDetailModal from '../components/PlaceDetailModal';
 import PlaceReviewModal from '../components/PlaceReviewModal';
+import AppLoading from '../components/AppLoading';
 
 interface UserLocation {
   id: string;
@@ -214,6 +217,7 @@ export default function HomeScreen({ navigation, route }: any) {
   const [isMapInteracting, setIsMapInteracting] = useState(false); // Track user interaction
   const [locationUpdateCount, setLocationUpdateCount] = useState(0); // Force marker re-render
   const [showLocationPrompt, setShowLocationPrompt] = useState(false); // Control location permission modal
+  const [mapRefreshing, setMapRefreshing] = useState(false);
   const mapRef = useRef<MapView>(null);
   
   // Extract values from settings context
@@ -920,8 +924,7 @@ export default function HomeScreen({ navigation, route }: any) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF1744" />
-          <Text>Loading location...</Text>
+          <AppLoading />
         </View>
       </SafeAreaView>
     );
@@ -951,6 +954,57 @@ export default function HomeScreen({ navigation, route }: any) {
   // Main UI with MapView
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Image
+          source={require('../../assets/favicon.png')}
+          style={styles.headerLogo}
+          resizeMode="contain"
+        />
+        <View style={styles.headerActions}>
+          {location && isLocationEnabled && (
+            <>
+              <TouchableOpacity
+                style={styles.headerIconButton}
+                onPress={() => setShowFilters(true)}
+              >
+                <Ionicons name="funnel" size={20} color="#FF1744" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerIconButton}
+                onPress={async () => {
+                  if (isLocationEnabled) {
+                    setMapRefreshing(true);
+                    try {
+                      const { data: authData } = await supabase.auth.getUser();
+                      if (authData?.user) {
+                        await supabase
+                          .from('profiles')
+                          .update({
+                            last_seen: new Date().toISOString(),
+                            is_online: true,
+                          })
+                          .eq('id', authData.user.id);
+                      }
+                    } catch (error) {
+                      console.error('Error updating user status:', error);
+                    }
+                    setNearbyUsers([]);
+                    await fetchNearbyUsers();
+                    await fetchCheckIns();
+                    forceRefreshMarkers();
+                    setMapRefreshing(false);
+                  } else {
+                    Alert.alert('Location Off', 'Please turn on location to refresh');
+                  }
+                }}
+              >
+                <Ionicons name="sync" size={22} color="#FF1744" />
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </View>
       <View style={styles.mapContainer}>
         <MapView
           key={mapKey} // Force re-render when visibility changes
@@ -1224,7 +1278,12 @@ export default function HomeScreen({ navigation, route }: any) {
               );
             })}
         </MapView>
-        
+
+        {/* Refresh overlay */}
+        {mapRefreshing && (
+          <AppLoading overlay />
+        )}
+
         {/* Dark overlay and prompt when user tries to enable location */}
         {showLocationPrompt && (
           <View style={styles.locationDisabledOverlay}>
@@ -1277,29 +1336,18 @@ export default function HomeScreen({ navigation, route }: any) {
             </View>
           </View>
         )}
-        {/* Control buttons */}
-        <View style={styles.controlsContainer}>
-          {/* Location toggle */}
+        {/* Toggle controls card */}
+        <View style={styles.toggleCard}>
           <TouchableOpacity
-            style={[styles.controlButton, !isLocationEnabled && styles.controlButtonDisabled]}
+            style={styles.toggleCardButton}
             onPress={async () => {
               try {
                 if (!isLocationEnabled) {
-                  // When location is OFF and user tries to turn it ON, show the modal
                   setShowLocationPrompt(true);
                   return;
                 }
-                
-                // When location is ON and user tries to turn it OFF
-                const newLocationEnabled = false;
-                
-                // Update the setting
-                await updateLocationEnabled(newLocationEnabled);
-                
-                // When turning location OFF:
-                // 1. Clear all nearby users immediately
+                await updateLocationEnabled(false);
                 setNearbyUsers([]);
-                // 2. Clear check-ins
                 setCheckIns([]);
               } catch (error) {
                 console.error('Error toggling location:', error);
@@ -1307,22 +1355,20 @@ export default function HomeScreen({ navigation, route }: any) {
               }
             }}
           >
-            <Ionicons 
-              name={isLocationEnabled ? "location" : "location-outline"} 
-              size={24} 
-              color={isLocationEnabled ? "#FF1744" : "#999"} 
+            <Ionicons
+              name={isLocationEnabled ? "location" : "location-outline"}
+              size={20}
+              color={isLocationEnabled ? "#FF1744" : "#999"}
             />
-            <Text style={[styles.controlButtonText, !isLocationEnabled && styles.controlButtonTextDisabled]}>
-              Location {isLocationEnabled ? 'On' : 'Off'}
+            <Text style={[styles.toggleCardText, !isLocationEnabled && { color: '#999' }]}>
+              {isLocationEnabled ? 'Location On' : 'Location Off'}
             </Text>
           </TouchableOpacity>
-
-          {/* Visibility toggle - Check for invisible mode subscription */}
+          <View style={styles.toggleCardDivider} />
           <TouchableOpacity
-            style={[styles.controlButton, !isVisible && styles.controlButtonDisabled]}
+            style={styles.toggleCardButton}
             onPress={async () => {
               try {
-                // If trying to go invisible, check subscription
                 if (isVisible && !isInvisibleMode) {
                   Alert.alert(
                     'Premium Feature',
@@ -1341,53 +1387,32 @@ export default function HomeScreen({ navigation, route }: any) {
               }
             }}
           >
-            <Ionicons 
-              name={isVisible ? "eye" : "eye-off"} 
-              size={24} 
-              color={isVisible ? "#FF1744" : "#999"} 
+            <Ionicons
+              name={isVisible ? "eye" : "eye-off"}
+              size={20}
+              color={isVisible ? "#FF1744" : "#999"}
             />
-            <Text style={[styles.controlButtonText, !isVisible && styles.controlButtonTextDisabled]}>
+            <Text style={[styles.toggleCardText, !isVisible && { color: '#999' }]}>
               {isVisible ? 'Visible' : 'Hidden'}
             </Text>
           </TouchableOpacity>
-
-          {/* Nearby users button */}
-          <TouchableOpacity
-            style={styles.controlButton}
-            onPress={() => setShowNearbyUsers(true)}
-          >
-            <Ionicons name="people" size={24} color="#FF1744" />
-            <Text style={styles.controlButtonText}>
-              {isLocationEnabled ? `Nearby (${nearbyUsers.length})` : `Users (${nearbyUsers.length})`}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Filters button */}
-          <TouchableOpacity
-            style={styles.controlButton}
-            onPress={() => setShowFilters(true)}
-          >
-            <Ionicons name="options" size={24} color="#FF1744" />
-            <Text style={styles.controlButtonText}>Filters</Text>
-          </TouchableOpacity>
-
         </View>
 
-        {/* Logo in upper left corner */}
-        <Image
-          source={require('../../assets/icon.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-
-        {/* Custom location button */}
-        {location && isLocationEnabled && (
-          <>
+        {/* Bottom bar: Nearby + Locate */}
+        <View style={styles.bottomBar}>
+          <TouchableOpacity
+            style={styles.nearbyPill}
+            onPress={() => setShowNearbyUsers(true)}
+          >
+            <View style={[styles.nearbyDot, !isLocationEnabled && { backgroundColor: '#999' }]} />
+            <Text style={styles.nearbyText}>{nearbyUsers.length} nearby</Text>
+            <Ionicons name="chevron-up" size={16} color="#666" />
+          </TouchableOpacity>
+          {location && isLocationEnabled && (
             <TouchableOpacity
-              style={styles.locationButton}
+              style={styles.bottomIconButton}
               onPress={() => {
                 if (location && location.coords && mapRef.current) {
-                  // Use animateToRegion for smooth transition
                   mapRef.current.animateToRegion({
                     latitude: location.coords.latitude,
                     longitude: location.coords.longitude,
@@ -1397,12 +1422,17 @@ export default function HomeScreen({ navigation, route }: any) {
                 }
               }}
             >
-              <Ionicons name="locate" size={22} color="#FF1744" />
+              <Ionicons name="locate" size={20} color="#FF1744" />
             </TouchableOpacity>
-            
+          )}
+        </View>
+
+        {/* Map toggle buttons */}
+        {location && isLocationEnabled && (
+          <>
             {/* Check-ins toggle button */}
             <TouchableOpacity
-              style={[styles.locationButton, { top: Platform.OS === 'ios' ? 100 : 70 }]}
+              style={styles.locationButton}
               onPress={() => {
                 const newValue = !showCheckInsOnly;
                 setShowCheckInsOnly(newValue);
@@ -1422,7 +1452,7 @@ export default function HomeScreen({ navigation, route }: any) {
 
             {/* Activities toggle button */}
             <TouchableOpacity
-              style={[styles.locationButton, { top: Platform.OS === 'ios' ? 150 : 120 }]}
+              style={[styles.locationButton, { top: Platform.OS === 'ios' ? 100 : 70 }]}
               onPress={() => {
                 const newValue = !showActivitiesOnMap;
                 setShowActivitiesOnMap(newValue);
@@ -1442,7 +1472,7 @@ export default function HomeScreen({ navigation, route }: any) {
 
             {/* Places toggle button */}
             <TouchableOpacity
-              style={[styles.locationButton, { top: Platform.OS === 'ios' ? 200 : 170 }]}
+              style={[styles.locationButton, { top: Platform.OS === 'ios' ? 150 : 120 }]}
               onPress={() => {
                 const newValue = !showPlacesOnMap;
                 setShowPlacesOnMap(newValue);
@@ -1460,43 +1490,6 @@ export default function HomeScreen({ navigation, route }: any) {
               />
             </TouchableOpacity>
 
-            {/* Refresh button */}
-            <TouchableOpacity
-              style={[styles.locationButton, { top: Platform.OS === 'ios' ? 250 : 220 }]}
-              onPress={async () => {
-                if (isLocationEnabled) {
-                  // Force update current user's last_seen first
-                  try {
-                    const { data: authData } = await supabase.auth.getUser();
-                    if (authData?.user) {
-                      await supabase
-                        .from('profiles')
-                        .update({
-                          last_seen: new Date().toISOString(),
-                          is_online: true,
-                        })
-                        .eq('id', authData.user.id);
-                    }
-                  } catch (error) {
-                    console.error('Error updating user status:', error);
-                  }
-                  
-                  // Clear current users to force fresh fetch
-                  setNearbyUsers([]);
-                  
-                  // Fetch fresh data with updated statuses
-                  await fetchNearbyUsers();
-                  await fetchCheckIns();
-                  // Force refresh markers
-                  forceRefreshMarkers();
-                  Alert.alert('Refreshed', 'Map and user statuses have been updated');
-                } else {
-                  Alert.alert('Location Off', 'Please turn on location to refresh');
-                }
-              }}
-            >
-              <Ionicons name="refresh" size={22} color="#FF1744" />
-            </TouchableOpacity>
           </>
         )}
 
@@ -1686,39 +1679,83 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  controlsContainer: {
+  bottomBar: {
     position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
+    bottom: 16,
+    left: 16,
+    right: 16,
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    borderRadius: 15,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  nearbyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+    gap: 8,
   },
-  controlButton: {
+  nearbyDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+  },
+  nearbyText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  toggleCard: {
+    position: 'absolute',
+    bottom: 60,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  toggleCardButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 6,
+  },
+  toggleCardText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#333',
+  },
+  toggleCardDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#E0E0E0',
+  },
+  bottomIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 10,
-  },
-  controlButtonDisabled: {
-    opacity: 0.5,
-  },
-  controlButtonText: {
-    fontSize: 12,
-    color: '#333',
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  controlButtonTextDisabled: {
-    color: '#999',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
   },
   content: {
     flex: 1,
@@ -1730,6 +1767,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  refreshOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
   errorContainer: {
     flex: 1,
@@ -1879,7 +1923,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     backgroundColor: 'white',
-    borderRadius: 4,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1983,11 +2027,41 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 10,
   },
-  logo: {
-    position: 'absolute',
-    top: -40,
-    left: -25,
-    width: 200,
-    height: 200,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.xs,
+    paddingRight: theme.spacing.md,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1,
+  },
+  headerLogo: {
+    width: 150,
+    height: 50,
+    marginLeft: -25,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
   },
 });

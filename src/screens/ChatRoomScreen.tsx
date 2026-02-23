@@ -19,6 +19,7 @@ import { theme } from '../styles/theme';
 import { supabase } from '../integrations/supabase/client';
 import { useBadgeCounts } from '../hooks/useBadgeCounts';
 import EmoticonPicker from '../components/EmoticonPicker';
+import AppLoading from '../components/AppLoading';
 
 interface Message {
   id: string;
@@ -678,8 +679,7 @@ const ChatRoomScreen = ({ route, navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Loading messages...</Text>
+          <AppLoading />
         </View>
       </SafeAreaView>
     );

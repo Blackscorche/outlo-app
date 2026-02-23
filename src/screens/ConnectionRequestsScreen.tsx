@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Image,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +16,7 @@ import { commonStyles } from '../styles/common';
 import { useConnectionRequests } from '../hooks/useConnectionRequests';
 import { useBadgeCounts } from '../hooks/useBadgeCounts';
 import { supabase } from '../integrations/supabase/client';
+import AppLoading from '../components/AppLoading';
 
 const ConnectionRequestsScreen = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('received');
@@ -413,8 +413,7 @@ const ConnectionRequestsScreen = ({ navigation }) => {
 
       {loading ? (
         <View style={commonStyles.centerContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Loading partner requests...</Text>
+          <AppLoading />
         </View>
       ) : currentRequests.length === 0 ? (
         <View style={commonStyles.centerContainer}>

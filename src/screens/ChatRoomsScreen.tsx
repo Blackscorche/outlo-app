@@ -6,12 +6,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
+import AppLoading from '../components/AppLoading';
 
 const ChatRoomsScreen = ({ navigation }) => {
   const [chatRooms, setChatRooms] = useState([]);
@@ -79,7 +79,7 @@ const ChatRoomsScreen = ({ navigation }) => {
   if (loading) {
     return (
       <SafeAreaView style={commonStyles.centerContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <AppLoading />
       </SafeAreaView>
     );
   }

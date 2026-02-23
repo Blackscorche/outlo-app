@@ -7,12 +7,12 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  ActivityIndicator,
   Linking,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
+import AppLoading from './AppLoading';
 import { Place, PlaceReview, usePlaces } from '../hooks/usePlaces';
 import { getPlaceType, getReviewTag, getBestForOption } from '../constants/placeTypes';
 
@@ -126,7 +126,7 @@ export default function PlaceDetailModal({
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <AppLoading />
           </View>
         ) : place ? (
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>

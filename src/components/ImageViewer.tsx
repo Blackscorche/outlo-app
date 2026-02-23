@@ -8,11 +8,11 @@ import {
   Image,
   Dimensions,
   FlatList,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
+import AppLoading from './AppLoading';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -44,7 +44,7 @@ export default function ImageViewer({
         />
         {imageLoading[index] && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="white" />
+            <AppLoading />
           </View>
         )}
       </View>

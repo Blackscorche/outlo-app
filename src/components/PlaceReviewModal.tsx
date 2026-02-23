@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
+import AppLoading from './AppLoading';
 import { Place, PlaceReview, usePlaces } from '../hooks/usePlaces';
 import { REVIEW_TAGS, BEST_FOR_OPTIONS, getPlaceType } from '../constants/placeTypes';
 
@@ -146,7 +147,7 @@ export default function PlaceReviewModal({
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <AppLoading />
           </View>
         ) : place ? (
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>

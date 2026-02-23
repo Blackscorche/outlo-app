@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
 import { supabase } from '../integrations/supabase/client';
+import AppLoading from '../components/AppLoading';
 import subscriptionService from '../services/subscriptionService';
 
 const ExtraPurchaseSuccessScreen = ({ navigation, route }: any) => {
@@ -71,8 +71,7 @@ const ExtraPurchaseSuccessScreen = ({ navigation, route }: any) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Processing your purchase...</Text>
+          <AppLoading />
         </View>
       </SafeAreaView>
     );

@@ -17,6 +17,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
 import { theme } from '../styles/theme';
+import AppLoading from './AppLoading';
 import { ACTIVITY_TYPES } from '../constants/activityTypes';
 import { useActivities } from '../hooks/useActivities';
 
@@ -402,7 +403,7 @@ export default function CreateActivityModal({
 
         {loading && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <AppLoading />
           </View>
         )}
       </SafeAreaView>

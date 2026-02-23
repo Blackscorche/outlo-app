@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +12,7 @@ import { commonStyles } from '../styles/common';
 import { supabase } from '../integrations/supabase/client';
 import subscriptionService from '../services/subscriptionService';
 import { useSubscription } from '../hooks/useSubscription';
+import AppLoading from '../components/AppLoading';
 
 const SubscriptionSuccessScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
@@ -74,11 +74,7 @@ const SubscriptionSuccessScreen = ({ navigation, route }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Processing payment...</Text>
-          <Text style={[styles.loadingText, { fontSize: theme.fontSize.sm, marginTop: theme.spacing.xs }]}>
-            This may take a few seconds
-          </Text>
+          <AppLoading />
         </View>
       </SafeAreaView>
     );

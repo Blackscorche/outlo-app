@@ -29,6 +29,7 @@ import ActivityDetailModal from '../components/ActivityDetailModal';
 import CheckInDetailModal from '../components/CheckInDetailModal';
 import { useActivities, Activity } from '../hooks/useActivities';
 import { getActivityType, ACTIVITY_TYPES } from '../constants/activityTypes';
+import AppLoading from '../components/AppLoading';
 import SkillEditSection from '../components/SkillEditSection';
 
 interface TimelineItem {
@@ -745,7 +746,7 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <AppLoading />
         </View>
       </SafeAreaView>
     );
@@ -1364,7 +1365,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
   },
   nameContainer: {
     flexDirection: 'row',

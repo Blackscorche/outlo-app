@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
 import { supabase } from '../integrations/supabase/client';
+import AppLoading from '../components/AppLoading';
 
 const { width } = Dimensions.get('window');
 const ITEM_SIZE = (width - theme.spacing.lg * 2 - theme.spacing.xs * 2) / 3;
@@ -162,7 +163,7 @@ const AllPostsScreen = ({ navigation, route }) => {
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <AppLoading />
         </View>
       </SafeAreaView>
     );

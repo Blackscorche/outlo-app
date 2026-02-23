@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +13,7 @@ import { theme } from '../styles/theme';
 import { useSkillMatching } from '../hooks/useSkillMatching';
 import { useSkills } from '../hooks/useSkills';
 import SkillMatchCard from '../components/SkillMatchCard';
+import AppLoading from '../components/AppLoading';
 import SkillExchangeProposalModal from '../components/SkillExchangeProposalModal';
 
 type TabType = 'all' | 'canTeach' | 'wantToLearn' | 'mutual';
@@ -203,8 +203,7 @@ export default function SkillMatchingScreen({ navigation }: any) {
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Finding skill matches...</Text>
+          <AppLoading />
         </View>
       ) : (
         <FlatList

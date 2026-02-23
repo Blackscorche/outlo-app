@@ -23,6 +23,7 @@ import { useConnectionRequests } from '../hooks/useConnectionRequests';
 import { checkConnectionQuota, useConnectionQuota, checkFirstImpressionQuota, useFirstImpressionQuota } from '../hooks/useSubscription';
 import ImageViewer from '../components/ImageViewer';
 import { FirstImpressionModal } from '../components/FirstImpressionModal';
+import AppLoading from '../components/AppLoading';
 
 interface TimelineItem {
   id: string;
@@ -785,7 +786,7 @@ console.log(profile,"profile")
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <AppLoading />
         </View>
       </SafeAreaView>
     );

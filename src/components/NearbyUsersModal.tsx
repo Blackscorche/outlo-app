@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
+import AppLoading from './AppLoading';
 import { supabase } from '../integrations/supabase/client';
 import { usePinnedUsers } from '../hooks/usePinnedUsers';
 
@@ -462,7 +463,7 @@ export default function NearbyUsersModal({
         <View style={styles.content}>
           {!connectionsLoaded ? (
             <View style={styles.emptyContainer}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <AppLoading />
               <Text style={styles.emptyTitle}>Loading connections...</Text>
             </View>
           ) : activeTab === 'online' && onlineUsers.length === 0 ? (
