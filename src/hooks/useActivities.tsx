@@ -48,7 +48,7 @@ export function useActivities() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [myActivities, setMyActivities] = useState<Activity[]>([]);
   const [joinedActivities, setJoinedActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const mountedRef = useRef(true);
 
