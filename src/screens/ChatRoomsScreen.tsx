@@ -87,7 +87,14 @@ const ChatRoomsScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={commonStyles.title}>Messages</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+          <Image
+            source={require('../../assets/favicon.png')}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Messages</Text>
         <TouchableOpacity>
           <Ionicons name="search" size={24} color={theme.colors.text} />
         </TouchableOpacity>
@@ -123,8 +130,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    paddingRight: theme.spacing.md,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1,
+  },
+  headerTitle: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    pointerEvents: 'none',
+  },
+  headerLogo: {
+    width: 150,
+    height: 50,
+    marginLeft: -25,
   },
   listContent: {
     paddingHorizontal: theme.spacing.lg,

@@ -171,6 +171,27 @@ export function useActivities() {
         joinedActivitiesData = joined || [];
       }
 
+      // Auto-complete past activities (scheduled more than 2 hours ago and still 'open')
+      const allMyAndPublic = [...(myActivitiesData || []), ...(publicActivitiesData || [])];
+      const pastOpenActivities = allMyAndPublic.filter(
+        a => a.status === 'open' && a.creator_id === user.id &&
+             new Date(a.scheduled_at).getTime() < Date.now() - 2 * 60 * 60 * 1000
+      );
+      if (pastOpenActivities.length > 0) {
+        const uniqueIds = [...new Set(pastOpenActivities.map(a => a.id))];
+        await supabase
+          .from('activities')
+          .update({ status: 'completed', updated_at: new Date().toISOString() })
+          .in('id', uniqueIds);
+        // Update local data to reflect changes
+        (myActivitiesData || []).forEach(a => {
+          if (uniqueIds.includes(a.id)) a.status = 'completed';
+        });
+        (publicActivitiesData || []).forEach(a => {
+          if (uniqueIds.includes(a.id)) a.status = 'completed';
+        });
+      }
+
       // Combine all unique activities for fetching participants
       const allActivitiesMap = new Map<string, any>();
       (publicActivitiesData || []).forEach(a => allActivitiesMap.set(a.id, a));
@@ -371,6 +392,42 @@ export function useActivities() {
     }
   }, [fetchActivities]);
 
+  const completeActivity = useCallback(async (activityId: string): Promise<boolean> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert('Error', 'You must be logged in');
+        return false;
+      }
+
+      // Verify user is the creator
+      const { data: activity } = await supabase
+        .from('activities')
+        .select('creator_id')
+        .eq('id', activityId)
+        .single();
+
+      if (activity?.creator_id !== user.id) {
+        Alert.alert('Error', 'Only the creator can complete this activity');
+        return false;
+      }
+
+      const { error } = await supabase
+        .from('activities')
+        .update({ status: 'completed', updated_at: new Date().toISOString() })
+        .eq('id', activityId);
+
+      if (error) throw error;
+
+      await fetchActivities();
+      return true;
+    } catch (error) {
+      console.error('Error completing activity:', error);
+      Alert.alert('Error', 'Failed to complete activity');
+      return false;
+    }
+  }, [fetchActivities]);
+
   const cancelActivity = useCallback(async (activityId: string): Promise<boolean> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -540,6 +597,7 @@ export function useActivities() {
     createActivity,
     joinActivity,
     leaveActivity,
+    completeActivity,
     cancelActivity,
     getActivityById,
     isParticipant,

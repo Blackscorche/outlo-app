@@ -26,6 +26,7 @@ interface ActivityDetailModalProps {
   onClose: () => void;
   onJoin: () => void;
   onViewProfile: (userId: string) => void;
+  onComplete?: () => void;
   onCancel?: () => void;
   fetchComments?: (activityId: string) => Promise<ActivityComment[]>;
   addComment?: (activityId: string, content: string) => Promise<boolean>;
@@ -41,6 +42,7 @@ export default function ActivityDetailModal({
   onClose,
   onJoin,
   onViewProfile,
+  onComplete,
   onCancel,
   fetchComments,
   addComment,
@@ -182,6 +184,23 @@ export default function ActivityDetailModal({
     }
   };
 
+  const handleComplete = () => {
+    Alert.alert(
+      'Complete Activity',
+      'Mark this activity as completed?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Complete',
+          onPress: () => {
+            onComplete?.();
+            onClose();
+          },
+        },
+      ]
+    );
+  };
+
   const handleCancel = () => {
     Alert.alert(
       'Cancel Activity',
@@ -228,23 +247,35 @@ export default function ActivityDetailModal({
 
         <ScrollView ref={scrollViewRef} style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Activity Type Badge */}
-          <View style={styles.typeBadge}>
+          <View style={[styles.typeBadge, { backgroundColor: (activityType?.color || theme.colors.primary) + '18' }]}>
             <Ionicons
               name={activityType?.icon || 'calendar-outline'}
               size={20}
-              color={theme.colors.primary}
+              color={activityType?.color || theme.colors.primary}
             />
-            <Text style={styles.typeText}>{activityType?.label || 'Activity'}</Text>
+            <Text style={[styles.typeText, { color: activityType?.color || theme.colors.primary }]}>{activityType?.label || 'Activity'}</Text>
           </View>
 
           {/* Title */}
           <Text style={styles.title}>{activity.title}</Text>
 
           {/* Time Until */}
-          <View style={styles.timeUntilBadge}>
-            <Ionicons name="time" size={16} color={theme.colors.info} />
-            <Text style={styles.timeUntilText}>{getTimeUntil(activity.scheduled_at)}</Text>
-          </View>
+          {activity.status === 'completed' ? (
+            <View style={styles.timeUntilBadge}>
+              <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+              <Text style={[styles.timeUntilText, { color: '#4CAF50' }]}>Completed</Text>
+            </View>
+          ) : activity.status === 'cancelled' ? (
+            <View style={styles.timeUntilBadge}>
+              <Ionicons name="close-circle" size={16} color={theme.colors.error} />
+              <Text style={[styles.timeUntilText, { color: theme.colors.error }]}>Cancelled</Text>
+            </View>
+          ) : (
+            <View style={styles.timeUntilBadge}>
+              <Ionicons name="time" size={16} color={theme.colors.info} />
+              <Text style={styles.timeUntilText}>{getTimeUntil(activity.scheduled_at)}</Text>
+            </View>
+          )}
 
           {/* Description */}
           {activity.description && (
@@ -440,11 +471,27 @@ export default function ActivityDetailModal({
 
         {/* Action Button */}
         <View style={styles.actionContainer}>
-          {isCreator ? (
-            <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+          {activity.status === 'completed' ? (
+            <View style={styles.completedBanner}>
+              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Text style={styles.completedBannerText}>Activity Completed</Text>
+            </View>
+          ) : activity.status === 'cancelled' ? (
+            <View style={styles.cancelledBanner}>
               <Ionicons name="close-circle" size={20} color={theme.colors.error} />
-              <Text style={styles.cancelButtonText}>Cancel Activity</Text>
-            </TouchableOpacity>
+              <Text style={styles.cancelledBannerText}>Activity Cancelled</Text>
+            </View>
+          ) : isCreator ? (
+            <View style={styles.creatorActions}>
+              <TouchableOpacity style={styles.completeButton} onPress={handleComplete}>
+                <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                <Text style={styles.completeButtonText}>Complete</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+                <Ionicons name="close-circle" size={20} color={theme.colors.error} />
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
           ) : isParticipant ? (
             <TouchableOpacity style={styles.leaveButton} onPress={onJoin}>
               <Ionicons name="exit" size={20} color={theme.colors.error} />
@@ -710,7 +757,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: theme.colors.error,
   },
+  creatorActions: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  completeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8F5E9',
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    gap: theme.spacing.sm,
+  },
+  completeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4CAF50',
+  },
   cancelButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -722,6 +791,34 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.error,
+  },
+  completedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    gap: theme.spacing.sm,
+  },
+  completedBannerText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4CAF50',
+  },
+  cancelledBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.error + '15',
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    gap: theme.spacing.sm,
+  },
+  cancelledBannerText: {
     fontSize: 16,
     fontWeight: '600',
     color: theme.colors.error,

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -70,6 +71,8 @@ export default function ActivitiesScreen({ navigation }: any) {
     refreshActivities,
     joinActivity,
     leaveActivity,
+    completeActivity,
+    cancelActivity,
     fetchComments,
     addComment,
     deleteComment,
@@ -142,34 +145,23 @@ export default function ActivitiesScreen({ navigation }: any) {
     }
   };
 
-  const getFilteredActivities = () => {
-    let list: Activity[] = [];
-
-    switch (activeTab) {
-      case 'my':
-        list = myActivities;
-        break;
-      case 'joined':
-        list = joinedActivities;
-        break;
-      default:
-        list = activities;
-    }
+  const applyFilters = (list: Activity[]) => {
+    let filtered = list;
 
     // Filter by activity type
     if (selectedFilter) {
-      list = list.filter(a => a.activity_type === selectedFilter);
+      filtered = filtered.filter(a => a.activity_type === selectedFilter);
     }
 
     // Filter by date
     if (dateFilter !== 'all') {
-      list = list.filter(a => isDateInRange(a.scheduled_at, dateFilter));
+      filtered = filtered.filter(a => isDateInRange(a.scheduled_at, dateFilter));
     }
 
     // Filter by distance
     if (distanceFilter !== 'all' && userLocation) {
       const maxDistance = parseInt(distanceFilter);
-      list = list.filter(a => {
+      filtered = filtered.filter(a => {
         const distance = calculateDistance(
           userLocation.lat,
           userLocation.lon,
@@ -182,10 +174,21 @@ export default function ActivitiesScreen({ navigation }: any) {
 
     // Filter by available spots
     if (showOnlyAvailable) {
-      list = list.filter(a => a.current_participants < a.max_participants);
+      filtered = filtered.filter(a => a.current_participants < a.max_participants);
     }
 
-    return list;
+    return filtered;
+  };
+
+  const getFilteredActivities = () => {
+    switch (activeTab) {
+      case 'my':
+        return applyFilters(myActivities);
+      case 'joined':
+        return applyFilters(joinedActivities);
+      default:
+        return applyFilters(activities);
+    }
   };
 
   const handleJoinActivity = async (activity: Activity) => {
@@ -260,19 +263,42 @@ export default function ActivitiesScreen({ navigation }: any) {
   );
 
   const filteredActivities = getFilteredActivities();
+  const filteredAllCount = applyFilters(activities).length;
+  const filteredJoinedCount = applyFilters(joinedActivities).length;
+  const filteredMyCount = applyFilters(myActivities).length;
   const activeFiltersCount = getActiveFiltersCount();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={commonStyles.title}>Activities</Text>
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={() => setShowCreateModal(true)}
-        >
-          <Ionicons name="add" size={24} color="white" />
+        <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+          <Image
+            source={require('../../assets/favicon.png')}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>Activities</Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.headerIconButton}
+            onPress={() => setShowFilterModal(true)}
+          >
+            <Ionicons name="funnel" size={20} color="#FF1744" />
+            {activeFiltersCount > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={() => setShowCreateModal(true)}
+          >
+            <Ionicons name="add" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Tabs */}
@@ -282,7 +308,7 @@ export default function ActivitiesScreen({ navigation }: any) {
           onPress={() => setActiveTab('all')}
         >
           <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>
-            All ({activities.length})
+            All ({filteredAllCount})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -290,7 +316,7 @@ export default function ActivitiesScreen({ navigation }: any) {
           onPress={() => setActiveTab('joined')}
         >
           <Text style={[styles.tabText, activeTab === 'joined' && styles.activeTabText]}>
-            Joined ({joinedActivities.length})
+            Joined ({filteredJoinedCount})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -298,7 +324,7 @@ export default function ActivitiesScreen({ navigation }: any) {
           onPress={() => setActiveTab('my')}
         >
           <Text style={[styles.tabText, activeTab === 'my' && styles.activeTabText]}>
-            My ({myActivities.length})
+            My ({filteredMyCount})
           </Text>
         </TouchableOpacity>
       </View>
@@ -312,104 +338,35 @@ export default function ActivitiesScreen({ navigation }: any) {
           data={[{ id: null, label: 'All', icon: 'apps-outline' }, ...ACTIVITY_TYPES]}
           keyExtractor={(item) => item.id || 'all'}
           contentContainerStyle={styles.filterList}
-          renderItem={({ item }) => (
+          renderItem={({ item }) => {
+            const isActive = selectedFilter === item.id || (!selectedFilter && item.id === null);
+            const chipColor = ('color' in item && item.color) ? item.color : theme.colors.primary;
+            return (
             <TouchableOpacity
               style={[
                 styles.filterChip,
-                (selectedFilter === item.id || (!selectedFilter && item.id === null)) &&
-                  styles.filterChipActive,
+                { borderColor: chipColor },
+                isActive && { backgroundColor: chipColor, borderColor: chipColor },
               ]}
               onPress={() => setSelectedFilter(item.id)}
             >
               <Ionicons
                 name={item.icon as any}
                 size={16}
-                color={
-                  selectedFilter === item.id || (!selectedFilter && item.id === null)
-                    ? 'white'
-                    : theme.colors.primary
-                }
+                color={isActive ? 'white' : chipColor}
               />
               <Text
                 style={[
                   styles.filterChipText,
-                  (selectedFilter === item.id || (!selectedFilter && item.id === null)) &&
-                    styles.filterChipTextActive,
+                  { color: chipColor },
+                  isActive && styles.filterChipTextActive,
                 ]}
               >
                 {item.label}
               </Text>
             </TouchableOpacity>
-          )}
+          );}}
         />
-      </View>
-
-      {/* Additional Filters */}
-      <View style={styles.additionalFilters}>
-        <TouchableOpacity
-          style={[styles.filterButton, distanceFilter !== 'all' && styles.filterButtonActive]}
-          onPress={() => setShowFilterModal(true)}
-        >
-          <Ionicons
-            name="location-outline"
-            size={16}
-            color={distanceFilter !== 'all' ? 'white' : theme.colors.textSecondary}
-          />
-          <Text style={[
-            styles.filterButtonText,
-            distanceFilter !== 'all' && styles.filterButtonTextActive
-          ]}>
-            {DISTANCE_OPTIONS.find(d => d.value === distanceFilter)?.label || 'Distance'}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.filterButton, dateFilter !== 'all' && styles.filterButtonActive]}
-          onPress={() => setShowFilterModal(true)}
-        >
-          <Ionicons
-            name="calendar-outline"
-            size={16}
-            color={dateFilter !== 'all' ? 'white' : theme.colors.textSecondary}
-          />
-          <Text style={[
-            styles.filterButtonText,
-            dateFilter !== 'all' && styles.filterButtonTextActive
-          ]}>
-            {DATE_OPTIONS.find(d => d.value === dateFilter)?.label || 'Date'}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.filterButton, showOnlyAvailable && styles.filterButtonActive]}
-          onPress={() => setShowOnlyAvailable(!showOnlyAvailable)}
-        >
-          <Ionicons
-            name="people-outline"
-            size={16}
-            color={showOnlyAvailable ? 'white' : theme.colors.textSecondary}
-          />
-          <Text style={[
-            styles.filterButtonText,
-            showOnlyAvailable && styles.filterButtonTextActive
-          ]}>
-            Available
-          </Text>
-        </TouchableOpacity>
-
-        {activeFiltersCount > 0 && (
-          <TouchableOpacity
-            style={styles.clearFiltersButton}
-            onPress={() => {
-              setDistanceFilter('all');
-              setDateFilter('all');
-              setShowOnlyAvailable(false);
-            }}
-          >
-            <Ionicons name="close-circle" size={16} color={theme.colors.error} />
-            <Text style={styles.clearFiltersText}>Clear</Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Activities List */}
@@ -557,6 +514,16 @@ export default function ActivitiesScreen({ navigation }: any) {
             navigation.navigate('UserProfile', { userId });
           }
         }}
+        onComplete={() => {
+          if (selectedActivity) {
+            completeActivity(selectedActivity.id);
+          }
+        }}
+        onCancel={() => {
+          if (selectedActivity) {
+            cancelActivity(selectedActivity.id);
+          }
+        }}
         fetchComments={fetchComments}
         addComment={addComment}
         deleteComment={deleteComment}
@@ -574,8 +541,64 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    paddingRight: theme.spacing.md,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1,
+  },
+  headerTitle: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    pointerEvents: 'none',
+  },
+  headerLogo: {
+    width: 150,
+    height: 50,
+    marginLeft: -25,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#FF1744',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   createButton: {
     backgroundColor: theme.colors.primary,
@@ -624,7 +647,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: theme.colors.primary,
     backgroundColor: 'transparent',
     marginRight: theme.spacing.sm,

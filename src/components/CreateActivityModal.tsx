@@ -248,18 +248,20 @@ export default function CreateActivityModal({
                 key={type.id}
                 style={[
                   styles.activityTypeChip,
-                  activityType === type.id && styles.activityTypeChipSelected,
+                  { borderColor: type.color },
+                  activityType === type.id && { backgroundColor: type.color, borderColor: type.color },
                 ]}
                 onPress={() => setActivityType(type.id)}
               >
                 <Ionicons
                   name={type.icon}
                   size={18}
-                  color={activityType === type.id ? 'white' : theme.colors.primary}
+                  color={activityType === type.id ? 'white' : type.color}
                 />
                 <Text
                   style={[
                     styles.activityTypeText,
+                    { color: type.color },
                     activityType === type.id && styles.activityTypeTextSelected,
                   ]}
                   numberOfLines={1}
@@ -461,7 +463,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: theme.colors.primary,
     backgroundColor: 'transparent',
     gap: 6,
