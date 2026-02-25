@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,14 @@ import {
   StyleSheet,
   Image,
   Alert,
+  TextInput,
+  Animated,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { theme } from '../styles/theme';
 import { supabase } from '../integrations/supabase/client';
 import { useConnectionRequests } from '../hooks/useConnectionRequests';
 import { useBadgeCounts } from '../hooks/useBadgeCounts';
@@ -43,64 +47,76 @@ interface ConnectedUser {
   last_seen?: string;
   chatRoom?: ChatRoom;
   unreadCount?: number;
+  lastMessageSenderId?: string;
+  lastMessageIsRead?: boolean;
 }
 
 export default function ChatScreen({ navigation }: any) {
   const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<TextInput>(null);
+  const searchAnim = useRef(new Animated.Value(0)).current;
   const { connections, isLoading: connectionsLoading } = useConnectionRequests();
   const { refreshChatBadgeCount } = useBadgeCounts();
   const { pinnedUsers, togglePinUser, isPinned } = usePinnedUsers();
 
+  // Stable string key — only changes when actual connection IDs change,
+  // not when the array reference changes. Prevents double-load.
+  const connectionsKey = useMemo(
+    () => [...connections].sort().join(','),
+    [connections]
+  );
+
+  // Ref so subscriptions/interval can always call the latest version
+  // without being recreated every time connections change.
+  const loadRef = useRef<() => void>(() => {});
+
+  // Effect 1: re-load data only when connections actually change
   useEffect(() => {
-    // Don't load if connections are still being fetched
-    if (connectionsLoading) {
-      return;
-    }
-    
-    // Always set loading to true when connections change
+    if (connectionsLoading) return;
     setLoading(true);
     loadConnectedUsersAndChats();
-    
-    // Subscribe to new messages for real-time updates
+  }, [connectionsKey, connectionsLoading]);
+
+  // Effect 2: subscriptions and refresh interval — set up once
+  useEffect(() => {
     const messagesSubscription = supabase
       .channel('new_messages')
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'messages' 
-      }, handleNewMessage)
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'messages' 
-      }, handleNewMessage)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+      }, () => loadRef.current())
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+      }, () => loadRef.current())
       .subscribe();
 
-    // Subscribe to profile updates for real-time online/offline status
     const profilesSubscription = supabase
       .channel('profiles_updates')
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'profiles' 
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
       }, handleProfileUpdate)
       .subscribe();
 
-    // Set up interval to refresh unread counts and online status
     const interval = setInterval(() => {
-      if (!connectionsLoading) {
-        loadConnectedUsersAndChats();
-      }
-    }, 15000); // Refresh every 15 seconds
+      loadRef.current();
+    }, 15000);
 
     return () => {
       messagesSubscription.unsubscribe();
       profilesSubscription.unsubscribe();
       clearInterval(interval);
     };
-  }, [connections, connectionsLoading]);
+  }, []);
 
   // Refresh chat badge count when screen comes into focus
   useFocusEffect(
@@ -110,10 +126,38 @@ export default function ChatScreen({ navigation }: any) {
     }, [refreshChatBadgeCount])
   );
 
+  const toggleSearch = () => {
+    if (searchVisible) {
+      Keyboard.dismiss();
+      setSearchQuery('');
+      Animated.timing(searchAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: false,
+      }).start(() => setSearchVisible(false));
+    } else {
+      setSearchVisible(true);
+      Animated.timing(searchAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: false,
+      }).start(() => searchInputRef.current?.focus());
+    }
+  };
+
+  const filteredUsers = searchQuery.trim()
+    ? connectedUsers.filter(u =>
+        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.chatRoom?.last_message?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : connectedUsers;
+
   const loadConnectedUsersAndChats = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      setCurrentUserId(user.id);
 
       // First, get all connected users' profiles with presence info
       const connectedUsersData = await Promise.all(
@@ -147,8 +191,8 @@ export default function ChatScreen({ navigation }: any) {
 
       // Fetch unread message counts and last message for each chat room
       const unreadCounts = new Map<string, number>();
-      const lastMessages = new Map<string, { content: string; created_at: string; sender_id: string }>();
-      
+      const lastMessages = new Map<string, { content: string; created_at: string; sender_id: string; is_read: boolean }>();
+
       for (const [userId, chatRoom] of chatRoomsByUser) {
         // Get unread count
         const { count } = await supabase
@@ -157,21 +201,21 @@ export default function ChatScreen({ navigation }: any) {
           .eq('chat_room_id', chatRoom.id)
           .eq('sender_id', userId)
           .eq('is_read', false);
-        
+
         if (count) {
           unreadCounts.set(userId, count);
         }
-        
+
         // Get last non-deleted message
         const { data: lastMessageData } = await supabase
           .from('messages')
-          .select('content, created_at, sender_id')
+          .select('content, created_at, sender_id, is_read')
           .eq('chat_room_id', chatRoom.id)
           .or('deleted.is.null,deleted.eq.false')
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
-          
+
         if (lastMessageData) {
           lastMessages.set(userId, lastMessageData);
         }
@@ -215,6 +259,8 @@ export default function ChatScreen({ navigation }: any) {
             last_seen: profile.last_seen,
             chatRoom,
             unreadCount: unreadCounts.get(profile.id) || 0,
+            lastMessageSenderId: lastMessage?.sender_id,
+            lastMessageIsRead: lastMessage?.is_read,
           };
         })
         .sort((a, b) => {
@@ -249,13 +295,8 @@ export default function ChatScreen({ navigation }: any) {
       setInitialLoadComplete(true);
     }
   };
-
-  const handleNewMessage = (payload: any) => {
-    console.log('ChatScreen: New message detected, refreshing chat list');
-    // Update chat rooms when new message arrives
-    // This will refresh the unread counts
-    loadConnectedUsersAndChats();
-  };
+  // Keep ref current so the subscription/interval always calls the latest version
+  loadRef.current = loadConnectedUsersAndChats;
 
   const handleProfileUpdate = (payload: any) => {
     const updatedProfile = payload.new;
@@ -367,9 +408,14 @@ export default function ChatScreen({ navigation }: any) {
 
   const renderConnectedUser = ({ item }: { item: ConnectedUser }) => {
     const photo = item.photos?.[0];
-    const timeAgo = item.chatRoom?.updated_at 
+    const timeAgo = item.chatRoom?.updated_at
       ? getTimeAgo(new Date(item.chatRoom.updated_at))
       : '';
+    const hasUnread = item.unreadCount > 0;
+    const lastMsg = item.chatRoom?.last_message || 'Start a conversation';
+    const iMyLastMessage = currentUserId && item.lastMessageSenderId === currentUserId;
+    // For received messages: is_read = true means I have read it
+    const showCheckmark = item.chatRoom?.last_message && item.lastMessageSenderId;
 
     return (
       <TouchableOpacity
@@ -384,48 +430,36 @@ export default function ChatScreen({ navigation }: any) {
               <Ionicons name="person" size={24} color="#999" />
             </View>
           )}
-          {item.unreadCount > 0 && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadCount}>{item.unreadCount}</Text>
-            </View>
-          )}
           {item.is_online && <View style={styles.onlineIndicator} />}
-          {isPinned(item.id) && (
-            <View style={styles.pinnedIndicator}>
-              <Ionicons name="bookmark" size={12} color="#FFD700" />
-            </View>
-          )}
         </View>
-        
+
         <View style={styles.chatInfo}>
           <View style={styles.chatHeader}>
-            <Text style={[styles.userName, isPinned(item.id) && styles.pinnedUserName]}>
-              {item.name}
-            </Text>
-            {timeAgo && <Text style={styles.timestamp}>{timeAgo}</Text>}
+            <Text style={styles.userName} numberOfLines={1}>{item.name}</Text>
+            {timeAgo ? <Text style={styles.timestamp}>{timeAgo}</Text> : null}
           </View>
-          <View style={styles.lastMessageContainer}>
-            <Text style={styles.lastMessage} numberOfLines={1}>
-              {item.chatRoom?.last_message || item.bio || 'Start a conversation'}
+          <View style={styles.lastMessageRow}>
+            {showCheckmark && (
+              <Ionicons
+                name={item.lastMessageIsRead ? 'checkmark-done' : 'checkmark'}
+                size={15}
+                color={item.lastMessageIsRead ? '#2196F3' : '#aaa'}
+                style={{ marginRight: 3 }}
+              />
+            )}
+            <Text
+              style={[styles.lastMessage, hasUnread && styles.lastMessageUnread]}
+              numberOfLines={1}
+            >
+              {lastMsg}
             </Text>
-            {item.chatRoom?.last_message && (
-              <Text style={styles.messageStatus}>
-                {item.unreadCount > 0 ? `${item.unreadCount} new` : 'Read'}
-              </Text>
+            {hasUnread && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadCount}>{item.unreadCount}</Text>
+              </View>
             )}
           </View>
         </View>
-        
-        <TouchableOpacity
-          style={styles.pinButton}
-          onPress={() => togglePinUser(item.id)}
-        >
-          <Ionicons 
-            name={isPinned(item.id) ? "bookmark" : "bookmark-outline"}
-            size={20} 
-            color={isPinned(item.id) ? "#FFD700" : "#999"} 
-          />
-        </TouchableOpacity>
       </TouchableOpacity>
     );
   };
@@ -434,21 +468,58 @@ export default function ChatScreen({ navigation }: any) {
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);
-    
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
+
+    if (minutes < 1) return 'now';
+    if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
+    if (hours < 24) return `${hours}h`;
     const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
+    if (days < 7) return `${days}d`;
     return date.toLocaleDateString();
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Messages</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+          <Image
+            source={require('../../assets/favicon.png')}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Messages</Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.headerIconButton} onPress={toggleSearch}>
+            <Ionicons
+              name={searchVisible ? 'close' : 'search'}
+              size={22}
+              color={searchVisible ? theme.colors.primary : theme.colors.text}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {searchVisible && (
+        <Animated.View style={[styles.searchBar, { opacity: searchAnim }]}>
+          <Ionicons name="search" size={18} color="#999" style={{ marginRight: 8 }} />
+          <TextInput
+            ref={searchInputRef}
+            style={styles.searchInput}
+            placeholder="Search conversations..."
+            placeholderTextColor="#bbb"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={18} color="#bbb" />
+            </TouchableOpacity>
+          )}
+        </Animated.View>
+      )}
       
       {connectionsLoading || loading || !initialLoadComplete ? (
         <View style={styles.loadingContainer}>
@@ -466,17 +537,19 @@ export default function ChatScreen({ navigation }: any) {
         <View style={styles.loadingContainer}>
           <AppLoading />
         </View>
+      ) : filteredUsers.length === 0 && searchQuery.trim() ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="search-outline" size={52} color="#ccc" />
+          <Text style={styles.emptyText}>No results found</Text>
+          <Text style={styles.emptySubtext}>Try a different name or message</Text>
+        </View>
       ) : (
         <FlatList
-          data={connectedUsers}
+          data={filteredUsers}
           renderItem={renderConnectedUser}
           keyExtractor={(item) => item.id}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListHeaderComponent={
-            <View style={styles.listHeader}>
-              <Text style={styles.listHeaderText}>Connected Users ({connectedUsers.length})</Text>
-            </View>
-          }
+          keyboardShouldPersistTaps="handled"
         />
       )}
     </SafeAreaView>
@@ -489,15 +562,66 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.xs,
+    paddingRight: theme.spacing.md,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1,
   },
-  title: {
+  headerTitle: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    textAlign: 'center',
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.text,
+    pointerEvents: 'none',
+  },
+  headerLogo: {
+    width: 150,
+    height: 50,
+    marginLeft: -25,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    marginHorizontal: 16,
+    marginVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 24,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#1A1A1A',
+    padding: 0,
   },
   loadingContainer: {
     flex: 1,
@@ -529,11 +653,14 @@ const styles = StyleSheet.create({
   },
   chatItem: {
     flexDirection: 'row',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     alignItems: 'center',
+    backgroundColor: '#fff',
   },
   avatarContainer: {
     position: 'relative',
+    marginRight: 12,
   },
   avatar: {
     width: 56,
@@ -545,26 +672,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  unreadBadge: {
+  onlineIndicator: {
     position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#FF1744',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-  unreadCount: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
+    bottom: 2,
+    right: 2,
+    width: 13,
+    height: 13,
+    borderRadius: 7,
+    backgroundColor: '#4CAF50',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   chatInfo: {
     flex: 1,
-    marginLeft: 12,
   },
   chatHeader: {
     flexDirection: 'row',
@@ -574,54 +694,48 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: '700',
+    color: '#1A1A1A',
+    flex: 1,
   },
   timestamp: {
     fontSize: 12,
     color: '#999',
+    marginLeft: 8,
+  },
+  lastMessageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   lastMessage: {
     fontSize: 14,
-    color: '#666',
+    color: '#888',
+    flex: 1,
+  },
+  lastMessageUnread: {
+    color: '#333',
+    fontWeight: '500',
+  },
+  unreadBadge: {
+    backgroundColor: '#FF1744',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    marginLeft: 8,
+  },
+  unreadCount: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   separator: {
     height: 1,
     backgroundColor: '#f0f0f0',
     marginLeft: 84,
-  },
-  onlineIndicator: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#4CAF50',
-    borderWidth: 2,
-    borderColor: 'white',
-  },
-  listHeader: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#f8f8f8',
-  },
-  listHeaderText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '600',
-  },
-  lastMessageContainer: {
-    flex: 1,
-  },
-  messageStatus: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 2,
-  },
-  pinButton: {
-    padding: 8,
-    marginLeft: 8,
   },
   pinnedIndicator: {
     position: 'absolute',

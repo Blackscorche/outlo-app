@@ -91,10 +91,10 @@ export default function ActivityCard({
         .filter(p => p.status === 'joined' && p.user_id !== activity.creator_id)
         .slice(0, 2)
         .forEach(p => {
-          if (p.profile?.photos && p.profile.photos.length > 0) {
-            avatars.push(p.profile.photos[0]);
+          if (p.user?.photos && p.user.photos.length > 0) {
+            avatars.push(p.user.photos[0]);
           } else {
-            avatars.push(`${DEFAULT_AVATAR}&name=${encodeURIComponent(p.profile?.name || 'User')}`);
+            avatars.push(`${DEFAULT_AVATAR}&name=${encodeURIComponent(p.user?.name || 'User')}`);
           }
         });
     }
@@ -110,8 +110,8 @@ export default function ActivityCard({
       activity.participants
         .filter(p => p.status === 'joined' && p.user_id !== activity.creator_id)
         .forEach(p => {
-          if (p.profile?.name) {
-            names.push(p.user_id === currentUserId ? 'You' : p.profile.name.split(' ')[0]);
+          if (p.user?.name) {
+            names.push(p.user_id === currentUserId ? 'You' : p.user.name.split(' ')[0]);
           }
         });
     }

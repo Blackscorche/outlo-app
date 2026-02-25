@@ -11,6 +11,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Animated,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -59,6 +61,7 @@ const ChatRoomScreen = ({ route, navigation }) => {
       </SafeAreaView>
     );
   }
+  const PAGE_SIZE = 50;
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -69,8 +72,29 @@ const ChatRoomScreen = ({ route, navigation }) => {
   const [showEmoticonPicker, setShowEmoticonPicker] = useState(false);
   const [isBlockedByOtherUser, setIsBlockedByOtherUser] = useState(false);
   const [hasBlockedOtherUser, setHasBlockedOtherUser] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const flatListRef = useRef(null);
+  const currentUserIdRef = useRef<string | null>(null);
+  const initialScrollDoneRef = useRef(false);
+  const firstUnreadIdRef = useRef<string | null>(null);
+  const [showUnreadDivider, setShowUnreadDivider] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<TextInput>(null);
+  const searchAnim = useRef(new Animated.Value(0)).current;
   const { refreshChatBadgeCount } = useBadgeCounts();
+
+  // Backup scroll: fires after loading + all post-load state updates (markMessagesAsRead etc.) settle
+  useEffect(() => {
+    if (!loading && messages.length > 0) {
+      const timer = setTimeout(() => {
+        console.log('[SCROLL] backup useEffect scroll, messages:', messages.length);
+        flatListRef.current?.scrollToEnd({ animated: false });
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
 
   useEffect(() => {
     // Load other user's profile
@@ -79,7 +103,7 @@ const ChatRoomScreen = ({ route, navigation }) => {
     // Get current user first, then load messages
     getCurrentUser().then((userId) => {
       if (userId) {
-        loadMessages(); // This will also mark messages as read
+        loadMessages(userId); // This will also mark messages as read
       }
     });
     
@@ -113,18 +137,19 @@ const ChatRoomScreen = ({ route, navigation }) => {
       
     // Poll for read status updates periodically (backup for realtime)
     const pollInterval = setInterval(async () => {
-      if (currentUserId && otherUserId) {
+      const uid = currentUserIdRef.current;
+      if (uid && otherUserId) {
         // Check for your sent messages that have been read
         const { data: myMessages } = await supabase
           .from('messages')
           .select('id, is_read')
           .eq('chat_room_id', roomId)
-          .eq('sender_id', currentUserId);
-          
+          .eq('sender_id', uid);
+
         if (myMessages && myMessages.length > 0) {
           let hasChanges = false;
           setMessages(prev => prev.map(msg => {
-            if (msg.sender_id === currentUserId) {
+            if (msg.sender_id === uid) {
               const updated = myMessages.find(u => u.id === msg.id);
               if (updated && updated.is_read !== msg.is_read) {
                 hasChanges = true;
@@ -133,13 +158,13 @@ const ChatRoomScreen = ({ route, navigation }) => {
             }
             return msg;
           }));
-          
+
           if (hasChanges) {
             console.log('Read status updated for sent messages');
           }
         }
       }
-    }, 5000); // Check every 5 seconds
+    }, 5000);
 
     return () => {
       subscription.unsubscribe();
@@ -147,7 +172,7 @@ const ChatRoomScreen = ({ route, navigation }) => {
       // Mark messages as read when leaving the chat
       markMessagesAsRead();
     };
-  }, [roomId, otherUserId, currentUserId]);
+  }, [roomId, otherUserId]); // currentUserId removed — it's set inside this effect, keeping it here causes double-load
 
   // Hide default navigation header
   useEffect(() => {
@@ -200,6 +225,7 @@ const ChatRoomScreen = ({ route, navigation }) => {
   const getCurrentUser = async () => {
     const { data: authData } = await supabase.auth.getUser();
     if (authData?.user) {
+      currentUserIdRef.current = authData.user.id;
       setCurrentUserId(authData.user.id);
       return authData.user.id;
     }
@@ -285,31 +311,108 @@ const ChatRoomScreen = ({ route, navigation }) => {
     return date.toLocaleDateString();
   };
 
-  const loadMessages = async () => {
+  const toggleSearch = () => {
+    if (searchVisible) {
+      Keyboard.dismiss();
+      setSearchQuery('');
+      Animated.timing(searchAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: false,
+      }).start(() => setSearchVisible(false));
+    } else {
+      setSearchVisible(true);
+      Animated.timing(searchAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: false,
+      }).start(() => searchInputRef.current?.focus());
+    }
+  };
+
+  const filteredMessages = searchQuery.trim()
+    ? messages.filter(m =>
+        m.content.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : messages;
+
+  const loadMessages = async (userId?: string) => {
     try {
       setLoading(true);
+      // Load newest PAGE_SIZE messages (desc so we get the latest)
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .eq('chat_room_id', roomId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE);
 
       if (error) throw error;
 
-      // Filter out deleted messages
-      const activeMessages = (data || []).filter(msg => !msg.deleted);
+      // Reverse so oldest is first in the list
+      const activeMessages = (data || []).filter(msg => !msg.deleted).reverse();
+
+      setHasMoreMessages((data || []).length === PAGE_SIZE);
+
+      // Find the first unread message from the other user (only set once per session)
+      const effectiveUserId = userId || currentUserId;
+      if (effectiveUserId && firstUnreadIdRef.current === null) {
+        const firstUnread = activeMessages.find(
+          msg => msg.sender_id !== effectiveUserId && !msg.is_read
+        );
+        firstUnreadIdRef.current = firstUnread?.id ?? '';
+        if (firstUnread) setShowUnreadDivider(true);
+      }
+
+      initialScrollDoneRef.current = false;
+      console.log('[SCROLL] loadMessages: reset initialScrollDoneRef, messages count:', activeMessages.length);
       setMessages(activeMessages);
-      
+
       // After loading messages, mark unread ones as read
       if (data && data.length > 0) {
         setTimeout(() => {
           markMessagesAsRead();
-        }, 100);
+        }, 200);
       }
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMoreMessages = async () => {
+    if (!hasMoreMessages || loadingMore || messages.length === 0) return;
+    setLoadingMore(true);
+    try {
+      const oldestCreatedAt = messages[0].created_at;
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('chat_room_id', roomId)
+        .lt('created_at', oldestCreatedAt)
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE);
+
+      if (error) throw error;
+
+      const olderMessages = (data || []).filter(msg => !msg.deleted).reverse();
+      setHasMoreMessages((data || []).length === PAGE_SIZE);
+
+      if (olderMessages.length > 0) {
+        setMessages(prev => [...olderMessages, ...prev]);
+        // Maintain scroll position — jump to where we were before prepend
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({
+            index: olderMessages.length,
+            animated: false,
+          });
+        }, 50);
+      }
+    } catch (error) {
+      console.error('Error loading more messages:', error);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -368,12 +471,12 @@ const ChatRoomScreen = ({ route, navigation }) => {
         
         // Update local state for all messages
         const unreadIds = unreadMessages.map(m => m.id);
-        setMessages(prev => prev.map(msg => 
+        setMessages(prev => prev.map(msg =>
           unreadIds.includes(msg.id) ? { ...msg, is_read: true } : msg
         ));
-        
+
         console.log('Local state updated for', unreadMessages.length, 'messages');
-        
+
         // Immediately refresh badge count after marking messages as read
         await refreshChatBadgeCount();
         
@@ -418,16 +521,26 @@ const ChatRoomScreen = ({ route, navigation }) => {
         // Remove deleted message from view
         setMessages(prev => prev.filter(msg => msg.id !== newMessage.id));
       } else {
-        // Update message (read status, etc)
-        setMessages(prev => prev.map(msg => 
-          msg.id === newMessage.id ? newMessage : msg
+        // Merge update into existing message to avoid missing fields
+        // (Supabase may send partial row data without REPLICA IDENTITY FULL)
+        setMessages(prev => prev.map(msg =>
+          msg.id === newMessage.id ? { ...msg, ...newMessage } : msg
         ));
       }
     } else if (payload.eventType === 'INSERT') {
       // Don't add if it's our own message (already added optimistically)
-      if (newMessage.sender_id !== currentUserId) {
-        // Add the new message to the chat
-        setMessages(prev => [...prev, newMessage]);
+      // Use ref to avoid stale closure — currentUserId is null when subscription is set up
+      if (newMessage.sender_id !== currentUserIdRef.current) {
+        // Add the new message, dedup guard prevents showing twice
+        setMessages(prev => {
+          if (prev.some(m => m.id === newMessage.id)) return prev;
+          return [...prev, newMessage];
+        });
+        // Scroll to new message
+        setTimeout(() => {
+          console.log('[SCROLL] new message received, scrollToEnd');
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 50);
         
         // Mark as read immediately since we're viewing the chat
         console.log('Marking new message as read:', newMessage.id);
@@ -465,10 +578,14 @@ const ChatRoomScreen = ({ route, navigation }) => {
       is_read: false,
     };
 
-    // Add message to UI immediately
+    // Add message to UI immediately and scroll to it
     setMessages(prev => [...prev, tempMessage]);
     setInputText('');
     setSending(true);
+    setTimeout(() => {
+      console.log('[SCROLL] message sent, scrollToEnd');
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 50);
 
     try {
       const { data: newMessage, error } = await supabase
@@ -606,11 +723,41 @@ const ChatRoomScreen = ({ route, navigation }) => {
     return emoticonRegex.test(trimmedContent) && emoticonCount <= 2;
   };
 
+  const renderHighlightedText = (text: string, isMe: boolean) => {
+    if (!searchQuery.trim()) {
+      return <Text style={[styles.messageText, isMe && styles.myMessageText]}>{text}</Text>;
+    }
+    const lower = text.toLowerCase();
+    const query = searchQuery.toLowerCase();
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let idx = lower.indexOf(query);
+    while (idx !== -1) {
+      if (idx > lastIndex) {
+        parts.push(<Text key={lastIndex}>{text.slice(lastIndex, idx)}</Text>);
+      }
+      parts.push(
+        <Text key={idx} style={styles.searchHighlight}>
+          {text.slice(idx, idx + query.length)}
+        </Text>
+      );
+      lastIndex = idx + query.length;
+      idx = lower.indexOf(query, lastIndex);
+    }
+    if (lastIndex < text.length) {
+      parts.push(<Text key={lastIndex}>{text.slice(lastIndex)}</Text>);
+    }
+    return (
+      <Text style={[styles.messageText, isMe && styles.myMessageText]}>{parts}</Text>
+    );
+  };
+
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isMe = item.sender_id === currentUserId;
     const messageTime = new Date(item.created_at);
     const isLargeEmoticon = isSingleEmoticonOnly(item.content);
-    
+    const isFirstUnread = showUnreadDivider && firstUnreadIdRef.current !== '' && item.id === firstUnreadIdRef.current;
+
     // Check if we need to show a date separator
     let showDateSeparator = false;
     if (index === 0) {
@@ -625,6 +772,13 @@ const ChatRoomScreen = ({ route, navigation }) => {
 
     return (
       <>
+        {isFirstUnread && (
+          <View style={styles.unreadDivider}>
+            <View style={styles.unreadDividerLine} />
+            <Text style={styles.unreadDividerText}>Unread messages</Text>
+            <View style={styles.unreadDividerLine} />
+          </View>
+        )}
         {showDateSeparator && (
           <View style={styles.dateSeparatorContainer}>
             <View style={styles.dateSeparatorLine} />
@@ -647,13 +801,11 @@ const ChatRoomScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           ) : (
             // Regular message with bubble
-            <TouchableOpacity 
+            <TouchableOpacity
               onLongPress={() => handleLongPressMessage(item)}
               style={[styles.messageBubble, isMe ? styles.myMessage : styles.otherMessage]}
             >
-              <Text style={[styles.messageText, isMe && styles.myMessageText]}>
-                {item.content}
-              </Text>
+              {renderHighlightedText(item.content, isMe)}
             </TouchableOpacity>
           )}
           <View style={styles.messageInfo}>
@@ -689,18 +841,18 @@ const ChatRoomScreen = ({ route, navigation }) => {
     <SafeAreaView style={styles.container}>
       {/* Custom header with user info */}
       <View style={styles.customHeader}>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={async () => {
             // Refresh badge count before navigating back
             await refreshChatBadgeCount();
             navigation.goBack();
-          }} 
+          }}
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.userInfoContainer}
           onPress={() => {
             navigation.navigate('UserProfile', { userId: otherUserId });
@@ -718,32 +870,107 @@ const ChatRoomScreen = ({ route, navigation }) => {
               <View style={styles.onlineIndicator} />
             )}
           </View>
-          
+
           <View style={styles.userTextInfo}>
             <Text style={styles.userName}>{otherUserProfile?.name || otherUserName}</Text>
             <Text style={styles.userStatus}>
-              {otherUserProfile ? 
+              {otherUserProfile ?
                 (isUserOnline(otherUserProfile) ? 'Online' : getLastSeenText(otherUserProfile.last_seen))
                 : 'Loading...'
               }
             </Text>
           </View>
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.headerSearchButton} onPress={toggleSearch}>
+          <Ionicons
+            name={searchVisible ? 'close' : 'search'}
+            size={20}
+            color={searchVisible ? theme.colors.primary : theme.colors.text}
+          />
+        </TouchableOpacity>
       </View>
 
+      {searchVisible && (
+        <Animated.View style={[styles.searchBar, { opacity: searchAnim }]}>
+          <Ionicons name="search" size={16} color="#999" style={{ marginRight: 8 }} />
+          <TextInput
+            ref={searchInputRef}
+            style={styles.searchInput}
+            placeholder="Search messages..."
+            placeholderTextColor="#bbb"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={16} color="#bbb" />
+            </TouchableOpacity>
+          )}
+          {searchQuery.trim() && (
+            <Text style={styles.searchCount}>
+              {filteredMessages.length}
+            </Text>
+          )}
+        </Animated.View>
+      )}
+
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.container}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
+        {searchQuery.trim() && filteredMessages.length === 0 ? (
+          <View style={styles.noResultsContainer}>
+            <Ionicons name="search-outline" size={44} color="#ccc" />
+            <Text style={styles.noResultsText}>No messages found</Text>
+          </View>
+        ) : (
         <FlatList
           ref={flatListRef}
-          data={messages}
+          data={filteredMessages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
+          style={{ flex: 1 }}
           contentContainerStyle={styles.messagesList}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
-          onLayout={() => flatListRef.current?.scrollToEnd()}
+          initialNumToRender={PAGE_SIZE}
+          onScroll={(e) => {
+            if (!searchQuery.trim() && e.nativeEvent.contentOffset.y < 80 && hasMoreMessages && !loadingMore) {
+              loadMoreMessages();
+            }
+          }}
+          scrollEventThrottle={300}
+          onContentSizeChange={(_w, h) => {
+            console.log('[SCROLL] onContentSizeChange: h=', h, 'initialDone=', initialScrollDoneRef.current, 'search=', searchQuery.trim(), 'loadingMore=', loadingMore, 'flatListRef=', !!flatListRef.current);
+            if (!initialScrollDoneRef.current && !searchQuery.trim() && !loadingMore && h > 0) {
+              console.log('[SCROLL] calling scrollToEnd, h=', h);
+              flatListRef.current?.scrollToEnd({ animated: false });
+              initialScrollDoneRef.current = true;
+            }
+          }}
+          onScrollToIndexFailed={(info) => {
+            // Fallback if scrollToIndex fails
+            flatListRef.current?.scrollToOffset({
+              offset: info.averageItemLength * info.index,
+              animated: false,
+            });
+          }}
+          onTouchStart={() => showUnreadDivider && setShowUnreadDivider(false)}
+          ListHeaderComponent={
+            !searchQuery.trim() ? (
+              loadingMore ? (
+                <View style={styles.loadMoreContainer}>
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                </View>
+              ) : hasMoreMessages ? (
+                <TouchableOpacity style={styles.loadMoreContainer} onPress={loadMoreMessages}>
+                  <Text style={styles.loadMoreText}>Load older messages</Text>
+                </TouchableOpacity>
+              ) : null
+            ) : null
+          }
           ListFooterComponent={
             false ? ( // Typing indicator disabled for now
               <View style={styles.typingIndicator}>
@@ -752,6 +979,7 @@ const ChatRoomScreen = ({ route, navigation }) => {
             ) : null
           }
         />
+        )}
 
         <View style={styles.inputContainer}>
           {isBlockedByOtherUser || hasBlockedOtherUser ? (
@@ -982,6 +1210,23 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginTop: 2,
   },
+  unreadDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+  },
+  unreadDividerLine: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: '#FF1744',
+  },
+  unreadDividerText: {
+    marginHorizontal: theme.spacing.sm,
+    fontSize: theme.fontSize.xs,
+    color: '#FF1744',
+    fontWeight: '600',
+  },
   dateSeparatorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1007,6 +1252,61 @@ const styles = StyleSheet.create({
   largeEmoticonText: {
     fontSize: 48,
     lineHeight: 56,
+  },
+  loadMoreContainer: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  loadMoreText: {
+    fontSize: 13,
+    color: theme.colors.primary,
+    fontWeight: '500',
+  },
+  headerSearchButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.gray[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: theme.spacing.sm,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    marginHorizontal: 16,
+    marginVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 24,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#1A1A1A',
+    padding: 0,
+  },
+  searchCount: {
+    fontSize: 12,
+    color: theme.colors.primary,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  noResultsText: {
+    fontSize: 15,
+    color: '#999',
+  },
+  searchHighlight: {
+    backgroundColor: '#FFF176',
+    color: '#333',
+    borderRadius: 2,
   },
   errorContainer: {
     flex: 1,

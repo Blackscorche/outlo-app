@@ -34,6 +34,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "softwareKeyboardLayoutMode": "pan",
       "package": "com.lovemapapp.mobile",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
