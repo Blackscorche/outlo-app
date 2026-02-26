@@ -464,7 +464,6 @@ export default function NearbyUsersModal({
           {!connectionsLoaded ? (
             <View style={styles.emptyContainer}>
               <AppLoading />
-              <Text style={styles.emptyTitle}>Loading connections...</Text>
             </View>
           ) : activeTab === 'online' && onlineUsers.length === 0 ? (
             <View style={styles.emptyContainer}>

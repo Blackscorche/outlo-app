@@ -93,31 +93,16 @@ export const useConnectionData = () => {
 
     console.log('Setting up real-time subscriptions for connection requests');
 
-    // Subscribe to connection_requests table changes
-    const connectionRequestsSubscription = supabase
-      .channel(`connection_requests_${user.id}`)
+    // Subscribe to sent requests (sender_id = current user)
+    const sentRequestsSubscription = supabase
+      .channel(`sent_requests_${user.id}`)
       .on('postgres_changes', {
-        event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+        event: '*',
         schema: 'public',
         table: 'connection_requests',
-        filter: `sender_id=eq.${user.id}` // For sent requests
+        filter: `sender_id=eq.${user.id}`,
       }, (payload) => {
         console.log('Real-time update for sent requests:', payload.eventType, payload.new || payload.old);
-        // Debounce the reload to prevent excessive calls
-        setTimeout(() => {
-          if (loadConnectionRequestsRef.current) {
-            loadConnectionRequestsRef.current();
-          }
-        }, 100);
-      })
-      .on('postgres_changes', {
-        event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-        schema: 'public',
-        table: 'connection_requests',
-        filter: `receiver_id=eq.${user.id}` // For received requests
-      }, (payload) => {
-        console.log('Real-time update for received requests:', payload.eventType, payload.new || payload.old);
-        // Debounce the reload to prevent excessive calls
         setTimeout(() => {
           if (loadConnectionRequestsRef.current) {
             loadConnectionRequestsRef.current();
@@ -125,7 +110,27 @@ export const useConnectionData = () => {
         }, 100);
       })
       .subscribe((status) => {
-        console.log('Connection requests subscription status:', status);
+        console.log('Sent requests subscription status:', status);
+      });
+
+    // Subscribe to received requests (receiver_id = current user) — separate channel
+    const receivedRequestsSubscription = supabase
+      .channel(`received_requests_${user.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'connection_requests',
+        filter: `receiver_id=eq.${user.id}`,
+      }, (payload) => {
+        console.log('Real-time update for received requests:', payload.eventType, payload.new || payload.old);
+        setTimeout(() => {
+          if (loadConnectionRequestsRef.current) {
+            loadConnectionRequestsRef.current();
+          }
+        }, 100);
+      })
+      .subscribe((status) => {
+        console.log('Received requests subscription status:', status);
       });
 
     // Subscribe to connections table changes
@@ -186,7 +191,8 @@ export const useConnectionData = () => {
     
     return () => {
       console.log('Cleaning up real-time subscriptions');
-      connectionRequestsSubscription.unsubscribe();
+      sentRequestsSubscription.unsubscribe();
+      receivedRequestsSubscription.unsubscribe();
       connectionsSubscription.unsubscribe();
       userDisconnectedListener.remove();
       connectionDataChangedListener.remove();
