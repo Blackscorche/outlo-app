@@ -97,10 +97,10 @@ android {
     }
     signingConfigs {
         debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
+            storeFile file('production.jks')
+            storePassword '9f4cb2c7748df705aa1c76728254413a'
+            keyAlias 'd7693bc928666e41a9779714d5a1345f'
+            keyPassword '6cd00535950a446796695793628660fd'
         }
     }
     buildTypes {

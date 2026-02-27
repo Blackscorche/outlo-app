@@ -12,14 +12,21 @@ import {
   Image,
   ImageBackground,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { showImagePickerOptions } from '../utils/imagePicker';
 import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
 import { supabase } from '../integrations/supabase/client';
+
+GoogleSignin.configure({
+  webClientId: '447020157078-j7dgtcldvhhom3tbbshbm4hhg0k9pg9j.apps.googleusercontent.com',
+  iosClientId: '447020157078-5erck39597ss1lohdc4vjc809di4g3bc.apps.googleusercontent.com',
+});
 
 const INTERESTS_OPTIONS = [
   { label: 'Travel', icon: 'airplane' as const },
@@ -53,6 +60,9 @@ const AuthScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [signupStep, setSignupStep] = useState(1); // 1: Basic Info, 2: Profile Details, 3: Photos & Interests
@@ -376,7 +386,9 @@ const AuthScreen = ({ navigation }) => {
           }
 
           console.log('Posts created successfully');
-          Alert.alert('Welcome!', 'Your account has been created successfully! You can start using the app right away.');
+          // Show email verification notice
+          setVerifyEmail(email);
+          setShowVerifyModal(true);
         }
       }
     } catch (error) {
@@ -386,7 +398,30 @@ const AuthScreen = ({ navigation }) => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      setGoogleLoading(true);
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const response = await GoogleSignin.signIn();
+      const idToken = response?.data?.idToken;
+      if (!idToken) throw new Error('No ID token from Google');
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      if (error.code !== 'SIGN_IN_CANCELLED') {
+        Alert.alert('Google Sign In Failed', error.message);
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
+    <>
     <ImageBackground
       source={require('../../assets/background.png')}
       style={styles.backgroundImage}
@@ -495,13 +530,20 @@ const AuthScreen = ({ navigation }) => {
                   <Text style={styles.orText}>Or continue with</Text>
 
                   <View style={styles.socialButtons}>
-                    <TouchableOpacity style={styles.socialButton}>
-                      <Ionicons name="logo-google" size={20} color="#DB4437" />
+                    <TouchableOpacity
+                      style={styles.socialButton}
+                      onPress={handleGoogleLogin}
+                      disabled={googleLoading}
+                    >
+                      {googleLoading
+                        ? <ActivityIndicator size="small" color="#DB4437" />
+                        : <Ionicons name="logo-google" size={20} color="#DB4437" />
+                      }
                       <Text style={styles.socialButtonText}>Google</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.socialButton}>
-                      <Ionicons name="logo-facebook" size={20} color="#4267B2" />
-                      <Text style={styles.socialButtonText}>Facebook</Text>
+                      <Ionicons name="logo-apple" size={20} color="#000000" />
+                      <Text style={styles.socialButtonText}>Apple</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -770,6 +812,40 @@ const AuthScreen = ({ navigation }) => {
       </KeyboardAvoidingView>
     </SafeAreaView>
     </ImageBackground>
+
+      {/* ── EMAIL VERIFICATION MODAL ── */}
+      <Modal visible={showVerifyModal} transparent animationType="fade">
+        <View style={styles.verifyOverlay}>
+          <View style={styles.verifyCard}>
+            <View style={styles.verifyIconCircle}>
+              <Ionicons name="mail-outline" size={36} color={theme.colors.primary} />
+            </View>
+            <Text style={styles.verifyTitle}>Verify your email</Text>
+            <Text style={styles.verifyBody}>
+              We sent a verification link to{'\n'}
+              <Text style={styles.verifyEmailText}>{verifyEmail}</Text>
+            </Text>
+            <Text style={styles.verifyHint}>
+              Please check your inbox and click the link to activate your account.
+            </Text>
+            <TouchableOpacity
+              style={styles.verifyBtn}
+              onPress={() => setShowVerifyModal(false)}
+            >
+              <Text style={styles.verifyBtnText}>Got it</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={async () => {
+                await supabase.auth.resend({ type: 'signup', email: verifyEmail });
+                Alert.alert('Sent', 'Verification email resent.');
+              }}
+            >
+              <Text style={styles.verifyResend}>Resend email</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 };
 
@@ -1397,6 +1473,73 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '700',
+  },
+
+  // Email verification modal
+  verifyOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  verifyCard: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    width: '100%',
+  },
+  verifyIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#FFF0F3',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  verifyTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: 10,
+  },
+  verifyBody: {
+    fontSize: 15,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  verifyEmailText: {
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  verifyHint: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 18,
+  },
+  verifyBtn: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  verifyBtnText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  verifyResend: {
+    fontSize: 14,
+    color: theme.colors.primary,
+    fontWeight: '500',
   },
 });
 
