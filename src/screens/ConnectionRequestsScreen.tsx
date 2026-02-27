@@ -53,8 +53,12 @@ const ConnectionRequestsScreen = ({ navigation }) => {
 
   const { refreshConnectionsBadgeCount } = useBadgeCounts();
 
+  const hasLoadedOnce = useRef(false);
+
   useEffect(() => {
-    loadRequestsWithProfiles();
+    const showSpinner = !hasLoadedOnce.current;
+    hasLoadedOnce.current = true;
+    loadRequestsWithProfiles(showSpinner);
   }, [receivedRequests, sentRequests, connections]);
 
   useFocusEffect(
@@ -109,8 +113,8 @@ const ConnectionRequestsScreen = ({ navigation }) => {
     }
   };
 
-  const loadRequestsWithProfiles = async () => {
-    setLoading(true);
+  const loadRequestsWithProfiles = async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
       const receivedWithProfiles = await Promise.all(
         receivedRequests
