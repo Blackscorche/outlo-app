@@ -2823,6 +2823,11 @@ execa@^5.0.0:
     signal-exit "^3.0.3"
     strip-final-newline "^2.0.0"
 
+expo-apple-authentication@~7.2.4:
+  version "7.2.4"
+  resolved "https://registry.npmjs.org/expo-apple-authentication/-/expo-apple-authentication-7.2.4.tgz"
+  integrity sha512-T2agaLLPT4Ax97FeXImB7BCCEzEJ0gB+ZwlFa/FXBtbp6WFKcGRlTVKiX2YPYLZzN5QjXcmQ9HHJ17jRthNHMg==
+
 expo-application@~6.1.5:
   version "6.1.5"
   resolved "https://registry.npmjs.org/expo-application/-/expo-application-6.1.5.tgz"

@@ -18,6 +18,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import { showImagePickerOptions } from '../utils/imagePicker';
 import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
@@ -61,6 +63,7 @@ const AuthScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verifyEmail, setVerifyEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -420,6 +423,42 @@ const AuthScreen = ({ navigation }) => {
     }
   };
 
+  const handleAppleLogin = async () => {
+    try {
+      setAppleLoading(true);
+      const rawNonce = Math.random().toString(36).substring(2, 10) +
+        Math.random().toString(36).substring(2, 10);
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        rawNonce,
+      );
+
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+
+      const identityToken = credential.identityToken;
+      if (!identityToken) throw new Error('No identity token from Apple');
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: identityToken,
+        nonce: rawNonce,
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      if (error.code !== 'ERR_REQUEST_CANCELED') {
+        Alert.alert('Apple Sign In Failed', error.message);
+      }
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
   return (
     <>
     <ImageBackground
@@ -541,10 +580,19 @@ const AuthScreen = ({ navigation }) => {
                       }
                       <Text style={styles.socialButtonText}>Google</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.socialButton}>
-                      <Ionicons name="logo-apple" size={20} color="#000000" />
-                      <Text style={styles.socialButtonText}>Apple</Text>
-                    </TouchableOpacity>
+                    {Platform.OS === 'ios' && (
+                      <TouchableOpacity
+                        style={styles.socialButton}
+                        onPress={handleAppleLogin}
+                        disabled={appleLoading}
+                      >
+                        {appleLoading
+                          ? <ActivityIndicator size="small" color="#000000" />
+                          : <Ionicons name="logo-apple" size={20} color="#000000" />
+                        }
+                        <Text style={styles.socialButtonText}>Apple</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
 
                   <View style={styles.signUpPrompt}>
