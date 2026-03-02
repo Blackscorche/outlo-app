@@ -569,17 +569,19 @@ const AuthScreen = ({ navigation }) => {
                   <Text style={styles.orText}>Or continue with</Text>
 
                   <View style={styles.socialButtons}>
-                    <TouchableOpacity
-                      style={styles.socialButton}
-                      onPress={handleGoogleLogin}
-                      disabled={googleLoading}
-                    >
-                      {googleLoading
-                        ? <ActivityIndicator size="small" color="#DB4437" />
-                        : <Ionicons name="logo-google" size={20} color="#DB4437" />
-                      }
-                      <Text style={styles.socialButtonText}>Google</Text>
-                    </TouchableOpacity>
+                    {Platform.OS === 'android' && (
+                      <TouchableOpacity
+                        style={styles.socialButton}
+                        onPress={handleGoogleLogin}
+                        disabled={googleLoading}
+                      >
+                        {googleLoading
+                          ? <ActivityIndicator size="small" color="#DB4437" />
+                          : <Ionicons name="logo-google" size={20} color="#DB4437" />
+                        }
+                        <Text style={styles.socialButtonText}>Google</Text>
+                      </TouchableOpacity>
+                    )}
                     {Platform.OS === 'ios' && (
                       <TouchableOpacity
                         style={styles.socialButton}
