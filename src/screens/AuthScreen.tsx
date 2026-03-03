@@ -68,6 +68,12 @@ const AuthScreen = ({ navigation }) => {
   const [verifyEmail, setVerifyEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [forgotPasswordStep, setForgotPasswordStep] = useState(1);
+  const [otpCode, setOtpCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [signupStep, setSignupStep] = useState(1); // 1: Basic Info, 2: Profile Details, 3: Photos & Interests
 
   // Profile data for sign-up
@@ -459,6 +465,56 @@ const AuthScreen = ({ navigation }) => {
     }
   };
 
+  const handleSendOtp = async () => {
+    if (!forgotPasswordEmail.trim()) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+    setForgotPasswordLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim());
+    setForgotPasswordLoading(false);
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+    setForgotPasswordStep(2);
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode.trim()) {
+      Alert.alert('Error', 'Please enter the verification code');
+      return;
+    }
+    setForgotPasswordLoading(true);
+    const { error } = await supabase.auth.verifyOtp({
+      email: forgotPasswordEmail.trim(),
+      token: otpCode.trim(),
+      type: 'recovery',
+    });
+    setForgotPasswordLoading(false);
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+    setForgotPasswordStep(3);
+  };
+
+  const handleResetPassword = async () => {
+    if (!newPassword.trim() || newPassword.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+    setForgotPasswordLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setForgotPasswordLoading(false);
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+    await supabase.auth.signOut();
+    setForgotPasswordStep(4);
+  };
+
   return (
     <>
     <ImageBackground
@@ -549,7 +605,13 @@ const AuthScreen = ({ navigation }) => {
                       </View>
                       <Text style={styles.rememberText}>Remember me</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={() => {
+                      setForgotPasswordEmail(email);
+                      setForgotPasswordStep(1);
+                      setOtpCode('');
+                      setNewPassword('');
+                      setShowForgotPassword(true);
+                    }}>
                       <Text style={styles.forgotText}>Forgot password?</Text>
                     </TouchableOpacity>
                   </View>
@@ -892,6 +954,142 @@ const AuthScreen = ({ navigation }) => {
             >
               <Text style={styles.verifyResend}>Resend email</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── FORGOT PASSWORD MODAL ── */}
+      <Modal visible={showForgotPassword} transparent animationType="fade">
+        <View style={styles.verifyOverlay}>
+          <View style={styles.verifyCard}>
+            {forgotPasswordStep === 1 && (
+              <>
+                <View style={styles.verifyIconCircle}>
+                  <Ionicons name="key-outline" size={36} color={theme.colors.primary} />
+                </View>
+                <Text style={styles.verifyTitle}>Reset Password</Text>
+                <Text style={styles.verifyBody}>
+                  Enter your email address and we'll send you a verification code.
+                </Text>
+                <View style={[styles.inputWrapper, { marginTop: 16, marginBottom: 16 }]}>
+                  <Ionicons name="mail-outline" size={18} color="#999" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.inputField}
+                    placeholder="Email address"
+                    placeholderTextColor="#999"
+                    value={forgotPasswordEmail}
+                    onChangeText={setForgotPasswordEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+                <TouchableOpacity
+                  style={[styles.verifyBtn, forgotPasswordLoading && { opacity: 0.7 }]}
+                  onPress={handleSendOtp}
+                  disabled={forgotPasswordLoading}
+                >
+                  {forgotPasswordLoading ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.verifyBtnText}>Send Code</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowForgotPassword(false)}>
+                  <Text style={styles.verifyResend}>Cancel</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {forgotPasswordStep === 2 && (
+              <>
+                <View style={styles.verifyIconCircle}>
+                  <Ionicons name="mail-outline" size={36} color={theme.colors.primary} />
+                </View>
+                <Text style={styles.verifyTitle}>Enter Code</Text>
+                <Text style={styles.verifyBody}>
+                  We sent a 6-digit code to{'\n'}
+                  <Text style={styles.verifyEmailText}>{forgotPasswordEmail}</Text>
+                </Text>
+                <View style={[styles.inputWrapper, { marginTop: 16, marginBottom: 16 }]}>
+                  <Ionicons name="keypad-outline" size={18} color="#999" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.inputField}
+                    placeholder="6-digit code"
+                    placeholderTextColor="#999"
+                    value={otpCode}
+                    onChangeText={setOtpCode}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                  />
+                </View>
+                <TouchableOpacity
+                  style={[styles.verifyBtn, forgotPasswordLoading && { opacity: 0.7 }]}
+                  onPress={handleVerifyOtp}
+                  disabled={forgotPasswordLoading}
+                >
+                  {forgotPasswordLoading ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.verifyBtnText}>Verify Code</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleSendOtp}>
+                  <Text style={styles.verifyResend}>Resend code</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {forgotPasswordStep === 3 && (
+              <>
+                <View style={styles.verifyIconCircle}>
+                  <Ionicons name="lock-closed-outline" size={36} color={theme.colors.primary} />
+                </View>
+                <Text style={styles.verifyTitle}>New Password</Text>
+                <Text style={styles.verifyBody}>
+                  Enter your new password (at least 6 characters).
+                </Text>
+                <View style={[styles.inputWrapper, { marginTop: 16, marginBottom: 16 }]}>
+                  <Ionicons name="lock-closed-outline" size={18} color="#999" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.inputField}
+                    placeholder="New password"
+                    placeholderTextColor="#999"
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry
+                  />
+                </View>
+                <TouchableOpacity
+                  style={[styles.verifyBtn, forgotPasswordLoading && { opacity: 0.7 }]}
+                  onPress={handleResetPassword}
+                  disabled={forgotPasswordLoading}
+                >
+                  {forgotPasswordLoading ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.verifyBtnText}>Reset Password</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+
+            {forgotPasswordStep === 4 && (
+              <>
+                <View style={styles.verifyIconCircle}>
+                  <Ionicons name="checkmark-circle-outline" size={36} color={theme.colors.primary} />
+                </View>
+                <Text style={styles.verifyTitle}>Password Reset!</Text>
+                <Text style={styles.verifyBody}>
+                  Your password has been successfully updated. You can now sign in with your new password.
+                </Text>
+                <TouchableOpacity
+                  style={styles.verifyBtn}
+                  onPress={() => setShowForgotPassword(false)}
+                >
+                  <Text style={styles.verifyBtnText}>Done</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
       </Modal>

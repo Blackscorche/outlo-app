@@ -412,7 +412,11 @@ export default function App() {
         setUser(session?.user ?? null);
         return;
       }
-      
+
+      if (event === 'PASSWORD_RECOVERY') {
+        return;
+      }
+
       setUser(session?.user ?? null);
     });
 
