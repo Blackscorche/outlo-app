@@ -35,6 +35,7 @@ import SubscriptionSuccessScreen from './src/screens/SubscriptionSuccessScreen';
 import ExtraPurchaseSuccessScreen from './src/screens/ExtraPurchaseSuccessScreen';
 import ActivitiesScreen from './src/screens/ActivitiesScreen';
 import SkillMatchingScreen from './src/screens/SkillMatchingScreen';
+import BlockedUsersScreen from './src/screens/BlockedUsersScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -307,6 +308,7 @@ function AuthenticatedApp({ user, navigation }: { user: any; navigation?: any })
       <Stack.Screen name="UserProfile">
         {(props) => <UserProfileWithTabs {...props} />}
       </Stack.Screen>
+      <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
     </Stack.Navigator>
   );
 }
