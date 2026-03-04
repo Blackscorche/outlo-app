@@ -36,6 +36,8 @@ import ExtraPurchaseSuccessScreen from './src/screens/ExtraPurchaseSuccessScreen
 import ActivitiesScreen from './src/screens/ActivitiesScreen';
 import SkillMatchingScreen from './src/screens/SkillMatchingScreen';
 import BlockedUsersScreen from './src/screens/BlockedUsersScreen';
+import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
+import ChangeEmailScreen from './src/screens/ChangeEmailScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -53,6 +55,16 @@ function SettingsWithProfile() {
       <SettingsStack.Screen
         name="Profile"
         component={ProfileScreenV2}
+        options={{ headerShown: false }}
+      />
+      <SettingsStack.Screen
+        name="ChangePassword"
+        component={ChangePasswordScreen}
+        options={{ headerShown: false }}
+      />
+      <SettingsStack.Screen
+        name="ChangeEmail"
+        component={ChangeEmailScreen}
         options={{ headerShown: false }}
       />
     </SettingsStack.Navigator>
@@ -345,22 +357,24 @@ export default function App() {
         error?.code === 'invalid_refresh_token') {
       console.log('Auth token error detected:', error.message);
       setUser(null);
-      Alert.alert(
-        'Session Expired',
-        'Your login session has expired. Please log in again.',
-        [
-          {
-            text: 'OK',
-            onPress: async () => {
-              try {
-                await supabase.auth.signOut();
-              } catch (signOutError) {
-                console.error('Error during sign out:', signOutError);
+      setTimeout(() => {
+        Alert.alert(
+          'Session Expired',
+          'Your login session has expired. Please log in again.',
+          [
+            {
+              text: 'OK',
+              onPress: async () => {
+                try {
+                  await supabase.auth.signOut();
+                } catch (signOutError) {
+                  console.error('Error during sign out:', signOutError);
+                }
               }
             }
-          }
-        ]
-      );
+          ]
+        );
+      }, 500);
     }
   };
 
@@ -391,22 +405,24 @@ export default function App() {
       if (event === 'TOKEN_REFRESHED' && !session) {
         console.log('Token refresh failed, signing out user');
         setUser(null);
-        Alert.alert(
-          'Session Expired',
-          'Your login session has expired. Please log in again.',
-          [
-            {
-              text: 'OK',
-              onPress: async () => {
-                try {
-                  await supabase.auth.signOut();
-                } catch (error) {
-                  console.error('Error during sign out:', error);
+        setTimeout(() => {
+          Alert.alert(
+            'Session Expired',
+            'Your login session has expired. Please log in again.',
+            [
+              {
+                text: 'OK',
+                onPress: async () => {
+                  try {
+                    await supabase.auth.signOut();
+                  } catch (error) {
+                    console.error('Error during sign out:', error);
+                  }
                 }
               }
-            }
-          ]
-        );
+            ]
+          );
+        }, 500);
         return;
       }
       
