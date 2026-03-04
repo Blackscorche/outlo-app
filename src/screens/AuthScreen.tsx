@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import * as Crypto from 'expo-crypto';
 import { showImagePickerOptions } from '../utils/imagePicker';
 import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../integrations/supabase/client';
 
 GoogleSignin.configure({
@@ -98,6 +99,23 @@ const AuthScreen = ({ navigation }) => {
     avatar: null,
     photos: []
   });
+
+  useEffect(() => {
+    const loadSavedCredentials = async () => {
+      try {
+        const savedEmail = await AsyncStorage.getItem('rememberedEmail');
+        const savedPassword = await AsyncStorage.getItem('rememberedPassword');
+        if (savedEmail && savedPassword) {
+          setEmail(savedEmail);
+          setPassword(savedPassword);
+          setRememberMe(true);
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    loadSavedCredentials();
+  }, []);
 
   const updateProfileData = (key, value) => {
     setProfileData(prev => ({ ...prev, [key]: value }));
@@ -297,6 +315,13 @@ const AuthScreen = ({ navigation }) => {
           password,
         });
         if (error) throw error;
+        if (rememberMe) {
+          await AsyncStorage.setItem('rememberedEmail', email);
+          await AsyncStorage.setItem('rememberedPassword', password);
+        } else {
+          await AsyncStorage.removeItem('rememberedEmail');
+          await AsyncStorage.removeItem('rememberedPassword');
+        }
       } else {
         // Validate sign-up data
         if (!validateSignUpData()) {
