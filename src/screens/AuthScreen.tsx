@@ -457,6 +457,7 @@ const AuthScreen = ({ navigation }) => {
   const handleAppleLogin = async () => {
     try {
       setAppleLoading(true);
+
       const rawNonce = Math.random().toString(36).substring(2, 10) +
         Math.random().toString(36).substring(2, 10);
       const hashedNonce = await Crypto.digestStringAsync(
