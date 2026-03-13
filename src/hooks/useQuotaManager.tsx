@@ -28,8 +28,8 @@ export const useQuotaManager = () => {
       if (!result.success) {
         if (showAlert) {
           Alert.alert(
-            'No Connection Requests Left',
-            'You have no connection requests remaining. Purchase more or upgrade to Premium for monthly allowance.',
+            'No Partner Requests Left',
+            'You have no partner requests remaining. Purchase more or upgrade to Premium for monthly allowance.',
             [
               { text: 'OK', style: 'default' },
               { text: 'Get More', style: 'default', onPress: () => {
@@ -43,13 +43,13 @@ export const useQuotaManager = () => {
       }
 
       if (showAlert) {
-        Alert.alert('Success', `Connection request sent! ${result.remaining} remaining.`);
+        Alert.alert('Success', `Partner request sent! ${result.remaining} remaining.`);
       }
 
       return true;
     } catch (error) {
       console.error('❌ Error using connection request:', error);
-      if (showAlert) Alert.alert('Error', 'Failed to send connection request. Please try again.');
+      if (showAlert) Alert.alert('Error', 'Failed to send partner request. Please try again.');
       return false;
     } finally {
       setLoading(false);

@@ -18,13 +18,46 @@ export const useConnectionActions = ({ receivedRequests, loadConnectionRequests 
     if (!user) return false;
 
     try {
-      const { error } = await supabase
+      // Check if a request already exists between these users
+      const { data: existing } = await supabase
         .from('connection_requests')
-        .insert({
-          sender_id: user.id,
-          receiver_id: receiverId,
-          status: 'pending'
-        });
+        .select('id, status')
+        .eq('sender_id', user.id)
+        .eq('receiver_id', receiverId)
+        .maybeSingle();
+
+      let error;
+
+      if (existing) {
+        // Update the existing row back to pending (avoids duplicate key issue)
+        const { data: updatedRows, error: updateError } = await supabase
+          .from('connection_requests')
+          .update({
+            status: 'pending',
+            seen_by_receiver: false,
+          })
+          .eq('id', existing.id)
+          .select();
+
+        if (updateError) {
+          error = updateError;
+        } else if (!updatedRows || updatedRows.length === 0) {
+          // RLS silently blocked the update — need SQL policy fix
+          console.error('RLS blocked UPDATE on connection_requests. Run SQL fix in Supabase.');
+          error = { message: 'Permission denied to resend request', code: '42501' };
+        }
+      } else {
+        // No existing row — insert fresh
+        const { error: insertError } = await supabase
+          .from('connection_requests')
+          .insert({
+            sender_id: user.id,
+            receiver_id: receiverId,
+            status: 'pending',
+            seen_by_receiver: false,
+          });
+        error = insertError;
+      }
 
       if (error) {
         console.error('Error sending connection request:', error);
@@ -37,18 +70,18 @@ export const useConnectionActions = ({ receivedRequests, loadConnectionRequests 
       }
 
       await loadConnectionRequests();
-      
+
       // Emit event to trigger real-time updates on other devices/components
-      DeviceEventEmitter.emit('connectionDataChanged', { 
-        action: 'request_sent', 
-        receiverId 
+      DeviceEventEmitter.emit('connectionDataChanged', {
+        action: 'request_sent',
+        receiverId
       });
-      
+
       toast({
         title: "Connection request sent",
         description: "Your request has been sent successfully.",
       });
-      
+
       return true;
     } catch (error) {
       console.error('Error sending connection request:', error);

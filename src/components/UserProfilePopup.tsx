@@ -149,7 +149,7 @@ export default function UserProfilePopup({
       }
     } catch (error) {
       console.error('Error sending connection request:', error);
-      Alert.alert('Error', 'Failed to send connection request');
+      Alert.alert('Error', 'Failed to send partner request');
     } finally {
       setLoading(false);
     }

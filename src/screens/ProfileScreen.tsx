@@ -9,28 +9,52 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  StatusBar,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import * as Location from 'expo-location';
 import { theme } from '../styles/theme';
-import { commonStyles } from '../styles/common';
 import { supabase } from '../integrations/supabase/client';
 import { showImagePickerOptions } from '../utils/imagePicker';
 import { useSettings } from '../contexts/SettingsContext';
+import AppLoading from '../components/AppLoading';
 import PostUploadModal from '../components/PostUploadModal';
-import CheckInModal from '../components/CheckInModal';
+import CheckInModal, { CheckInSuccessData } from '../components/CheckInModal';
+import PlaceReviewModal from '../components/PlaceReviewModal';
+import { usePlaces, Place } from '../hooks/usePlaces';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const POST_SIZE = Math.floor((SCREEN_WIDTH - 32 - 4) / 3);
+const HEADER_COLOR = '#FF1744';
+
+interface CheckIn {
+  id: string;
+  user_id: string;
+  location_name: string;
+  latitude: number;
+  longitude: number;
+  description?: string;
+  activity_tag?: string;
+  is_active: boolean;
+  created_at: string;
+  expires_at: string;
+}
 
 const ProfileScreen = ({ navigation }) => {
   const { settings } = useSettings();
+  const { getPlaceById } = usePlaces();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [placeForReview, setPlaceForReview] = useState<Place | null>(null);
+  const [lastCheckInId, setLastCheckInId] = useState<string | null>(null);
   const [posts, setPosts] = useState([]);
-  const [activeCheckIn, setActiveCheckIn] = useState(null);
+  const [activeCheckIn, setActiveCheckIn] = useState<CheckIn | null>(null);
+  const [joinedDate, setJoinedDate] = useState('');
   const [profile, setProfile] = useState({
     id: '',
     email: '',
@@ -58,46 +82,28 @@ const ProfileScreen = ({ navigation }) => {
     loadActiveCheckIn();
   }, []);
 
-  // Clean up broken local image URLs on component mount
   useEffect(() => {
     if (profile.photos && profile.photos.length > 0) {
       const hasLocalImages = profile.photos.some(photo => photo.includes('ExperienceData'));
-      if (hasLocalImages) {
-        console.log('Found local images, cleaning up...');
-        cleanupBrokenImages();
-      }
+      if (hasLocalImages) cleanupBrokenImages();
     }
   }, [profile.photos]);
 
   const cleanupBrokenImages = async () => {
     try {
-      // Filter out local file URLs that are likely broken
-      const validPhotos = profile.photos.filter(photo => 
-        !photo.includes('ExperienceData') && 
-        !photo.includes('ImagePicker') &&
-        !photo.includes('file://')
+      const validPhotos = profile.photos.filter(
+        photo =>
+          !photo.includes('ExperienceData') &&
+          !photo.includes('ImagePicker') &&
+          !photo.includes('file://')
       );
-
       if (validPhotos.length !== profile.photos.length) {
-        console.log('Cleaning up broken images:', profile.photos.length - validPhotos.length, 'removed');
-        
-        // Update local state
         setProfile(prev => ({ ...prev, photos: validPhotos }));
-        
-        // Update database
         const { error } = await supabase
           .from('profiles')
-          .update({
-            photos: validPhotos,
-            updated_at: new Date().toISOString(),
-          })
+          .update({ photos: validPhotos, updated_at: new Date().toISOString() })
           .eq('id', profile.id);
-
-        if (error) {
-          console.error('Error cleaning up photos in database:', error);
-        } else {
-          console.log('Photos cleaned up successfully in database');
-        }
+        if (error) console.error('Error cleaning up photos:', error);
       }
     } catch (error) {
       console.error('Error during cleanup:', error);
@@ -107,12 +113,13 @@ const ProfileScreen = ({ navigation }) => {
   const loadProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigation.navigate('Auth');
-        return;
-      }
+      if (!user) { navigation.navigate('Auth'); return; }
 
-      console.log('Loading profile for user:', user.id);
+      if (user.created_at) {
+        setJoinedDate(
+          new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+        );
+      }
 
       const { data, error } = await supabase
         .from('profiles')
@@ -120,19 +127,9 @@ const ProfileScreen = ({ navigation }) => {
         .eq('id', user.id)
         .single();
 
-      if (error) {
-        console.error('Profile fetch error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       if (data) {
-        console.log('Profile data loaded:', {
-          id: data.id,
-          name: data.name,
-          photos: data.photos,
-          photosLength: data.photos ? data.photos.length : 0,
-        });
-
         setProfile({
           id: data.id,
           email: user.email || '',
@@ -146,8 +143,6 @@ const ProfileScreen = ({ navigation }) => {
           looking_for: data.looking_for || '',
           relationship_goals: data.relationship_goals || '',
         });
-      } else {
-        console.log('No profile data found for user');
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -162,25 +157,18 @@ const ProfileScreen = ({ navigation }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get connections count
       const { count: connectionsCount } = await supabase
         .from('connections')
         .select('*', { count: 'exact', head: true })
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
 
-      // Get active check-ins count
       const { count: checkInsCount } = await supabase
         .from('check_ins')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('is_active', true);
 
-      // Get profile views count (would need a profile_views table)
-      // For now, we'll use a placeholder
       const viewsCount = Math.floor(Math.random() * 50) + 10;
-      
-      // Get likes count (would need a likes table)
-      // For now, we'll use a placeholder
       const likesCount = Math.floor(Math.random() * 30) + 5;
 
       setStats({
@@ -208,7 +196,6 @@ const ProfileScreen = ({ navigation }) => {
         .limit(9);
 
       if (error) throw error;
-      
       setPosts(data || []);
     } catch (error) {
       console.error('Error loading posts:', error);
@@ -229,48 +216,55 @@ const ProfileScreen = ({ navigation }) => {
         .limit(1)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-        throw error;
-      }
-      
+      if (error && error.code !== 'PGRST116') throw error;
       setActiveCheckIn(data);
     } catch (error) {
       console.error('Error loading active check-in:', error);
     }
   };
 
+  const handleEndCheckIn = async () => {
+    if (!activeCheckIn) return;
+    Alert.alert(
+      'End Check-in',
+      `End check-in at ${activeCheckIn.location_name}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'End',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('check_ins')
+                .update({ is_active: false })
+                .eq('id', activeCheckIn.id);
+              if (error) throw error;
+              setActiveCheckIn(null);
+              loadStats();
+            } catch (err) {
+              console.error('Error ending check-in:', err);
+              Alert.alert('Error', 'Failed to end check-in');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const pickImage = async () => {
     showImagePickerOptions(
-      {
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      },
+      { allowsEditing: true, aspect: [1, 1], quality: 0.8 },
       async (imageUri) => {
         try {
           setSaving(true);
-          
-          console.log('Profile: Image selected:', imageUri);
-          
-          // Upload image to Supabase Storage
           const uploadedUrl = await uploadImageToStorage(imageUri);
-          
           if (uploadedUrl) {
-            console.log('Profile: Image uploaded successfully:', uploadedUrl);
-            
-            // Filter out any broken local images before adding new one
-            const validPhotos = profile.photos.filter(photo => 
-              photo.includes('supabase') || photo.startsWith('http')
+            const validPhotos = profile.photos.filter(
+              photo => photo.includes('supabase') || photo.startsWith('http')
             );
-            
             const newPhotos = [...validPhotos, uploadedUrl];
-            
-            setProfile(prev => ({
-              ...prev,
-              photos: newPhotos
-            }));
-            
-            // Auto-save the profile with new photo
+            setProfile(prev => ({ ...prev, photos: newPhotos }));
             await saveProfileWithNewPhoto(newPhotos);
           } else {
             Alert.alert('Upload Failed', 'Failed to upload image. Please try again.');
@@ -290,80 +284,50 @@ const ProfileScreen = ({ navigation }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Create a unique filename with user ID in the path
       const fileName = `${Date.now()}.jpeg`;
       const filePath = `${user.id}/${fileName}`;
 
-      console.log('Starting image upload:', imageUri);
-
-      // Convert image to base64
       const response = await fetch(imageUri);
       const blob = await response.blob();
-      
+
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = async () => {
           try {
             const base64String = reader.result as string;
             const base64Data = base64String.split(',')[1];
-            
-            console.log('Converted to base64, uploading to Supabase...');
-            
-            // Decode base64 to array buffer
             const decode = atob(base64Data);
             const arrayBuffer = new Uint8Array(decode.length);
             for (let i = 0; i < decode.length; i++) {
               arrayBuffer[i] = decode.charCodeAt(i);
             }
-            
-            // Upload to Supabase with proper authentication
-            const { data, error } = await supabase.storage
+            const { error } = await supabase.storage
               .from('user-photos')
               .upload(filePath, arrayBuffer.buffer, {
                 contentType: 'image/jpeg',
                 cacheControl: '3600',
-                upsert: true // Allow overwriting if needed
+                upsert: true,
               });
-
             if (error) {
-              console.error('Supabase upload error:', error);
-              
               if (error.message?.includes('row-level security policy')) {
-                Alert.alert(
-                  'Storage Permission Error',
-                  'Please ensure storage policies are set up correctly. Check setup-storage.sql file.'
-                );
+                Alert.alert('Storage Permission Error', 'Please ensure storage policies are set up correctly.');
               }
               throw error;
             }
-
-            // Get public URL
             const { data: { publicUrl } } = supabase.storage
               .from('user-photos')
               .getPublicUrl(filePath);
-
-            console.log('Upload successful! URL:', publicUrl);
             resolve(publicUrl);
           } catch (error) {
-            console.error('Error in base64 upload:', error);
             reject(error);
           }
         };
-        
-        reader.onerror = (error) => {
-          console.error('FileReader error:', error);
-          reject(error);
-        };
-        
+        reader.onerror = error => reject(error);
         reader.readAsDataURL(blob);
       });
-
     } catch (error) {
       console.error('Error uploading image:', error);
-      Alert.alert(
-        'Upload Failed',
-        'Failed to upload image. Please check your internet connection and try again.'
-      );
+      Alert.alert('Upload Failed', 'Failed to upload image. Please check your internet connection.');
       return null;
     }
   };
@@ -372,36 +336,18 @@ const ProfileScreen = ({ navigation }) => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({
-          photos: newPhotos,
-          updated_at: new Date().toISOString(),
-        })
+        .update({ photos: newPhotos, updated_at: new Date().toISOString() })
         .eq('id', profile.id);
-
       if (error) throw error;
-      
-      console.log('Profile photos updated successfully');
     } catch (error) {
       console.error('Error saving profile with new photo:', error);
     }
   };
 
   const handleSave = async () => {
-    // Validation
-    if (!profile.name.trim()) {
-      Alert.alert('Error', 'Name is required');
-      return;
-    }
-    
-    if (profile.photos.length < 2) {
-      Alert.alert('Error', 'At least 2 photos are required');
-      return;
-    }
-    
-    if (profile.interests.length < 5) {
-      Alert.alert('Error', 'At least 5 interests are required');
-      return;
-    }
+    if (!profile.name.trim()) { Alert.alert('Error', 'Name is required'); return; }
+    if (profile.photos.length < 2) { Alert.alert('Error', 'At least 2 photos are required'); return; }
+    if (profile.interests.length < 5) { Alert.alert('Error', 'At least 5 interests are required'); return; }
 
     setSaving(true);
     try {
@@ -417,13 +363,9 @@ const ProfileScreen = ({ navigation }) => {
           updated_at: new Date().toISOString(),
         })
         .eq('id', profile.id);
-
       if (error) throw error;
-
       setIsEditing(false);
       Alert.alert('Success', 'Profile updated successfully');
-      
-      // Reload stats after save
       loadStats();
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -433,647 +375,779 @@ const ProfileScreen = ({ navigation }) => {
     }
   };
 
+  const formatNumber = (num: number) => {
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
+    return num.toString();
+  };
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Loading profile...</Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_COLOR }} edges={['top']}>
+        <View style={{ flex: 1, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' }}>
+          <AppLoading />
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={commonStyles.title}>My Profile</Text>
-          <TouchableOpacity onPress={() => setIsEditing(!isEditing)}>
-            <Ionicons
-              name={isEditing ? 'close' : 'create-outline'}
-              size={24}
-              color={theme.colors.primary}
-            />
-          </TouchableOpacity>
-        </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: HEADER_COLOR }} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={HEADER_COLOR} />
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
 
-        <View style={styles.photoSection}>
-          <TouchableOpacity 
-            style={styles.mainPhoto}
+        {/* ── HEADER ── */}
+        <View style={styles.headerSection}>
+          <TouchableOpacity style={styles.editIconBtn} onPress={() => setIsEditing(!isEditing)}>
+            <Ionicons name={isEditing ? 'close' : 'create-outline'} size={20} color="white" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.avatarWrapper}
             onPress={isEditing ? pickImage : undefined}
+            activeOpacity={isEditing ? 0.7 : 1}
           >
-            {profile.photos && profile.photos.length > 0 && profile.photos[0] ? (
-              <Image 
-                source={{ uri: profile.photos[0] }} 
-                style={styles.profileImage}
-                resizeMode="cover"
-                onError={(error) => {
-                  console.log('Main photo load error:', error.nativeEvent.error);
-                  // Handle broken local image URLs by showing placeholder
+            {profile.photos && profile.photos[0] ? (
+              <Image
+                source={{ uri: profile.photos[0] }}
+                style={styles.avatar}
+                onError={() =>
                   setProfile(prev => ({
                     ...prev,
-                    photos: prev.photos.filter(photo => !photo.includes('ExperienceData'))
-                  }));
-                }}
-                onLoad={() => {
-                  console.log('Main photo loaded successfully');
-                }}
+                    photos: prev.photos.filter(p => !p.includes('ExperienceData')),
+                  }))
+                }
               />
             ) : (
-              <View style={styles.photoPlaceholder}>
-                <Ionicons name="camera" size={40} color={theme.colors.textSecondary} />
-                <Text style={styles.photoPlaceholderText}>
-                  {isEditing ? 'Tap to Add Photo' : 'No Photo'}
-                </Text>
+              <View style={[styles.avatar, styles.avatarFallback]}>
+                <Ionicons name="person" size={44} color="rgba(255,255,255,0.8)" />
+              </View>
+            )}
+            {isEditing && (
+              <View style={styles.avatarEditBadge}>
+                <Ionicons name="camera-outline" size={14} color="white" />
               </View>
             )}
           </TouchableOpacity>
-          
-          {/* Photo gallery */}
-          <View style={styles.photoGallery}>
-            {profile.photos && profile.photos.length > 1 && profile.photos.slice(1).map((photo, index) => (
-              <View key={index} style={styles.photoItem}>
-                <Image 
-                  source={{ uri: photo }} 
-                  style={styles.smallPhoto}
-                  resizeMode="cover"
-                  onError={(error) => {
-                    console.log(`Gallery photo ${index + 1} load error:`, error.nativeEvent.error);
-                    // Remove broken local image URLs
-                    if (photo.includes('ExperienceData')) {
-                      const newPhotos = profile.photos.filter(p => p !== photo);
-                      setProfile(prev => ({ ...prev, photos: newPhotos }));
-                    }
-                  }}
-                  onLoad={() => {
-                    console.log(`Gallery photo ${index + 1} loaded successfully`);
-                  }}
-                />
-                {isEditing && (
+
+          {isEditing ? (
+            <TextInput
+              style={styles.nameInputHeader}
+              value={profile.name}
+              onChangeText={t => setProfile({ ...profile, name: t })}
+              placeholder="Your name"
+              placeholderTextColor="rgba(255,255,255,0.5)"
+            />
+          ) : (
+            <Text style={styles.profileName}>{profile.name || 'Your Name'}</Text>
+          )}
+
+          <View style={styles.locationRow}>
+            <Ionicons name="location-sharp" size={13} color="rgba(255,255,255,0.85)" />
+            <Text style={styles.locationText}>{profile.location || 'Location not set'}</Text>
+          </View>
+
+          <View style={styles.metaRow}>
+            <View style={styles.onlinePill}>
+              <View style={styles.greenDot} />
+              <Text style={styles.onlineText}>Online now</Text>
+            </View>
+            {joinedDate ? <Text style={styles.joinedText}>· Joined {joinedDate}</Text> : null}
+          </View>
+
+          {/* Extra photos (edit mode) */}
+          {isEditing && (
+            <View style={styles.photoGalleryRow}>
+              {profile.photos.slice(1).map((photo, idx) => (
+                <View key={idx} style={{ position: 'relative' }}>
+                  <Image source={{ uri: photo }} style={styles.galleryThumb} />
                   <TouchableOpacity
-                    style={styles.removePhoto}
-                    onPress={() => {
-                      const newPhotos = profile.photos.filter((_, i) => i !== index + 1);
-                      setProfile({ ...profile, photos: newPhotos });
-                    }}
+                    style={styles.removeThumbBtn}
+                    onPress={() =>
+                      setProfile({ ...profile, photos: profile.photos.filter((_, i) => i !== idx + 1) })
+                    }
                   >
-                    <Ionicons name="close-circle" size={20} color="white" />
+                    <Ionicons name="close-circle" size={18} color="white" />
                   </TouchableOpacity>
-                )}
-              </View>
-            ))}
-            
-            {/* Add more photos button */}
-            {isEditing && profile.photos && profile.photos.length < 6 && (
-              <TouchableOpacity style={styles.addPhotoButton} onPress={pickImage}>
-                <Ionicons name="add" size={24} color={theme.colors.primary} />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.infoSection}>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Email</Text>
-            <Text style={styles.value}>{profile.email}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Name</Text>
-            {isEditing ? (
-              <TextInput
-                style={styles.input}
-                value={profile.name}
-                onChangeText={(text) => setProfile({ ...profile, name: text })}
-              />
-            ) : (
-              <Text style={styles.value}>{profile.name}</Text>
-            )}
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Age</Text>
-            {isEditing ? (
-              <TextInput
-                style={styles.input}
-                value={profile.age.toString()}
-                onChangeText={(text) => setProfile({ ...profile, age: parseInt(text) || 0 })}
-                keyboardType="numeric"
-              />
-            ) : (
-              <Text style={styles.value}>{profile.age}</Text>
-            )}
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Location</Text>
-            {isEditing ? (
-              <TextInput
-                style={styles.input}
-                value={profile.location}
-                onChangeText={(text) => setProfile({ ...profile, location: text })}
-              />
-            ) : (
-              <Text style={styles.value}>{profile.location}</Text>
-            )}
-          </View>
-
-          <View style={styles.bioSection}>
-            <Text style={styles.label}>Bio</Text>
-            {isEditing ? (
-              <TextInput
-                style={[styles.input, styles.bioInput]}
-                value={profile.bio}
-                onChangeText={(text) => setProfile({ ...profile, bio: text })}
-                multiline
-                numberOfLines={3}
-              />
-            ) : (
-              <Text style={styles.bioText}>{profile.bio}</Text>
-            )}
-          </View>
-
-          <View style={styles.interestsSection}>
-            <Text style={styles.label}>Interests</Text>
-            <View style={styles.interestsList}>
-              {profile.interests.map((interest, index) => (
-                <View key={index} style={styles.interestTag}>
-                  <Text style={styles.interestText}>{interest}</Text>
-                  {isEditing && (
-                    <TouchableOpacity
-                      onPress={() => {
-                        const newInterests = profile.interests.filter((_, i) => i !== index);
-                        setProfile({ ...profile, interests: newInterests });
-                      }}
-                      style={styles.removeInterest}
-                    >
-                      <Ionicons name="close-circle" size={16} color={theme.colors.primary} />
-                    </TouchableOpacity>
-                  )}
                 </View>
               ))}
+              {profile.photos.length < 6 && (
+                <TouchableOpacity style={styles.addThumbBtn} onPress={pickImage}>
+                  <Ionicons name="add" size={22} color="rgba(255,255,255,0.8)" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* ── CONTENT ── */}
+        <View style={styles.content}>
+
+          {/* Stats */}
+          <View style={styles.statsCard}>
+            <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('Connections')}>
+              <Text style={styles.statNum}>{formatNumber(stats.connections)}</Text>
+              <Text style={styles.statLbl}>Connections</Text>
+            </TouchableOpacity>
+            <View style={styles.statSep} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNum}>{stats.checkIns}</Text>
+              <Text style={styles.statLbl}>Check-ins</Text>
+            </View>
+            <View style={styles.statSep} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNum}>{formatNumber(stats.views)}</Text>
+              <Text style={styles.statLbl}>Profile Views</Text>
+            </View>
+            <View style={styles.statSep} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNum}>{stats.likes}</Text>
+              <Text style={styles.statLbl}>Likes</Text>
             </View>
           </View>
-        </View>
 
-        {isEditing && (
-          <TouchableOpacity 
-            style={[commonStyles.button, saving && styles.buttonDisabled]} 
-            onPress={handleSave}
-            disabled={saving}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text style={commonStyles.buttonText}>Save Changes</Text>
-            )}
-          </TouchableOpacity>
-        )}
-
-        <View style={styles.statsSection}>
-          <TouchableOpacity style={styles.statItem}>
-            <Ionicons name="heart" size={24} color={theme.colors.primary} />
-            <Text style={styles.statNumber}>{stats.likes}</Text>
-            <Text style={styles.statLabel}>Likes</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.statItem}>
-            <Ionicons name="eye" size={24} color={theme.colors.primary} />
-            <Text style={styles.statNumber}>{stats.views}</Text>
-            <Text style={styles.statLabel}>Views</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.statItem}
-            onPress={() => navigation.navigate('Connections')}
-          >
-            <Ionicons name="people" size={24} color={theme.colors.primary} />
-            <Text style={styles.statNumber}>{stats.connections}</Text>
-            <Text style={styles.statLabel}>Connections</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.statItem}>
-            <Ionicons name="location" size={24} color={theme.colors.primary} />
-            <Text style={styles.statNumber}>{stats.checkIns}</Text>
-            <Text style={styles.statLabel}>Check-ins</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Posts Section */}
-        <View style={styles.postsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>My Posts</Text>
-            <TouchableOpacity 
-              style={styles.addButton}
-              onPress={() => setShowPostModal(true)}
-            >
-              <Ionicons name="add-circle" size={24} color={theme.colors.primary} />
+          {/* Action buttons */}
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.createPostBtn} onPress={() => setShowPostModal(true)}>
+              <Ionicons name="camera-outline" size={18} color="white" />
+              <Text style={styles.actionBtnText}>Create Post</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.checkInActionBtn} onPress={() => setShowCheckInModal(true)}>
+              <Ionicons name="location-sharp" size={18} color="white" />
+              <Text style={styles.actionBtnText}>Check In</Text>
             </TouchableOpacity>
           </View>
-          
-          <View style={styles.postsGrid}>
-            {posts.length > 0 ? (
-              posts.map((post) => (
-                <TouchableOpacity key={post.id} style={styles.postItem}>
-                  <Image 
-                    source={{ uri: post.media_url }} 
-                    style={styles.postImage}
-                    resizeMode="cover"
+
+          {/* Currently Checked In */}
+          {activeCheckIn && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Currently Checked In</Text>
+                <View style={styles.liveBadge}>
+                  <View style={styles.liveDot} />
+                  <Text style={styles.liveText}>Live</Text>
+                </View>
+              </View>
+              <View style={styles.card}>
+                <View style={styles.checkInRow}>
+                  <View style={styles.checkInIconWrap}>
+                    <Ionicons name="location-sharp" size={20} color="#10B981" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.checkInName}>{activeCheckIn.location_name}</Text>
+                    <Text style={styles.checkInSub}>{activeCheckIn.activity_tag || 'Currently here'}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.endBtn} onPress={handleEndCheckIn}>
+                    <Text style={styles.endBtnText}>End</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* About Me */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>About Me</Text>
+            <View style={styles.card}>
+              {isEditing ? (
+                <>
+                  <TextInput
+                    style={styles.bioEditInput}
+                    value={profile.bio}
+                    onChangeText={t => setProfile({ ...profile, bio: t })}
+                    placeholder="Write something about yourself..."
+                    placeholderTextColor={theme.colors.textSecondary}
+                    multiline
+                    numberOfLines={4}
                   />
-                  {post.media_type === 'video' && (
-                    <View style={styles.videoOverlay}>
-                      <Ionicons name="play-circle" size={30} color="white" />
+                  <View style={styles.editFieldsGroup}>
+                    <View style={styles.editRow}>
+                      <Text style={styles.editLabel}>Age</Text>
+                      <TextInput
+                        style={styles.editInput}
+                        value={profile.age ? profile.age.toString() : ''}
+                        onChangeText={t => setProfile({ ...profile, age: parseInt(t) || 0 })}
+                        keyboardType="numeric"
+                        placeholder="Age"
+                        placeholderTextColor={theme.colors.textSecondary}
+                      />
                     </View>
-                  )}
-                  <View style={styles.postStats}>
-                    <View style={styles.postStat}>
-                      <Ionicons name="heart" size={14} color="white" />
-                      <Text style={styles.postStatText}>{post.likes_count}</Text>
-                    </View>
-                    <View style={styles.postStat}>
-                      <Ionicons name="chatbubble" size={14} color="white" />
-                      <Text style={styles.postStatText}>{post.comments_count}</Text>
+                    <View style={styles.editRow}>
+                      <Text style={styles.editLabel}>Location</Text>
+                      <TextInput
+                        style={styles.editInput}
+                        value={profile.location}
+                        onChangeText={t => setProfile({ ...profile, location: t })}
+                        placeholder="City, Country"
+                        placeholderTextColor={theme.colors.textSecondary}
+                      />
                     </View>
                   </View>
-                </TouchableOpacity>
-              ))
+                </>
+              ) : (
+                <Text style={styles.bioText}>
+                  {profile.bio || 'No bio yet. Tap the edit button to add one!'}
+                </Text>
+              )}
+
+              {profile.interests && profile.interests.length > 0 && (
+                <View style={styles.tagsRow}>
+                  {profile.interests.map((tag, idx) => (
+                    <View key={idx} style={styles.tagChip}>
+                      <Text style={styles.tagText}>{tag}</Text>
+                      {isEditing && (
+                        <TouchableOpacity
+                          onPress={() =>
+                            setProfile({
+                              ...profile,
+                              interests: profile.interests.filter((_, i) => i !== idx),
+                            })
+                          }
+                          style={{ marginLeft: 3 }}
+                        >
+                          <Ionicons name="close-circle" size={13} color={theme.colors.primary} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* My Posts */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>My Posts</Text>
+              <TouchableOpacity onPress={() => setShowPostModal(true)}>
+                <Text style={styles.addLink}>+ Add</Text>
+              </TouchableOpacity>
+            </View>
+
+            {posts.length > 0 ? (
+              <View style={styles.postsGrid}>
+                {posts.slice(0, 6).map(post => (
+                  <TouchableOpacity key={post.id} style={styles.postCell}>
+                    <Image source={{ uri: post.media_url }} style={styles.postImg} resizeMode="cover" />
+                    <View style={styles.postLikeBadge}>
+                      <Ionicons name="heart" size={11} color="white" />
+                      <Text style={styles.postLikeNum}>{post.likes_count || 0}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
             ) : (
-              <View style={styles.emptyPosts}>
-                <Text style={styles.emptyText}>No posts yet</Text>
-                <TouchableOpacity 
-                  style={styles.createPostButton}
-                  onPress={() => setShowPostModal(true)}
-                >
-                  <Text style={styles.createPostText}>Create your first post</Text>
+              <View style={styles.emptyCard}>
+                <Ionicons name="images-outline" size={36} color={theme.colors.textSecondary} />
+                <Text style={styles.emptyCardText}>No posts yet</Text>
+                <TouchableOpacity style={styles.emptyCardBtn} onPress={() => setShowPostModal(true)}>
+                  <Text style={styles.emptyCardBtnText}>Create your first post</Text>
                 </TouchableOpacity>
               </View>
             )}
           </View>
-        </View>
 
-        {/* Check-in Section */}
-        <View style={styles.checkInSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Current Location</Text>
-            <TouchableOpacity 
-              style={styles.addButton}
-              onPress={() => setShowCheckInModal(true)}
+          {/* Save button (edit mode) */}
+          {isEditing && (
+            <TouchableOpacity
+              style={[styles.saveButton, saving && { opacity: 0.6 }]}
+              onPress={handleSave}
+              disabled={saving}
             >
-              <Ionicons name="location" size={24} color={theme.colors.primary} />
-            </TouchableOpacity>
-          </View>
-          
-          {activeCheckIn ? (
-            <View style={styles.checkInCard}>
-              <View style={styles.checkInInfo}>
-                <Ionicons name="location-sharp" size={20} color={theme.colors.primary} />
-                <Text style={styles.checkInLocation}>{activeCheckIn.location_name}</Text>
-              </View>
-              {activeCheckIn.description && (
-                <Text style={styles.checkInDescription}>{activeCheckIn.description}</Text>
+              {saving ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.saveButtonText}>Save Changes</Text>
               )}
-              <Text style={styles.checkInTime}>
-                Checked in {new Date(activeCheckIn.created_at).toLocaleTimeString()}
-              </Text>
-            </View>
-          ) : (
-            <TouchableOpacity 
-              style={styles.checkInPrompt}
-              onPress={() => setShowCheckInModal(true)}
-            >
-              <Ionicons name="add-circle-outline" size={40} color={theme.colors.textSecondary} />
-              <Text style={styles.checkInPromptText}>Check in to a location</Text>
             </TouchableOpacity>
           )}
+
+          <View style={{ height: 24 }} />
         </View>
       </ScrollView>
 
-      {/* Post Upload Modal */}
+      {/* ── MODALS ── */}
       {showPostModal && (
         <PostUploadModal
           visible={showPostModal}
           onClose={() => setShowPostModal(false)}
-          onPostCreated={() => {
-            loadPosts();
-            setShowPostModal(false);
-          }}
+          onPostCreated={() => { loadPosts(); setShowPostModal(false); }}
         />
       )}
 
-      {/* Check-in Modal */}
       {showCheckInModal && (
         <CheckInModal
           visible={showCheckInModal}
           onClose={() => setShowCheckInModal(false)}
           onCheckIn={() => {
             loadActiveCheckIn();
-            loadStats(); // Reload stats to update check-in count
+            loadStats();
             setShowCheckInModal(false);
+          }}
+          onCheckInSuccess={async (data: CheckInSuccessData) => {
+            setLastCheckInId(data.checkInId);
+            navigation.navigate('Home', {
+              showCheckIn: {
+                latitude: data.latitude,
+                longitude: data.longitude,
+                locationName: data.locationName,
+                checkInId: data.checkInId,
+              },
+            });
+            if (data.placeId) {
+              const place = await getPlaceById(data.placeId);
+              if (place) {
+                setTimeout(() => {
+                  Alert.alert(
+                    'Write a Review?',
+                    `Would you like to share your experience at ${data.locationName}?`,
+                    [
+                      { text: 'Not Now', style: 'cancel' },
+                      {
+                        text: 'Write Review',
+                        onPress: () => { setPlaceForReview(place); setShowReviewModal(true); },
+                      },
+                    ]
+                  );
+                }, 1000);
+              }
+            }
           }}
           currentLocation={settings.location}
         />
       )}
+
+      <PlaceReviewModal
+        visible={showReviewModal}
+        place={placeForReview}
+        checkInId={lastCheckInId || undefined}
+        onClose={() => { setShowReviewModal(false); setPlaceForReview(null); setLastCheckInId(null); }}
+        onSubmitted={() => { Alert.alert('Thank you!', 'Your review has been submitted.'); }}
+      />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.lg,
+  // ── Header ──
+  headerSection: {
+    backgroundColor: HEADER_COLOR,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 28,
   },
-  loadingContainer: {
-    flex: 1,
+  editIconBtn: {
+    alignSelf: 'flex-end',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  avatarWrapper: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  avatar: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+  avatarFallback: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: theme.spacing.md,
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary,
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: HEADER_COLOR,
   },
-  buttonDisabled: {
-    opacity: 0.7,
+  profileName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: 'white',
+    marginBottom: 6,
   },
-  header: {
+  nameInputHeader: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.5)',
+    marginBottom: 6,
+    textAlign: 'center',
+    minWidth: 160,
+    paddingVertical: 2,
+  },
+  locationRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: theme.spacing.md,
+    gap: 4,
+    marginBottom: 8,
   },
-  photoSection: {
+  locationText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  metaRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: theme.spacing.lg,
+    gap: 8,
   },
-  photoGallery: {
+  onlinePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  greenDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4ADE80',
+  },
+  onlineText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  joinedText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  photoGalleryRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    marginTop: theme.spacing.md,
-    gap: theme.spacing.sm,
+    gap: 8,
+    marginTop: 14,
   },
-  photoItem: {
-    position: 'relative',
-  },
-  smallPhoto: {
-    width: 60,
-    height: 60,
+  galleryThumb: {
+    width: 56,
+    height: 56,
     borderRadius: 8,
   },
-  removePhoto: {
+  removeThumbBtn: {
     position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 10,
+    top: -6,
+    right: -6,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 9,
   },
-  addPhotoButton: {
-    width: 60,
-    height: 60,
+  addThumbBtn: {
+    width: 56,
+    height: 56,
     borderRadius: 8,
-    backgroundColor: theme.colors.gray[200],
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: 'rgba(255,255,255,0.4)',
     borderStyle: 'dashed',
   },
-  mainPhoto: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    overflow: 'hidden',
+
+  // ── Content ──
+  content: {
+    padding: 16,
+    backgroundColor: '#F3F4F6',
   },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-  },
-  photoPlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: theme.colors.gray[200],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  photoPlaceholderText: {
-    marginTop: theme.spacing.xs,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
-  },
-  infoSection: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-  },
-  infoRow: {
-    marginBottom: theme.spacing.md,
-  },
-  label: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xs,
-  },
-  value: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.text,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-    fontSize: theme.fontSize.base,
-    color: theme.colors.text,
-  },
-  bioSection: {
-    marginBottom: theme.spacing.md,
-  },
-  bioText: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.text,
-    lineHeight: 22,
-  },
-  bioInput: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  interestsSection: {
-    marginTop: theme.spacing.md,
-  },
-  interestsList: {
+
+  // Stats card
+  statsCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: theme.spacing.sm,
-  },
-  interestTag: {
-    backgroundColor: theme.colors.primary + '20',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borderRadius.full,
-    marginRight: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  removeInterest: {
-    marginLeft: theme.spacing.xs,
-  },
-  interestText: {
-    color: theme.colors.primary,
-    fontSize: theme.fontSize.sm,
-  },
-  statsSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.xl,
+    paddingVertical: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   statItem: {
+    flex: 1,
     alignItems: 'center',
   },
-  statNumber: {
-    fontSize: theme.fontSize.xl,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    marginTop: theme.spacing.xs,
+  statNum: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
   },
-  statLabel: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
+  statLbl: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
+    textAlign: 'center',
   },
-  postsSection: {
-    marginBottom: theme.spacing.xl,
+  statSep: {
+    width: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 4,
+  },
+
+  // Action buttons
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  createPostBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: '#FF1744',
+    borderRadius: 12,
+    paddingVertical: 13,
+  },
+  checkInActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: '#10B981',
+    borderRadius: 12,
+    paddingVertical: 13,
+  },
+  actionBtnText: {
+    color: 'white',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  // Section
+  section: {
+    marginBottom: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: theme.fontSize.lg,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  addLink: {
+    fontSize: 14,
+    color: '#FF1744',
     fontWeight: '600',
-    color: theme.colors.text,
   },
-  addButton: {
-    padding: theme.spacing.xs,
+
+  // White card
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
+
+  // Check-in card content
+  checkInRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkInIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#D1FAE5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  checkInName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  checkInSub: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#D1FAE5',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#10B981',
+  },
+  liveText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  endBtn: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  endBtnText: {
+    color: '#EF4444',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  // About Me
+  bioText: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 22,
+  },
+  bioEditInput: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 22,
+    textAlignVertical: 'top',
+    minHeight: 80,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+  },
+  editFieldsGroup: {
+    gap: 8,
+  },
+  editRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+    width: 70,
+  },
+  editInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 14,
+    color: '#1F2937',
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  tagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF1F2',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  tagText: {
+    fontSize: 13,
+    color: '#FF1744',
+    fontWeight: '500',
+  },
+
+  // Posts grid
   postsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 2,
   },
-  postItem: {
-    width: '32.5%',
-    aspectRatio: 1,
+  postCell: {
+    width: POST_SIZE,
+    height: POST_SIZE,
     position: 'relative',
   },
-  postImage: {
+  postImg: {
     width: '100%',
     height: '100%',
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 4,
   },
-  videoOverlay: {
+  postLikeBadge: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  postStats: {
-    position: 'absolute',
-    bottom: 4,
-    left: 4,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  postStat: {
+    bottom: 5,
+    left: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    gap: 3,
+    backgroundColor: 'rgba(0,0,0,0.55)',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 12,
+    borderRadius: 10,
   },
-  postStatText: {
+  postLikeNum: {
     color: 'white',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
   },
-  emptyPosts: {
-    width: '100%',
-    paddingVertical: theme.spacing.xl,
+  emptyCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 28,
     alignItems: 'center',
   },
-  emptyText: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.md,
+  emptyCardText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 8,
+    marginBottom: 12,
   },
-  createPostButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
+  emptyCardBtn: {
+    backgroundColor: '#FF1744',
+    paddingHorizontal: 20,
+    paddingVertical: 9,
+    borderRadius: 8,
   },
-  createPostText: {
+  emptyCardBtnText: {
     color: 'white',
-    fontSize: theme.fontSize.base,
+    fontSize: 14,
     fontWeight: '600',
   },
-  checkInSection: {
-    marginBottom: theme.spacing.xl,
-  },
-  checkInCard: {
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    borderLeftWidth: 3,
-    borderLeftColor: theme.colors.primary,
-  },
-  checkInInfo: {
-    flexDirection: 'row',
+
+  // Save button
+  saveButton: {
+    backgroundColor: '#FF1744',
+    borderRadius: 12,
+    paddingVertical: 15,
     alignItems: 'center',
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.xs,
+    marginTop: 8,
+    marginBottom: 8,
   },
-  checkInLocation: {
-    fontSize: theme.fontSize.base,
-    fontWeight: '600',
-    color: theme.colors.text,
-  },
-  checkInDescription: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xs,
-  },
-  checkInTime: {
-    fontSize: theme.fontSize.xs,
-    color: theme.colors.textSecondary,
-  },
-  checkInPrompt: {
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.xl,
-    borderRadius: theme.borderRadius.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderStyle: 'dashed',
-  },
-  checkInPromptText: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.sm,
+  saveButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
 

@@ -171,7 +171,7 @@ export const usePushNotifications = () => {
           const senderName = senderProfile?.name || 'Someone';
           
           sendNotification(
-            'New Connection Request',
+            'New Partner Request',
             `${senderName} wants to connect with you!`,
             { type: 'connection_request', senderId: payload.new.sender_id }
           );

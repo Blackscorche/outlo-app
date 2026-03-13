@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  Image,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -9,461 +10,439 @@ import {
   Alert,
   Linking,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
-import { commonStyles } from '../styles/common';
 import { supabase } from '../integrations/supabase/client';
-import MapFilters from '../components/MapFilters';
+import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../contexts/SettingsContext';
 import { clearStoredSettings } from '../utils/settingsStorage';
 import { useSubscription } from '../hooks/useSubscription';
 import engagementNotificationService from '../services/engagementNotificationService';
 
 const SettingsScreen = ({ navigation }) => {
+  const { user } = useAuth();
   const { settings, updateLocationEnabled, updateVisibility, updateKeepScreenOn, updateFilters } = useSettings();
-  const { isInvisibleMode } = useSubscription();
-  const [showFilters, setShowFilters] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [smartNotificationsEnabled, setSmartNotificationsEnabled] = useState(true);
-  
-  // Extract values from settings context
-  const { isLocationEnabled, isVisible, keepScreenOn, activeFilters } = settings;
-  const genderPreference = activeFilters.gender === 'all' ? 'Everyone' :
-                          activeFilters.gender === 'male' ? 'Men' : 'Women';
-  const [minAge, maxAge] = activeFilters.ageRange;
-  const maxDistance = activeFilters.distance;
+  const { isInvisibleMode, isPremium } = useSubscription();
 
-  // Load smart notification settings on mount
+  const [loading, setLoading] = useState(false);
+  const [profile, setProfile] = useState<{ name: string; photos: string[] } | null>(null);
+
+  // Notification toggles
+  const [notifMessages, setNotifMessages] = useState(true);
+  const [notifConnections, setNotifConnections] = useState(true);
+  const [notifActivity, setNotifActivity] = useState(false);
+
+  // Extract from settings context
+  const { isLocationEnabled, isVisible, activeFilters } = settings;
+  const [distance, setDistance] = useState(activeFilters.distance ?? 10);
+  const [minAge, setMinAge] = useState(activeFilters.ageRange?.[0] ?? 18);
+  const [maxAge, setMaxAge] = useState(activeFilters.ageRange?.[1] ?? 35);
+  const [gender, setGender] = useState<'all' | 'male' | 'female'>(activeFilters.gender ?? 'all');
+
   useEffect(() => {
+    loadProfile();
     loadNotificationSettings();
-  }, []);
+  }, [user]);
+
+  const loadProfile = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('name, photos')
+      .eq('id', user.id)
+      .single();
+    if (error) console.error('Error loading profile:', error);
+    if (data) setProfile(data);
+  };
 
   const loadNotificationSettings = async () => {
     try {
-      const settings = await engagementNotificationService.getSettings();
-      setSmartNotificationsEnabled(settings.enabled);
-    } catch (error) {
-      console.error('Error loading notification settings:', error);
+      const s = await engagementNotificationService.getSettings();
+      setNotifActivity(s.enabled);
+    } catch (e) {
+      console.error('Error loading notification settings:', e);
+    }
+  };
+
+  const saveFilters = async (newFilters: { distance?: number; minAge?: number; maxAge?: number; gender?: string }) => {
+    try {
+      await updateFilters({
+        genderPreference: newFilters.gender ?? gender,
+        maxDistance: newFilters.distance ?? distance,
+        minAge: newFilters.minAge ?? minAge,
+        maxAge: newFilters.maxAge ?? maxAge,
+      });
+    } catch (e) {
+      console.error('Error saving filters:', e);
     }
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Get current user ID before signing out
-              const { data: { user } } = await supabase.auth.getUser();
-              
-              if (user) {
-                // Update user status to offline
-                await supabase
-                  .from('profiles')
-                  .update({
-                    is_online: false,
-                    last_seen: new Date().toISOString(),
-                  })
-                  .eq('id', user.id);
-              }
-              
-              // Clear stored settings before signing out
-              await clearStoredSettings();
-              
-              // Sign out
-              await supabase.auth.signOut();
-              // Navigation will be handled by auth state change
-            } catch (error) {
-              console.error('Error during logout:', error);
-              // Clear settings and sign out anyway even if status update fails
-              try {
-                await clearStoredSettings();
-              } catch (clearError) {
-                console.error('Error clearing settings during logout:', clearError);
-              }
-              await supabase.auth.signOut();
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const { data: { user: u } } = await supabase.auth.getUser();
+            if (u) {
+              await supabase.from('profiles').update({ is_online: false, last_seen: new Date().toISOString() }).eq('id', u.id);
             }
-          },
+            await clearStoredSettings();
+            await supabase.auth.signOut();
+          } catch (e) {
+            console.error('Error during logout:', e);
+            await clearStoredSettings();
+            await supabase.auth.signOut();
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete Account',
-      'Are you sure you want to delete your account?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete Account',
-          style: 'destructive',
-          onPress: () => {
-            // Second confirmation
-            Alert.alert(
-              'Final Confirmation',
-              'This will permanently delete your account and all associated data. Type DELETE to confirm.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Confirm Delete',
-                  style: 'destructive',
-                  onPress: async () => {
-                    try {
-                      setLoading(true);
-                      const { data: { user } } = await supabase.auth.getUser();
-                      
-                      if (!user) {
-                        Alert.alert('Error', 'User not found');
-                        return;
-                      }
-
-                      // Call the delete account function
-                      const { error: deleteError } = await supabase.functions.invoke('delete-account', {
-                        body: { userId: user.id }
-                      });
-
-                      if (deleteError) {
-                        console.error('Error deleting account:', deleteError);
-                        Alert.alert(
-                          'Account Deletion',
-                          'We were unable to automatically delete your account. Please contact support at support@lovemapapp.com to complete your account deletion request.',
-                          [
-                            { 
-                              text: 'Email Support', 
-                              onPress: () => {
-                                const email = 'support@lovemapapp.com';
-                                const subject = 'Account Deletion Request';
-                                const body = `Please delete my account (User ID: ${user.id})`;
-                                const url = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                                Linking.openURL(url);
-                              }
-                            },
-                            { text: 'OK' }
-                          ]
-                        );
-                        return;
-                      }
-
-                      // Clear local data
-                      await clearStoredSettings();
-                      
-                      // Sign out
-                      await supabase.auth.signOut();
-                      
-                      Alert.alert(
-                        'Account Deleted',
-                        'Your account has been successfully deleted. We hope to see you again in the future!'
-                      );
-                    } catch (error) {
-                      console.error('Error deleting account:', error);
-                      Alert.alert(
-                        'Error',
-                        'Failed to delete account. Please contact support at support@lovemapapp.com for assistance.'
-                      );
-                    } finally {
-                      setLoading(false);
-                    }
-                  },
-                },
-              ]
-            );
-          },
+    Alert.alert('Delete Account', 'Are you sure you want to delete your account?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete Account',
+        style: 'destructive',
+        onPress: () => {
+          Alert.alert('Final Confirmation', 'This will permanently delete your account and all associated data.', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Confirm Delete',
+              style: 'destructive',
+              onPress: async () => {
+                try {
+                  setLoading(true);
+                  const { data: { user: u } } = await supabase.auth.getUser();
+                  if (!u) { Alert.alert('Error', 'User not found'); return; }
+                  const { error } = await supabase.functions.invoke('delete-account', { body: { userId: u.id } });
+                  if (error) {
+                    Alert.alert('Account Deletion', 'Please contact support@lovemapapp.com to complete deletion.', [
+                      { text: 'Email Support', onPress: () => Linking.openURL(`mailto:support@lovemapapp.com?subject=Account%20Deletion%20Request`) },
+                      { text: 'OK' },
+                    ]);
+                    return;
+                  }
+                  await clearStoredSettings();
+                  await supabase.auth.signOut();
+                } catch (e) {
+                  Alert.alert('Error', 'Failed to delete account. Please contact support@lovemapapp.com');
+                } finally {
+                  setLoading(false);
+                }
+              },
+            },
+          ]);
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  const SettingItem = ({ icon, title, subtitle, value, onValueChange, type = 'switch' }) => (
-    <View style={styles.settingItem}>
-      <View style={styles.settingInfo}>
-        <View style={styles.settingIcon}>
-          <Ionicons name={icon} size={24} color={theme.colors.primary} />
-        </View>
-        <View style={styles.settingText}>
-          <Text style={styles.settingTitle}>{title}</Text>
-          {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
-        </View>
-      </View>
-      {type === 'switch' ? (
-        <Switch
-          value={value}
-          onValueChange={onValueChange}
-          trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary }}
-          thumbColor="#FFFFFF"
-        />
-      ) : (
-        <TouchableOpacity onPress={onValueChange}>
-          <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
-        </TouchableOpacity>
-      )}
-    </View>
-  );
+  const avatarUri = profile?.photos?.[0];
+  const genderLabel = gender === 'all' ? 'Everyone' : gender === 'male' ? 'Men' : 'Women';
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={commonStyles.title}>Settings</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+          <Image source={require('../../assets/favicon.png')} style={styles.headerLogo} resizeMode="contain" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Settings</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+
+        {/* Profile Card */}
+        <View style={styles.card}>
+          <View style={styles.profileRow}>
+            <View style={styles.avatarContainer}>
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Ionicons name="person" size={28} color="#ccc" />
+                </View>
+              )}
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{profile?.name ?? ''}</Text>
+              <Text style={styles.profileEmail}>{user?.email ?? ''}</Text>
+              {isPremium && (
+                <View style={styles.premiumBadge}>
+                  <View style={styles.premiumDot} />
+                  <Text style={styles.premiumText}>Premium Member</Text>
+                </View>
+              )}
+            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+              <Text style={styles.editButton}>Edit</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Map Settings</Text>
-          <SettingItem
-            icon={isLocationEnabled ? "location" : "location-outline"}
-            title="Location Tracking"
-            subtitle={isLocationEnabled ? "Your location is being shared" : "Your location is hidden"}
-            value={isLocationEnabled}
-            onValueChange={async (value) => {
-              try {
-                setLoading(true);
-                await updateLocationEnabled(value);
-                
-                // Show feedback message
-                if (value) {
-                  Alert.alert('Location Enabled', 'You can now see and be seen by others on the map');
-                } else {
-                  Alert.alert('Location Disabled', 'You are now hidden and cannot see others on the map');
-                }
-              } catch (error) {
-                console.error('Error updating location:', error);
-                Alert.alert('Error', 'Failed to update location setting. Please try again.');
-              } finally {
-                setLoading(false);
-              }
-            }}
-          />
-          <SettingItem
-            icon={isVisible ? "eye" : "eye-off"}
-            title="Visibility"
-            subtitle={isVisible ? "You are visible to other users" : "You are hidden from other users"}
-            value={isVisible}
-            onValueChange={async (value) => {
-              try {
-                // If trying to go invisible, check subscription
-                if (!value && !isInvisibleMode) {
-                  Alert.alert(
-                    'Premium Feature',
-                    'Invisible mode is a premium feature. Upgrade to Premium or purchase invisible mode to hide your location.',
-                    [
+        {/* Location Settings */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="location" size={20} color="#FF1744" />
+            <Text style={styles.sectionTitle}>Location Settings</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleInfo}>
+              <Text style={styles.toggleTitle}>Enable Location</Text>
+              <Text style={styles.toggleSubtitle}>Allow app to access your location</Text>
+            </View>
+            <Switch
+              value={isLocationEnabled}
+              onValueChange={async (v) => {
+                try { setLoading(true); await updateLocationEnabled(v); } catch (e) {} finally { setLoading(false); }
+              }}
+              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              thumbColor="#fff"
+            />
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleInfo}>
+              <Text style={styles.toggleTitle}>Show on Map</Text>
+              <Text style={styles.toggleSubtitle}>Make yourself visible to others</Text>
+            </View>
+            <Switch
+              value={isVisible}
+              onValueChange={async (v) => {
+                try {
+                  if (!v && !isInvisibleMode) {
+                    Alert.alert('Premium Feature', 'Invisible mode requires Premium.', [
                       { text: 'Cancel', style: 'cancel' },
                       { text: 'View Plans', onPress: () => navigation.navigate('Subscription') },
-                    ]
-                  );
-                  return;
-                }
-                
-                setLoading(true);
-                await updateVisibility(value);
-                
-                // Show feedback message
-                if (value) {
-                  Alert.alert('Visibility Enabled', 'You are now visible to others on the map');
-                } else {
-                  Alert.alert('Visibility Disabled', 'You are hidden but can still see others on the map');
-                }
-              } catch (error) {
-                console.error('Error updating visibility:', error);
-                Alert.alert('Error', 'Failed to update visibility setting. Please try again.');
-              } finally {
-                setLoading(false);
-              }
-            }}
-          />
+                    ]);
+                    return;
+                  }
+                  setLoading(true);
+                  await updateVisibility(v);
+                } catch (e) {} finally { setLoading(false); }
+              }}
+              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              thumbColor="#fff"
+            />
+          </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>App Settings</Text>
-          <SettingItem
-            icon={keepScreenOn ? "sunny" : "sunny-outline"}
-            title="Keep Screen On"
-            subtitle={keepScreenOn ? "Screen stays on while app is active" : "Screen follows system timeout"}
-            value={keepScreenOn}
-            onValueChange={async (value) => {
-              try {
-                setLoading(true);
-                await updateKeepScreenOn(value);
-                Alert.alert(
-                  value ? 'Screen Keep-Awake Enabled' : 'Screen Keep-Awake Disabled',
-                  value ? 'Your screen will stay on while using the app' : 'Your screen will follow system timeout settings'
+        {/* Discovery Filters */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="funnel" size={20} color="#2979FF" />
+            <Text style={styles.sectionTitle}>Discovery Filters</Text>
+          </View>
+          <View style={styles.divider} />
+
+          {/* Distance */}
+          <View style={styles.sliderSection}>
+            <View style={styles.sliderLabelRow}>
+              <Text style={styles.sliderLabel}>Distance Range</Text>
+              <Text style={styles.sliderValue}>{Math.round(distance)} km</Text>
+            </View>
+            <Slider
+              style={styles.slider}
+              minimumValue={1}
+              maximumValue={25}
+              value={distance}
+              onValueChange={setDistance}
+              onSlidingComplete={(v) => saveFilters({ distance: Math.round(v) })}
+              minimumTrackTintColor="#FF1744"
+              maximumTrackTintColor="#E0E0E0"
+              thumbTintColor="#2979FF"
+            />
+            <View style={styles.sliderRange}>
+              <Text style={styles.sliderRangeText}>1km</Text>
+              <Text style={styles.sliderRangeText}>25km</Text>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* Age Range */}
+          <View style={styles.sliderSection}>
+            <View style={styles.sliderLabelRow}>
+              <Text style={styles.sliderLabel}>Age Range</Text>
+              <Text style={styles.sliderValue}>{Math.round(minAge)}-{Math.round(maxAge)}</Text>
+            </View>
+            <Slider
+              style={styles.slider}
+              minimumValue={18}
+              maximumValue={65}
+              value={minAge}
+              onValueChange={setMinAge}
+              onSlidingComplete={(v) => saveFilters({ minAge: Math.round(v) })}
+              minimumTrackTintColor="#2979FF"
+              maximumTrackTintColor="#FF1744"
+              thumbTintColor="#2979FF"
+            />
+            <View style={styles.sliderRange}>
+              <Text style={styles.sliderRangeText}>18</Text>
+              <Text style={styles.sliderRangeText}>65</Text>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* Gender */}
+          <View style={styles.sliderSection}>
+            <Text style={styles.sliderLabel}>Gender Preference</Text>
+            <View style={styles.genderButtons}>
+              {(['all', 'male', 'female'] as const).map((g) => {
+                const label = g === 'all' ? 'Everyone' : g === 'male' ? 'Men' : 'Women';
+                const active = gender === g;
+                return (
+                  <TouchableOpacity
+                    key={g}
+                    style={[styles.genderBtn, active && styles.genderBtnActive]}
+                    onPress={() => { setGender(g); saveFilters({ gender: label }); }}
+                  >
+                    <Text style={[styles.genderBtnText, active && styles.genderBtnTextActive]}>{label}</Text>
+                  </TouchableOpacity>
                 );
-              } catch (error) {
-                console.error('Error updating keep screen on setting:', error);
-                Alert.alert('Error', 'Failed to update keep screen on setting. Please try again.');
-              } finally {
-                setLoading(false);
-              }
-            }}
-          />
-          <SettingItem
-            icon={smartNotificationsEnabled ? "notifications" : "notifications-outline"}
-            title="Smart Notifications"
-            subtitle={smartNotificationsEnabled ? "Get reminders to check the app" : "No engagement reminders"}
-            value={smartNotificationsEnabled}
-            onValueChange={async (value) => {
-              try {
-                setLoading(true);
-                await engagementNotificationService.updateSettings({ enabled: value });
-                setSmartNotificationsEnabled(value);
-                Alert.alert(
-                  value ? 'Smart Notifications Enabled' : 'Smart Notifications Disabled',
-                  value ? 'You will receive occasional reminders to check the app' : 'You will not receive engagement reminders'
-                );
-              } catch (error) {
-                console.error('Error updating smart notifications:', error);
-                Alert.alert('Error', 'Failed to update smart notifications. Please try again.');
-              } finally {
-                setLoading(false);
-              }
-            }}
-          />
+              })}
+            </View>
+          </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Discovery Filters</Text>
-          <TouchableOpacity 
-            style={styles.preferenceItem}
-            onPress={() => setShowFilters(true)}
-          >
-            <View style={styles.preferenceInfo}>
-              <Text style={styles.preferenceTitle}>Gender Preference</Text>
-              <Text style={styles.preferenceValue}>{genderPreference}</Text>
+        {/* Notifications */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="notifications" size={20} color="#7C3AED" />
+            <Text style={styles.sectionTitle}>Notifications</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleInfo}>
+              <Text style={styles.toggleTitle}>New Messages</Text>
+              <Text style={styles.toggleSubtitle}>Get notified of new chat messages</Text>
             </View>
-            <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.preferenceItem}
-            onPress={() => setShowFilters(true)}
-          >
-            <View style={styles.preferenceInfo}>
-              <Text style={styles.preferenceTitle}>Age Range</Text>
-              <Text style={styles.preferenceValue}>{minAge} - {maxAge}</Text>
+            <Switch
+              value={notifMessages}
+              onValueChange={setNotifMessages}
+              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              thumbColor="#fff"
+            />
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleInfo}>
+              <Text style={styles.toggleTitle}>Connection Requests</Text>
+              <Text style={styles.toggleSubtitle}>When someone wants to connect</Text>
             </View>
-            <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.preferenceItem}
-            onPress={() => setShowFilters(true)}
-          >
-            <View style={styles.preferenceInfo}>
-              <Text style={styles.preferenceTitle}>Maximum Distance</Text>
-              <Text style={styles.preferenceValue}>{maxDistance} km</Text>
+            <Switch
+              value={notifConnections}
+              onValueChange={setNotifConnections}
+              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              thumbColor="#fff"
+            />
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleInfo}>
+              <Text style={styles.toggleTitle}>Activity Updates</Text>
+              <Text style={styles.toggleSubtitle}>New activities and events nearby</Text>
             </View>
-            <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
-          </TouchableOpacity>
+            <Switch
+              value={notifActivity}
+              onValueChange={async (v) => {
+                try {
+                  await engagementNotificationService.updateSettings({ enabled: v });
+                  setNotifActivity(v);
+                } catch (e) {}
+              }}
+              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              thumbColor="#fff"
+            />
+          </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <TouchableOpacity 
-            style={styles.accountItem}
-            onPress={() => navigation.navigate('Subscription')}
-          >
-            <View style={styles.accountItemLeft}>
-              <Ionicons name="card" size={24} color={theme.colors.primary} />
-              <Text style={styles.accountItemText}>Manage Subscription</Text>
+        {/* Privacy & Safety */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="shield-checkmark" size={20} color="#00C853" />
+            <Text style={styles.sectionTitle}>Privacy & Safety</Text>
+          </View>
+          <View style={styles.divider} />
+          <TouchableOpacity style={styles.menuRow} onPress={() => navigation.navigate('BlockedUsers')}>
+            <View style={styles.menuRowLeft}>
+              <Ionicons name="people-outline" size={20} color={theme.colors.textSecondary} />
+              <Text style={styles.menuRowText}>Blocked Users</Text>
             </View>
-            <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.gray[400]} />
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.accountItem}
-            onPress={handleDeleteAccount}
-          >
-            <View style={styles.accountItemLeft}>
-              <Ionicons name="trash-outline" size={24} color={theme.colors.error} />
-              <Text style={[styles.accountItemText, { color: theme.colors.error }]}>Delete Account</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
-          </TouchableOpacity>
-
-          {/* Terms of Use */}
-          <TouchableOpacity 
-            style={styles.accountItem}
-            onPress={() => {
-              const url = 'https://www.lovemap.biz/terms';
-              Linking.canOpenURL(url).then(supported => {
-                if (supported) {
-                  Linking.openURL(url);
-                } else {
-                  Alert.alert('Unable to open link', 'Please visit our website: https://www.lovemap.biz/terms');
-                }
-              }).catch(err => {
-                console.error('Error opening Terms URL', err);
-                Alert.alert('Error', 'Unable to open Terms link at this time');
-              });
-            }}
-          >
-            <View style={styles.accountItemLeft}>
-              <Ionicons name="document-text-outline" size={24} color={theme.colors.primary} />
-              <Text style={styles.accountItemText}>Terms of Use</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
-          </TouchableOpacity>
-
-          {/* Privacy Policy */}
-          <TouchableOpacity 
-            style={styles.accountItem}
+          <View style={styles.divider} />
+          <TouchableOpacity
+            style={styles.menuRow}
             onPress={() => {
               const url = 'https://www.lovemap.biz/privacy';
-              Linking.canOpenURL(url).then(supported => {
-                if (supported) {
-                  Linking.openURL(url);
-                } else {
-                  Alert.alert('Unable to open link', 'Please visit our website: https://www.lovemap.biz/privacy');
-                }
-              }).catch(err => {
-                console.error('Error opening Privacy URL', err);
-                Alert.alert('Error', 'Unable to open Privacy link at this time');
-              });
+              Linking.openURL(url).catch(() => Alert.alert('Error', 'Unable to open link'));
             }}
           >
-            <View style={styles.accountItemLeft}>
-              <Ionicons name="shield-checkmark-outline" size={24} color={theme.colors.primary} />
-              <Text style={styles.accountItemText}>Privacy Policy</Text>
+            <View style={styles.menuRowLeft}>
+              <Ionicons name="document-text-outline" size={20} color={theme.colors.textSecondary} />
+              <Text style={styles.menuRowText}>Privacy Policy</Text>
             </View>
-            <Ionicons name="chevron-forward" size={24} color={theme.colors.gray[400]} />
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.gray[400]} />
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Logout</Text>
+        {/* Premium Banner */}
+        <View style={styles.premiumBanner}>
+          <View style={styles.premiumBannerContent}>
+            <Text style={styles.premiumBannerTitle}>Premium Features</Text>
+            <Text style={styles.premiumBannerSubtitle}>Unlock unlimited connections & more</Text>
+          </View>
+          <TouchableOpacity style={styles.upgradeBtn} onPress={() => navigation.navigate('Subscription')}>
+            <Text style={styles.upgradeBtnText}>Upgrade</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Account */}
+        <View style={styles.card}>
+          <Text style={styles.accountHeader}>Account</Text>
+          <TouchableOpacity style={styles.menuRow} onPress={() => navigation.navigate('ChangePassword')}>
+            <View style={styles.menuRowLeft}>
+              <Ionicons name="key-outline" size={20} color={theme.colors.textSecondary} />
+              <Text style={styles.menuRowText}>Change Password</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity style={styles.menuRow} onPress={() => navigation.navigate('ChangeEmail')}>
+            <View style={styles.menuRowLeft}>
+              <Ionicons name="mail-outline" size={20} color={theme.colors.textSecondary} />
+              <Text style={styles.menuRowText}>Change Email</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity style={styles.menuRow} onPress={handleDeleteAccount}>
+            <View style={styles.menuRowLeft}>
+              <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
+              <Text style={[styles.menuRowText, { color: theme.colors.error }]}>Delete Account</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Log Out */}
+        <TouchableOpacity style={styles.logoutRow} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={22} color={theme.colors.textSecondary} />
+          <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
 
-        <View style={styles.versionInfo}>
-          <Text style={styles.versionText}>LoveMap v1.0</Text>
-        </View>
+        <View style={{ height: 32 }} />
       </ScrollView>
-      
-      {showFilters && (
-        <MapFilters
-          visible={showFilters}
-          onClose={() => setShowFilters(false)}
-          filters={{
-            genderPreference,
-            maxDistance,
-            minAge,
-            maxAge,
-          }}
-          onFiltersChange={async (newFilters) => {
-            try {
-              setLoading(true);
-              await updateFilters(newFilters);
-              setShowFilters(false);
-            } catch (error) {
-              console.error('Error updating filters:', error);
-              Alert.alert('Error', 'Failed to update filters. Please try again.');
-            } finally {
-              setLoading(false);
-            }
-          }}
-        />
-      )}
     </SafeAreaView>
   );
 };
@@ -471,116 +450,282 @@ const SettingsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F5F5F5',
   },
   header: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-  },
-  section: {
-    backgroundColor: theme.colors.surface,
-    marginHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: theme.fontSize.lg,
-    fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.md,
-  },
-  settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.md,
+    paddingVertical: 4,
+    paddingRight: 16,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1,
   },
-  settingInfo: {
+  headerTitle: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    pointerEvents: 'none',
+  },
+  headerLogo: {
+    width: 150,
+    height: 50,
+    marginLeft: -25,
+  },
+  scrollContent: {
+    padding: 16,
+    gap: 12,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  // Profile
+  profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    gap: 12,
   },
-  settingIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.primary + '20',
+  avatarContainer: {
+    position: 'relative',
+  },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#F0F0F0',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing.md,
   },
-  settingText: {
+  profileInfo: {
     flex: 1,
+    gap: 2,
   },
-  settingTitle: {
-    fontSize: theme.fontSize.base,
+  profileName: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  profileEmail: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  premiumBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 3,
+  },
+  premiumDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+  },
+  premiumText: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  editButton: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FF1744',
+  },
+  // Section header
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginVertical: 2,
+  },
+  // Toggle rows
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  toggleInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  toggleTitle: {
+    fontSize: 15,
     fontWeight: '500',
     color: theme.colors.text,
   },
-  settingSubtitle: {
-    fontSize: theme.fontSize.sm,
+  toggleSubtitle: {
+    fontSize: 12,
     color: theme.colors.textSecondary,
     marginTop: 2,
   },
-  preferenceItem: {
+  // Sliders
+  sliderSection: {
+    paddingVertical: 10,
+  },
+  sliderLabelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    marginBottom: 4,
   },
-  preferenceInfo: {
-    flex: 1,
-  },
-  preferenceTitle: {
-    fontSize: theme.fontSize.base,
+  sliderLabel: {
+    fontSize: 15,
     fontWeight: '500',
     color: theme.colors.text,
   },
-  preferenceValue: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.primary,
-    marginTop: 2,
+  sliderValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FF1744',
   },
-  accountItem: {
+  slider: {
+    width: '100%',
+    height: 36,
+  },
+  sliderRange: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: -4,
+  },
+  sliderRangeText: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+  },
+  // Gender buttons
+  genderButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  genderBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFA',
+  },
+  genderBtnActive: {
+    borderColor: '#2979FF',
+    backgroundColor: '#2979FF',
+  },
+  genderBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  genderBtnTextActive: {
+    color: '#FFFFFF',
+  },
+  // Menu rows
+  menuRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    paddingVertical: 12,
   },
-  accountItemLeft: {
+  menuRowLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
     flex: 1,
   },
-  accountItemText: {
-    fontSize: theme.fontSize.base,
+  menuRowText: {
+    fontSize: 15,
     color: theme.colors.text,
-    marginLeft: theme.spacing.md,
   },
-  logoutButton: {
-    marginHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    backgroundColor: theme.colors.error,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+  // Premium banner
+  premiumBanner: {
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#C44BFF',
+  },
+  premiumBannerContent: {
+    flex: 1,
+  },
+  premiumBannerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  premiumBannerSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 3,
+  },
+  upgradeBtn: {
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 20,
+    marginLeft: 12,
+  },
+  upgradeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  // Account
+  accountHeader: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  // Logout
+  logoutRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
   },
   logoutText: {
-    color: '#FFFFFF',
-    fontSize: theme.fontSize.base,
+    fontSize: 16,
     fontWeight: '600',
-  },
-  versionInfo: {
-    alignItems: 'center',
-    marginBottom: theme.spacing.xl,
-  },
-  versionText: {
-    fontSize: theme.fontSize.sm,
     color: theme.colors.textSecondary,
   },
 });

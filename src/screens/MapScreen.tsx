@@ -5,13 +5,13 @@ import {
   Alert,
   TouchableOpacity,
   Text,
-  ActivityIndicator,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
+import AppLoading from '../components/AppLoading';
 
 const MapScreen = ({ navigation }: { navigation: any }) => {
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -91,8 +91,7 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
   if (loading) {
     return (
       <View style={commonStyles.centerContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading map...</Text>
+        <AppLoading />
       </View>
     );
   }

@@ -25,8 +25,8 @@ export const ConnectionRequestButton: React.FC<ConnectionRequestButtonProps> = (
     if (!canSend) {
       showToast({
         type: 'connection_request',
-        title: 'No Connection Requests Left',
-        message: 'Tap to get more connection requests',
+        title: 'No Partner Requests Left',
+        message: 'Tap to get more partner requests',
         senderName: 'LoveMap',
         onPress: () => navigation.navigate('Subscription' as never),
       });
@@ -40,7 +40,7 @@ export const ConnectionRequestButton: React.FC<ConnectionRequestButtonProps> = (
       showToast({
         type: 'connection_request',
         title: 'Request Sent! 💕',
-        message: `Your connection request has been sent to ${targetUserName}`,
+        message: `Your partner request has been sent to ${targetUserName}`,
         senderName: targetUserName,
       });
       
@@ -51,7 +51,7 @@ export const ConnectionRequestButton: React.FC<ConnectionRequestButtonProps> = (
       showToast({
         type: 'connection_request',
         title: 'Unable to Send',
-        message: 'Failed to send connection request. Please try again.',
+        message: 'Failed to send partner request. Please try again.',
         senderName: 'LoveMap',
       });
     }

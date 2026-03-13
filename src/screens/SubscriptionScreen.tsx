@@ -322,7 +322,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
 
       // Show purchase confirmation with product details
       const productName = productId.includes("connection")
-        ? "Connection Request"
+        ? "Partner Request"
         : productId.includes("impression")
         ? "First Impression"
         : productId.includes("invisible")
@@ -491,7 +491,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
       : productId.includes("yearly")
       ? "Premium Yearly"
       : productId.includes("connection")
-      ? "Connection Request"
+      ? "Partner Request"
       : productId.includes("impression")
       ? "First Impression"
       : productId.includes("invisible")
@@ -623,7 +623,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                   size={20}
                   color={theme.colors.primary}
                 />
-                <Text style={styles.quotaText}>Connection Requests</Text>
+                <Text style={styles.quotaText}>Partner Requests</Text>
               </View>
               <Text style={styles.quotaValue}>
                 {(quotas?.connection_requests_remaining || 0) +
@@ -713,7 +713,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                     </Text>
                     <View style={styles.planFeatures}>
                       <Text style={styles.featureItem}>
-                        • 10 connection requests/month
+                        • 10 partner requests/month
                       </Text>
                       <Text style={styles.featureItem}>
                         • 3 first impressions/month
@@ -825,7 +825,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Buy Extras</Text>
 
-          {/* Connection Request */}
+          {/* Partner Request */}
           {(() => {
             const data = getProductData("lovemap_connection_request");
             return (
@@ -969,7 +969,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
             <View style={styles.subscriptionInfoItem}>
               <Ionicons name="star-outline" size={14} color={theme.colors.primary} />
               <Text style={styles.subscriptionInfoText}>
-                <Text style={styles.subscriptionBold}>Content/Services:</Text> 10 connection requests + 3 first impressions monthly + unlimited invisible mode access
+                <Text style={styles.subscriptionBold}>Content/Services:</Text> 10 partner requests + 3 first impressions monthly + unlimited invisible mode access
               </Text>
             </View>
             <View style={styles.subscriptionInfoItem}>
@@ -1000,7 +1000,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
             <View style={styles.subscriptionInfoItem}>
               <Ionicons name="star-outline" size={14} color={theme.colors.primary} />
               <Text style={styles.subscriptionInfoText}>
-                <Text style={styles.subscriptionBold}>Content/Services:</Text> 10 connection requests + 3 first impressions monthly + unlimited invisible mode access
+                <Text style={styles.subscriptionBold}>Content/Services:</Text> 10 partner requests + 3 first impressions monthly + unlimited invisible mode access
               </Text>
             </View>
             <View style={styles.subscriptionInfoItem}>

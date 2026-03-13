@@ -18,9 +18,21 @@ import { supabase } from '../integrations/supabase/client';
 import { Ionicons } from '@expo/vector-icons';
 import MapFilters from '../components/MapFilters';
 import NearbyUsersModal from '../components/NearbyUsersModal';
+import CheckInDetailModal from '../components/CheckInDetailModal';
+import ActivityDetailModal from '../components/ActivityDetailModal';
+import { getActivityTag } from '../components/CheckInModal';
+import { getActivityType } from '../constants/activityTypes';
 import { useSettings } from '../contexts/SettingsContext';
+import { theme } from '../styles/theme';
+import { commonStyles } from '../styles/common';
 import { useSubscription } from '../hooks/useSubscription';
 import { useInAppNotifications } from '../hooks/useInAppNotifications';
+import { useActivities, Activity } from '../hooks/useActivities';
+import { usePlaces, Place } from '../hooks/usePlaces';
+import { getPlaceIcon } from '../constants/placeTypes';
+import PlaceDetailModal from '../components/PlaceDetailModal';
+import PlaceReviewModal from '../components/PlaceReviewModal';
+import AppLoading from '../components/AppLoading';
 
 interface UserLocation {
   id: string;
@@ -57,13 +69,54 @@ const DEFAULT_LOCATION = {
 const getMarkerScale = (latitudeDelta: number) => {
   // Higher latitudeDelta = more zoomed out
   // Scale markers inversely with zoom
-  const minScale = 0.6;
-  const maxScale = 1.2;
-  
-  // Typical latitudeDelta ranges from 0.01 (zoomed in) to 10 (zoomed out)
-  const scaleFactor = Math.max(minScale, Math.min(maxScale, 1 - (latitudeDelta - 0.0922) * 0.5));
-  return scaleFactor;
+  // Keep scale at 1.0 to avoid Android marker clipping issues
+  return 1.0;
 };
+
+// Generic function to add offsets to markers at the same location
+const getItemsWithOffsets = <T extends { latitude?: number | null; longitude?: number | null }>(
+  items: T[],
+  offsetFactor: number = 0.0003
+): (T & { offsetIndex: number; longitude_offset: number })[] => {
+  const locationGroups: { [key: string]: T[] } = {};
+
+  // Group items by location (rounded to 4 decimal places)
+  items.forEach(item => {
+    if (item.latitude != null && item.longitude != null) {
+      const key = `${item.latitude.toFixed(4)}_${item.longitude.toFixed(4)}`;
+      if (!locationGroups[key]) {
+        locationGroups[key] = [];
+      }
+      locationGroups[key].push(item);
+    }
+  });
+
+  // Create items with offsets
+  const itemsWithOffsets: (T & { offsetIndex: number; longitude_offset: number })[] = [];
+
+  Object.values(locationGroups).forEach(group => {
+    group.forEach((item, index) => {
+      const longitudeOffset = -index * offsetFactor;
+
+      itemsWithOffsets.push({
+        ...item,
+        offsetIndex: index,
+        longitude_offset: longitudeOffset
+      });
+    });
+  });
+
+  return itemsWithOffsets;
+};
+
+// Helper for check-ins (use same offset as profile markers for visibility)
+const getCheckInsWithOffsets = (checkIns: any[]) => getItemsWithOffsets(checkIns, 0.003);
+
+// Helper for activities (use same offset as profile markers for visibility)
+const getActivitiesWithOffsets = (activities: any[]) => getItemsWithOffsets(activities, 0.003);
+
+// Helper for places (use same offset as profile markers for visibility)
+const getPlacesWithOffsets = (places: any[]) => getItemsWithOffsets(places, 0.003);
 
 // Group all markers by location and calculate offsets for overlapping markers
 const getMarkersWithOffsets = (users: UserLocation[], currentUser?: any, userLocation?: Location.LocationObject | null) => {
@@ -122,6 +175,19 @@ export default function HomeScreen({ navigation, route }: any) {
   const { isInvisibleMode } = useSubscription();
   useInAppNotifications();
   const { isLocationEnabled, isVisible, activeFilters } = settings;
+  const {
+    activities,
+    joinActivity,
+    leaveActivity,
+    cancelActivity,
+    fetchComments,
+    addComment,
+    deleteComment,
+  } = useActivities();
+  const {
+    fetchNearbyPlaces,
+    getPlaceById,
+  } = usePlaces();
   const [nearbyUsers, setNearbyUsers] = useState<UserLocation[]>([]);
   const [checkIns, setCheckIns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,6 +196,16 @@ export default function HomeScreen({ navigation, route }: any) {
   const [showNearbyUsers, setShowNearbyUsers] = useState(false);
   const [showCheckInsOnly, setShowCheckInsOnly] = useState(false);
   const [highlightedUserId, setHighlightedUserId] = useState<string | null>(null);
+  const [showCheckInDetail, setShowCheckInDetail] = useState(false);
+  const [selectedCheckIn, setSelectedCheckIn] = useState<any>(null);
+  const [showActivitiesOnMap, setShowActivitiesOnMap] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showPlacesOnMap, setShowPlacesOnMap] = useState(false);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  const [showPlaceReview, setShowPlaceReview] = useState(false);
+  const [placeForReview, setPlaceForReview] = useState<Place | null>(null);
   const [mapRegion, setMapRegion] = useState<{
     latitude: number;
     longitude: number;
@@ -141,6 +217,7 @@ export default function HomeScreen({ navigation, route }: any) {
   const [isMapInteracting, setIsMapInteracting] = useState(false); // Track user interaction
   const [locationUpdateCount, setLocationUpdateCount] = useState(0); // Force marker re-render
   const [showLocationPrompt, setShowLocationPrompt] = useState(false); // Control location permission modal
+  const [mapRefreshing, setMapRefreshing] = useState(false);
   const mapRef = useRef<MapView>(null);
   
   // Extract values from settings context
@@ -155,7 +232,7 @@ export default function HomeScreen({ navigation, route }: any) {
   useEffect(() => {
     if (route?.params?.focusLocation) {
       const { latitude, longitude, userId } = route.params.focusLocation;
-      
+
       // Animate to the user's location instead of setting region
       if (mapRef.current) {
         mapRef.current.animateToRegion({
@@ -165,19 +242,49 @@ export default function HomeScreen({ navigation, route }: any) {
           longitudeDelta: 0.005,
         }, 1000); // 1 second animation
       }
-      
+
       // Highlight the user's marker
       setHighlightedUserId(userId);
-      
+
       // Remove highlight after 3 seconds
       setTimeout(() => {
         setHighlightedUserId(null);
       }, 3000);
-      
+
       // Clear the params
       navigation.setParams({ focusLocation: null });
     }
   }, [route?.params?.focusLocation]);
+
+  // Handle showCheckIn from navigation params (after check-in from Profile)
+  useEffect(() => {
+    if (route?.params?.showCheckIn) {
+      const { latitude, longitude, locationName, checkInId } = route.params.showCheckIn;
+
+      // Activate check-ins only mode (hide profile markers)
+      setShowCheckInsOnly(true);
+      setShowActivitiesOnMap(false);
+      setShowPlacesOnMap(false);
+
+      // Refresh check-ins to include the new one
+      fetchCheckIns();
+
+      // Animate to the check-in location
+      if (mapRef.current) {
+        setTimeout(() => {
+          mapRef.current?.animateToRegion({
+            latitude,
+            longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }, 1000);
+        }, 500);
+      }
+
+      // Clear the params
+      navigation.setParams({ showCheckIn: null });
+    }
+  }, [route?.params?.showCheckIn]);
   
 
   // location setup (without complex logic for now)
@@ -221,13 +328,16 @@ export default function HomeScreen({ navigation, route }: any) {
               
               const { data: authData } = await supabase.auth.getUser();
               if (authData?.user) {
+                if (isMounted) {
+                  setCurrentUserId(authData.user.id);
+                }
                 // Fetch user's profile including visibility status and photo
                 const { data: profile } = await supabase
                   .from('profiles')
                   .select('id, name, photos, is_visible, gender')
                   .eq('id', authData.user.id)
                   .single();
-                
+
                 if (profile && isMounted) {
                   setCurrentUserProfile(profile);
                 }
@@ -296,6 +406,9 @@ export default function HomeScreen({ navigation, route }: any) {
           try {
             const { data: authData } = await supabase.auth.getUser();
             if (authData?.user) {
+              if (isMounted) {
+                setCurrentUserId(authData.user.id);
+              }
               // Fetch user's profile if not already loaded
               if (!currentUserProfile) {
                 const { data: profile } = await supabase
@@ -303,7 +416,7 @@ export default function HomeScreen({ navigation, route }: any) {
                   .select('id, name, photos, is_visible, gender')
                   .eq('id', authData.user.id)
                   .single();
-                
+
                 if (profile) {
                   setCurrentUserProfile(profile);
                 }
@@ -348,7 +461,7 @@ export default function HomeScreen({ navigation, route }: any) {
     try {
       const { data, error } = await supabase
         .from('check_ins')
-        .select('*, profiles(id, name, photos)')
+        .select('*, profiles(id, name, photos, is_online, last_seen)')
         .eq('is_active', true)
         .gte('expires_at', new Date().toISOString());
 
@@ -360,6 +473,22 @@ export default function HomeScreen({ navigation, route }: any) {
       setCheckIns(data || []);
     } catch (error) {
       console.error('Error in fetchCheckIns:', error);
+    }
+  };
+
+  // Fetch places in current map view
+  const fetchPlacesInView = async () => {
+    if (!mapRegion || !showPlacesOnMap) return;
+
+    try {
+      const placesData = await fetchNearbyPlaces(
+        mapRegion.latitude,
+        mapRegion.longitude,
+        Math.max(mapRegion.latitudeDelta, mapRegion.longitudeDelta) * 111 // Convert to km
+      );
+      setPlaces(placesData);
+    } catch (error) {
+      console.error('Error fetching places:', error);
     }
   };
 
@@ -681,6 +810,15 @@ export default function HomeScreen({ navigation, route }: any) {
     updateLocationOnVisibilityChange();
   }, [isVisible]); // Only depend on isVisible to avoid loops
 
+  // Fetch places when toggle is on or map region changes
+  useEffect(() => {
+    if (showPlacesOnMap && mapRegion) {
+      fetchPlacesInView();
+    } else if (!showPlacesOnMap) {
+      setPlaces([]);
+    }
+  }, [showPlacesOnMap, mapRegion?.latitude, mapRegion?.longitude]);
+
   // real-time subscription and periodic refresh
   useEffect(() => {
     let subscription: any;
@@ -786,8 +924,7 @@ export default function HomeScreen({ navigation, route }: any) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF1744" />
-          <Text>Loading location...</Text>
+          <AppLoading />
         </View>
       </SafeAreaView>
     );
@@ -817,12 +954,64 @@ export default function HomeScreen({ navigation, route }: any) {
   // Main UI with MapView
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Image
+          source={require('../../assets/favicon.png')}
+          style={styles.headerLogo}
+          resizeMode="contain"
+        />
+        <View style={styles.headerActions}>
+          {location && isLocationEnabled && (
+            <>
+              <TouchableOpacity
+                style={styles.headerIconButton}
+                onPress={() => setShowFilters(true)}
+              >
+                <Ionicons name="funnel" size={20} color="#FF1744" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerIconButton}
+                onPress={async () => {
+                  if (isLocationEnabled) {
+                    setMapRefreshing(true);
+                    try {
+                      const { data: authData } = await supabase.auth.getUser();
+                      if (authData?.user) {
+                        await supabase
+                          .from('profiles')
+                          .update({
+                            last_seen: new Date().toISOString(),
+                            is_online: true,
+                          })
+                          .eq('id', authData.user.id);
+                      }
+                    } catch (error) {
+                      console.error('Error updating user status:', error);
+                    }
+                    setNearbyUsers([]);
+                    await fetchNearbyUsers();
+                    await fetchCheckIns();
+                    forceRefreshMarkers();
+                    setMapRefreshing(false);
+                  } else {
+                    Alert.alert('Location Off', 'Please turn on location to refresh');
+                  }
+                }}
+              >
+                <Ionicons name="sync" size={22} color="#FF1744" />
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </View>
       <View style={styles.mapContainer}>
         <MapView
           key={mapKey} // Force re-render when visibility changes
           ref={mapRef}
           style={styles.map}
           provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+          googleRenderer="LEGACY"
           initialRegion={mapRegion}
           onRegionChangeComplete={(region) => {
             // Only update if user is not actively interacting
@@ -871,8 +1060,8 @@ export default function HomeScreen({ navigation, route }: any) {
           zoomEnabled={true}
           pitchEnabled={false}
         >
-          {/* All markers grouped by location - only show when check-ins are deactivated */}
-          {!showCheckInsOnly && getMarkersWithOffsets(
+          {/* All markers grouped by location - only show when check-ins, activities, and places are deactivated */}
+          {!showCheckInsOnly && !showActivitiesOnMap && !showPlacesOnMap && getMarkersWithOffsets(
             nearbyUsers.filter(user => {
               if (!user || !user.id || !user.current_latitude || !user.current_longitude ||
                   typeof user.current_latitude !== 'number' || typeof user.current_longitude !== 'number') {
@@ -903,7 +1092,7 @@ export default function HomeScreen({ navigation, route }: any) {
               }}
               title={user.name || 'User'}
               description={user.isCurrentUser ? "Your location" : `Age: ${user.age || 'Unknown'}`}
-              tracksViewChanges={false}
+              tracksViewChanges={true}
               onPress={() => {
                 if (!user.isCurrentUser) {
                   navigation.navigate('UserProfile', { userId: user.id });
@@ -912,41 +1101,41 @@ export default function HomeScreen({ navigation, route }: any) {
               zIndex={100 + (user.offsetIndex || 0)}
             >
               <View style={[
-                styles.markerContainer,
-                { transform: [{ scale: getMarkerScale(mapRegion.latitudeDelta) }] },
+                { alignItems: 'center', justifyContent: 'center' },
                 highlightedUserId === user.id && styles.highlightedMarkerContainer
               ]}>
                 {user.photos && user.photos.length > 0 ? (
                   <Image
                     source={{ uri: user.photos[0] }}
-                    style={[
-                      user.isCurrentUser ? styles.userMarkerImage : styles.markerImage,
-                      { 
-                        borderColor: highlightedUserId === user.id 
-                          ? '#FFD700' 
-                          : (user.gender === 'male' ? '#2196F3' : '#FF1744'),
-                        borderWidth: highlightedUserId === user.id ? 4 : 3
-                      }
-                    ]}
+                    style={{
+                      width: 33,
+                      height: 33,
+                      borderRadius: 16.5,
+                      borderWidth: highlightedUserId === user.id ? 4 : 2,
+                      borderColor: highlightedUserId === user.id
+                        ? '#FFD700'
+                        : (user.gender === 'male' ? '#2196F3' : '#FF1744'),
+                    }}
                   />
                 ) : (
-                  <View style={[
-                    user.isCurrentUser ? styles.userMarker : styles.marker, 
-                    { 
-                      backgroundColor: user.gender === 'male' ? '#2196F3' : '#FF1744',
-                      borderColor: highlightedUserId === user.id 
-                        ? '#FFD700' 
-                        : (user.gender === 'male' ? '#2196F3' : '#FF1744'),
-                      borderWidth: highlightedUserId === user.id ? 4 : 3
-                    }
-                  ]}>
-                    <Ionicons name="person" size={20} color="white" />
+                  <View style={{
+                    width: 33,
+                    height: 33,
+                    borderRadius: 16.5,
+                    backgroundColor: user.gender === 'male' ? '#2196F3' : '#FF1744',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: highlightedUserId === user.id ? 4 : 0,
+                    borderColor: highlightedUserId === user.id ? '#FFD700' : 'transparent',
+                  }}>
+                    <Ionicons name="person" size={16} color="white" />
                   </View>
                 )}
+                {/* Current user pulse effect */}
                 {user.isCurrentUser && <View style={styles.userMarkerPulse} />}
                 {/* Online status indicator */}
                 <View style={[
-                  styles.onlineIndicator, 
+                  styles.onlineIndicator,
                   { backgroundColor: user.is_online ? '#4CAF50' : '#9E9E9E' }
                 ]} />
               </View>
@@ -954,30 +1143,147 @@ export default function HomeScreen({ navigation, route }: any) {
           )})}
 
           {/* Check-in markers - only show when check-ins are activated */}
-          {showCheckInsOnly && checkIns.map((checkIn) => (
-            <Marker
-              key={`checkin-${checkIn.id}`}
-              coordinate={{
-                latitude: checkIn.latitude,
-                longitude: checkIn.longitude,
-              }}
-              title={checkIn.location_name}
-              description={checkIn.description || `${checkIn.profiles?.name} is here`}
-              onPress={() => {
-                if (checkIn.profiles) {
-                  navigation.navigate('UserProfile', { userId: checkIn.profiles.id });
-                }
-              }}
-            >
-              <View style={styles.checkInMarkerContainer}>
-                <View style={styles.checkInMarker}>
-                  <Ionicons name="location-sharp" size={18} color="white" />
+          {showCheckInsOnly && getCheckInsWithOffsets(checkIns).map((checkIn) => {
+            const activityTagInfo = getActivityTag(checkIn.activity_tag);
+            const markerIcon = activityTagInfo?.icon || 'location-sharp';
+
+            return (
+              <Marker
+                key={`checkin-${checkIn.id}`}
+                coordinate={{
+                  latitude: checkIn.latitude,
+                  longitude: checkIn.longitude + (checkIn.longitude_offset || 0),
+                }}
+                title={checkIn.location_name}
+                description={checkIn.description || `${checkIn.profiles?.name} is here`}
+                onPress={() => {
+                  setSelectedCheckIn(checkIn);
+                  setShowCheckInDetail(true);
+                }}
+                zIndex={200 + (checkIn.offsetIndex || 0)}
+              >
+                <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{
+                    backgroundColor: '#FF1744',
+                    width: 33,
+                    height: 33,
+                    borderRadius: 16.5,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 2,
+                    borderColor: 'white',
+                  }}>
+                    <Ionicons name={markerIcon.replace('-outline', '') as any} size={16} color="white" />
+                  </View>
                 </View>
-              </View>
-            </Marker>
-          ))}
+              </Marker>
+            );
+          })}
+
+          {/* Activity markers - show when activities toggle is on */}
+          {showActivitiesOnMap && getActivitiesWithOffsets(
+            activities.filter(activity => activity.status === 'open' && activity.latitude != null && activity.longitude != null)
+          ).map((activity) => {
+              const activityTypeInfo = getActivityType(activity.activity_type);
+              const markerIcon = activityTypeInfo?.icon || 'calendar';
+              const spotsLeft = activity.max_participants - activity.current_participants;
+
+              return (
+                <Marker
+                  key={`activity-${activity.id}`}
+                  coordinate={{
+                    latitude: activity.latitude!,
+                    longitude: activity.longitude! + (activity.longitude_offset || 0),
+                  }}
+                  title={activity.title}
+                  description={`${activityTypeInfo?.label || 'Activity'} - ${spotsLeft} spots left`}
+                  onPress={() => {
+                    setSelectedActivity(activity);
+                  }}
+                  zIndex={300 + (activity.offsetIndex || 0)}
+                >
+                  <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                    <View style={{
+                      backgroundColor: '#4CAF50',
+                      width: 33,
+                      height: 33,
+                      borderRadius: 16.5,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderWidth: 2,
+                      borderColor: 'white',
+                    }}>
+                      <Ionicons name={markerIcon.replace('-outline', '') as any} size={16} color="white" />
+                    </View>
+                    {/* Badge showing spots left */}
+                    {spotsLeft > 0 && (
+                      <View style={{
+                        position: 'absolute',
+                        top: -4,
+                        right: -4,
+                        backgroundColor: '#FF9800',
+                        width: 18,
+                        height: 18,
+                        borderRadius: 9,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderWidth: 1,
+                        borderColor: 'white',
+                      }}>
+                        <Text style={{ color: 'white', fontSize: 9, fontWeight: 'bold' }}>
+                          {spotsLeft}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </Marker>
+              );
+            })}
+
+          {/* Place markers - show when places toggle is on */}
+          {showPlacesOnMap && getPlacesWithOffsets(
+            places.filter(place => place.latitude != null && place.longitude != null)
+          ).map((place) => {
+              const markerIcon = getPlaceIcon(place.place_type);
+
+              return (
+                <Marker
+                  key={`place-${place.id}`}
+                  coordinate={{
+                    latitude: place.latitude!,
+                    longitude: place.longitude! + (place.longitude_offset || 0),
+                  }}
+                  title={place.name}
+                  description={`${place.average_rating > 0 ? `⭐ ${place.average_rating.toFixed(1)}` : 'No reviews'} • ${place.review_count} reviews`}
+                  onPress={() => {
+                    setSelectedPlaceId(place.id);
+                  }}
+                  zIndex={400 + (place.offsetIndex || 0)}
+                >
+                  <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                    <View style={{
+                      backgroundColor: '#9C27B0',
+                      width: 33,
+                      height: 33,
+                      borderRadius: 16.5,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderWidth: 2,
+                      borderColor: 'white',
+                    }}>
+                      <Ionicons name={markerIcon.replace('-outline', '') as any} size={16} color="white" />
+                    </View>
+                  </View>
+                </Marker>
+              );
+            })}
         </MapView>
-        
+
+        {/* Refresh overlay */}
+        {mapRefreshing && (
+          <AppLoading overlay />
+        )}
+
         {/* Dark overlay and prompt when user tries to enable location */}
         {showLocationPrompt && (
           <View style={styles.locationDisabledOverlay}>
@@ -1029,29 +1335,19 @@ export default function HomeScreen({ navigation, route }: any) {
               </View>
             </View>
           </View>
-        )}        {/* Control buttons */}
-        <View style={styles.controlsContainer}>
-          {/* Location toggle */}
+        )}
+        {/* Toggle controls card */}
+        <View style={styles.toggleCard}>
           <TouchableOpacity
-            style={[styles.controlButton, !isLocationEnabled && styles.controlButtonDisabled]}
+            style={styles.toggleCardButton}
             onPress={async () => {
               try {
                 if (!isLocationEnabled) {
-                  // When location is OFF and user tries to turn it ON, show the modal
                   setShowLocationPrompt(true);
                   return;
                 }
-                
-                // When location is ON and user tries to turn it OFF
-                const newLocationEnabled = false;
-                
-                // Update the setting
-                await updateLocationEnabled(newLocationEnabled);
-                
-                // When turning location OFF:
-                // 1. Clear all nearby users immediately
+                await updateLocationEnabled(false);
                 setNearbyUsers([]);
-                // 2. Clear check-ins
                 setCheckIns([]);
               } catch (error) {
                 console.error('Error toggling location:', error);
@@ -1059,22 +1355,20 @@ export default function HomeScreen({ navigation, route }: any) {
               }
             }}
           >
-            <Ionicons 
-              name={isLocationEnabled ? "location" : "location-outline"} 
-              size={24} 
-              color={isLocationEnabled ? "#FF1744" : "#999"} 
+            <Ionicons
+              name={isLocationEnabled ? "location" : "location-outline"}
+              size={20}
+              color={isLocationEnabled ? "#FF1744" : "#999"}
             />
-            <Text style={[styles.controlButtonText, !isLocationEnabled && styles.controlButtonTextDisabled]}>
-              Location {isLocationEnabled ? 'On' : 'Off'}
+            <Text style={[styles.toggleCardText, !isLocationEnabled && { color: '#999' }]}>
+              {isLocationEnabled ? 'Location On' : 'Location Off'}
             </Text>
           </TouchableOpacity>
-
-          {/* Visibility toggle - Check for invisible mode subscription */}
+          <View style={styles.toggleCardDivider} />
           <TouchableOpacity
-            style={[styles.controlButton, !isVisible && styles.controlButtonDisabled]}
+            style={styles.toggleCardButton}
             onPress={async () => {
               try {
-                // If trying to go invisible, check subscription
                 if (isVisible && !isInvisibleMode) {
                   Alert.alert(
                     'Premium Feature',
@@ -1093,53 +1387,32 @@ export default function HomeScreen({ navigation, route }: any) {
               }
             }}
           >
-            <Ionicons 
-              name={isVisible ? "eye" : "eye-off"} 
-              size={24} 
-              color={isVisible ? "#FF1744" : "#999"} 
+            <Ionicons
+              name={isVisible ? "eye" : "eye-off"}
+              size={20}
+              color={isVisible ? "#FF1744" : "#999"}
             />
-            <Text style={[styles.controlButtonText, !isVisible && styles.controlButtonTextDisabled]}>
+            <Text style={[styles.toggleCardText, !isVisible && { color: '#999' }]}>
               {isVisible ? 'Visible' : 'Hidden'}
             </Text>
           </TouchableOpacity>
-
-          {/* Nearby users button */}
-          <TouchableOpacity
-            style={styles.controlButton}
-            onPress={() => setShowNearbyUsers(true)}
-          >
-            <Ionicons name="people" size={24} color="#FF1744" />
-            <Text style={styles.controlButtonText}>
-              {isLocationEnabled ? `Nearby (${nearbyUsers.length})` : `Users (${nearbyUsers.length})`}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Filters button */}
-          <TouchableOpacity
-            style={styles.controlButton}
-            onPress={() => setShowFilters(true)}
-          >
-            <Ionicons name="options" size={24} color="#FF1744" />
-            <Text style={styles.controlButtonText}>Filters</Text>
-          </TouchableOpacity>
-
         </View>
 
-        {/* Logo in upper left corner */}
-        <Image
-          source={require('../../assets/icon.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-
-        {/* Custom location button */}
-        {location && isLocationEnabled && (
-          <>
+        {/* Bottom bar: Nearby + Locate */}
+        <View style={styles.bottomBar}>
+          <TouchableOpacity
+            style={styles.nearbyPill}
+            onPress={() => setShowNearbyUsers(true)}
+          >
+            <View style={[styles.nearbyDot, !isLocationEnabled && { backgroundColor: '#999' }]} />
+            <Text style={styles.nearbyText}>{nearbyUsers.length} nearby</Text>
+            <Ionicons name="chevron-up" size={16} color="#666" />
+          </TouchableOpacity>
+          {location && isLocationEnabled && (
             <TouchableOpacity
-              style={styles.locationButton}
+              style={styles.bottomIconButton}
               onPress={() => {
                 if (location && location.coords && mapRef.current) {
-                  // Use animateToRegion for smooth transition
                   mapRef.current.animateToRegion({
                     latitude: location.coords.latitude,
                     longitude: location.coords.longitude,
@@ -1149,58 +1422,74 @@ export default function HomeScreen({ navigation, route }: any) {
                 }
               }}
             >
-              <Ionicons name="locate" size={22} color="#FF1744" />
+              <Ionicons name="locate" size={20} color="#FF1744" />
             </TouchableOpacity>
-            
+          )}
+        </View>
+
+        {/* Map toggle buttons */}
+        {location && isLocationEnabled && (
+          <>
             {/* Check-ins toggle button */}
             <TouchableOpacity
-              style={[styles.locationButton, { top: Platform.OS === 'ios' ? 100 : 70 }]}
-              onPress={() => setShowCheckInsOnly(!showCheckInsOnly)}
-            >
-              <Ionicons 
-                name={showCheckInsOnly ? "location" : "location-outline"} 
-                size={22} 
-                color="#FF1744" 
-              />
-            </TouchableOpacity>
-            
-            {/* Refresh button */}
-            <TouchableOpacity
-              style={[styles.locationButton, { top: Platform.OS === 'ios' ? 150 : 120 }]}
-              onPress={async () => {
-                if (isLocationEnabled) {
-                  // Force update current user's last_seen first
-                  try {
-                    const { data: authData } = await supabase.auth.getUser();
-                    if (authData?.user) {
-                      await supabase
-                        .from('profiles')
-                        .update({
-                          last_seen: new Date().toISOString(),
-                          is_online: true,
-                        })
-                        .eq('id', authData.user.id);
-                    }
-                  } catch (error) {
-                    console.error('Error updating user status:', error);
-                  }
-                  
-                  // Clear current users to force fresh fetch
-                  setNearbyUsers([]);
-                  
-                  // Fetch fresh data with updated statuses
-                  await fetchNearbyUsers();
-                  await fetchCheckIns();
-                  // Force refresh markers
-                  forceRefreshMarkers();
-                  Alert.alert('Refreshed', 'Map and user statuses have been updated');
-                } else {
-                  Alert.alert('Location Off', 'Please turn on location to refresh');
+              style={styles.locationButton}
+              onPress={() => {
+                const newValue = !showCheckInsOnly;
+                setShowCheckInsOnly(newValue);
+                // Deactivate other toggles when check-ins are activated
+                if (newValue) {
+                  setShowActivitiesOnMap(false);
+                  setShowPlacesOnMap(false);
                 }
               }}
             >
-              <Ionicons name="refresh" size={22} color="#FF1744" />
+              <Ionicons
+                name={showCheckInsOnly ? "location" : "location-outline"}
+                size={22}
+                color="#FF1744"
+              />
             </TouchableOpacity>
+
+            {/* Activities toggle button */}
+            <TouchableOpacity
+              style={[styles.locationButton, { top: Platform.OS === 'ios' ? 100 : 70 }]}
+              onPress={() => {
+                const newValue = !showActivitiesOnMap;
+                setShowActivitiesOnMap(newValue);
+                // Deactivate other toggles when activities are activated
+                if (newValue) {
+                  setShowCheckInsOnly(false);
+                  setShowPlacesOnMap(false);
+                }
+              }}
+            >
+              <Ionicons
+                name={showActivitiesOnMap ? "calendar" : "calendar-outline"}
+                size={22}
+                color="#FF1744"
+              />
+            </TouchableOpacity>
+
+            {/* Places toggle button */}
+            <TouchableOpacity
+              style={[styles.locationButton, { top: Platform.OS === 'ios' ? 150 : 120 }]}
+              onPress={() => {
+                const newValue = !showPlacesOnMap;
+                setShowPlacesOnMap(newValue);
+                // Deactivate other toggles when places are activated
+                if (newValue) {
+                  setShowCheckInsOnly(false);
+                  setShowActivitiesOnMap(false);
+                }
+              }}
+            >
+              <Ionicons
+                name={showPlacesOnMap ? "business" : "business-outline"}
+                size={22}
+                color="#FF1744"
+              />
+            </TouchableOpacity>
+
           </>
         )}
 
@@ -1244,7 +1533,7 @@ export default function HomeScreen({ navigation, route }: any) {
               // Update the map to show only the selected users
               setNearbyUsers(usersToShow);
               setShowNearbyUsers(false);
-              
+
               // Center map on first user if available
               if (usersToShow.length > 0 && usersToShow[0].current_latitude && usersToShow[0].current_longitude) {
                 setMapRegion({
@@ -1257,6 +1546,120 @@ export default function HomeScreen({ navigation, route }: any) {
             }}
           />
         )}
+
+        <CheckInDetailModal
+          visible={showCheckInDetail}
+          onClose={() => {
+            setShowCheckInDetail(false);
+            setSelectedCheckIn(null);
+          }}
+          checkIn={selectedCheckIn}
+          onViewProfile={async (targetUserId) => {
+            setShowCheckInDetail(false);
+            setSelectedCheckIn(null);
+
+            // Check if it's the current user's profile
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.id === targetUserId) {
+              // Navigate to own profile tab
+              navigation.navigate('Settings', { screen: 'Profile' });
+            } else {
+              // Navigate to other user's profile
+              navigation.navigate('UserProfile', { userId: targetUserId });
+            }
+          }}
+        />
+
+        {/* Activity Detail Modal for map markers */}
+        <ActivityDetailModal
+          visible={!!selectedActivity}
+          activity={selectedActivity}
+          currentUserId={currentUserId || undefined}
+          onClose={() => setSelectedActivity(null)}
+          onJoin={async () => {
+            if (selectedActivity) {
+              const isParticipant = selectedActivity.participants?.some(
+                p => p.user_id === currentUserId && p.status === 'joined'
+              );
+              if (isParticipant) {
+                await leaveActivity(selectedActivity.id);
+              } else {
+                await joinActivity(selectedActivity.id);
+              }
+              setSelectedActivity(null);
+            }
+          }}
+          onViewProfile={(userId) => {
+            setSelectedActivity(null);
+            if (userId === currentUserId) {
+              navigation.navigate('Settings', { screen: 'Profile' });
+            } else {
+              navigation.navigate('UserProfile', { userId });
+            }
+          }}
+          onCancel={async () => {
+            if (selectedActivity) {
+              await cancelActivity(selectedActivity.id);
+              setSelectedActivity(null);
+            }
+          }}
+          fetchComments={fetchComments}
+          addComment={addComment}
+          deleteComment={deleteComment}
+        />
+
+        {/* Place Detail Modal */}
+        <PlaceDetailModal
+          visible={!!selectedPlaceId}
+          placeId={selectedPlaceId}
+          onClose={() => setSelectedPlaceId(null)}
+          onCheckIn={(place) => {
+            setSelectedPlaceId(null);
+            // Navigate to check-in - user can use check-in from profile
+            Alert.alert(
+              'Check In',
+              `Would you like to check in at ${place.name}?`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Go to Profile', onPress: () => navigation.navigate('Settings', { screen: 'Profile' }) },
+              ]
+            );
+          }}
+          onCreateActivity={(place) => {
+            setSelectedPlaceId(null);
+            // Navigate to activities screen
+            navigation.navigate('Activities');
+          }}
+          onWriteReview={(place) => {
+            setSelectedPlaceId(null);
+            setPlaceForReview(place);
+            setShowPlaceReview(true);
+          }}
+          onViewProfile={(userId) => {
+            setSelectedPlaceId(null);
+            if (userId === currentUserId) {
+              navigation.navigate('Settings', { screen: 'Profile' });
+            } else {
+              navigation.navigate('UserProfile', { userId });
+            }
+          }}
+        />
+
+        {/* Place Review Modal */}
+        <PlaceReviewModal
+          visible={showPlaceReview}
+          place={placeForReview}
+          onClose={() => {
+            setShowPlaceReview(false);
+            setPlaceForReview(null);
+          }}
+          onSubmitted={() => {
+            // Refresh places after submitting review
+            if (showPlacesOnMap) {
+              fetchPlacesInView();
+            }
+          }}
+        />
       </View>
     </SafeAreaView>
   );
@@ -1276,39 +1679,83 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  controlsContainer: {
+  bottomBar: {
     position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
+    bottom: 16,
+    left: 16,
+    right: 16,
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    borderRadius: 15,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  nearbyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+    gap: 8,
   },
-  controlButton: {
+  nearbyDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+  },
+  nearbyText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  toggleCard: {
+    position: 'absolute',
+    bottom: 60,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  toggleCardButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 6,
+  },
+  toggleCardText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#333',
+  },
+  toggleCardDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#E0E0E0',
+  },
+  bottomIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 10,
-  },
-  controlButtonDisabled: {
-    opacity: 0.5,
-  },
-  controlButtonText: {
-    fontSize: 12,
-    color: '#333',
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  controlButtonTextDisabled: {
-    color: '#999',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
   },
   content: {
     flex: 1,
@@ -1320,6 +1767,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  refreshOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
   errorContainer: {
     flex: 1,
@@ -1374,8 +1828,8 @@ const styles = StyleSheet.create({
   marker: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    borderWidth: 3,
+    borderRadius: 15,
+    borderWidth: 2,
     borderColor: 'white',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1388,8 +1842,8 @@ const styles = StyleSheet.create({
   markerImage: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    borderWidth: 3,
+    borderRadius: 15,
+    borderWidth: 2,
   },
   markerBadge: {
     position: 'absolute',
@@ -1446,10 +1900,10 @@ const styles = StyleSheet.create({
   },
   onlineIndicator: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 16,
-    height: 16,
+    bottom: -1,
+    right: -1,
+    width: 14,
+    height: 14,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: 'white',
@@ -1469,7 +1923,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     backgroundColor: 'white',
-    borderRadius: 4,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1547,15 +2001,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   checkInMarkerContainer: {
-    padding: 8,
+    padding: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkInMarker: {
     backgroundColor: '#FF1744',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -1573,11 +2027,41 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 10,
   },
-  logo: {
-    position: 'absolute',
-    top: -40,
-    left: -25,
-    width: 200,
-    height: 200,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.xs,
+    paddingRight: theme.spacing.md,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1,
+  },
+  headerLogo: {
+    width: 150,
+    height: 50,
+    marginLeft: -25,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
   },
 });

@@ -139,7 +139,7 @@ export const FirstImpressionModal: React.FC<FirstImpressionModalProps> = ({
 
         <View style={styles.content}>
           <Text style={styles.subtitle}>
-            Send a message to {receiverName} before they accept your connection request
+            Introduce yourself to {receiverName} and suggest an activity you could do together
           </Text>
 
           {!canSend && (
@@ -153,7 +153,7 @@ export const FirstImpressionModal: React.FC<FirstImpressionModalProps> = ({
 
           <TextInput
             style={styles.messageInput}
-            placeholder="Write something memorable..."
+            placeholder="Introduce yourself and suggest an activity..."
             value={message}
             onChangeText={setMessage}
             multiline

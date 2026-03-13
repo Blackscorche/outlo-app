@@ -57,7 +57,7 @@ export default function MapFilters({ visible, onClose, filters, onFiltersChange 
           <TouchableOpacity onPress={onClose}>
             <Ionicons name="close" size={24} color={theme.colors.text} />
           </TouchableOpacity>
-          <Text style={styles.title}>Filters</Text>
+          <Text style={styles.title}>Activity Partner Filters</Text>
           <TouchableOpacity onPress={resetFilters}>
             <Text style={styles.resetText}>Reset</Text>
           </TouchableOpacity>
@@ -66,7 +66,7 @@ export default function MapFilters({ visible, onClose, filters, onFiltersChange 
         <View style={styles.content}>
           {/* Gender Preference */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Show me</Text>
+            <Text style={styles.sectionTitle}>Prefer to connect with</Text>
             <View style={styles.optionsContainer}>
               {['Men', 'Women'].map((option) => (
                 <TouchableOpacity
@@ -91,7 +91,7 @@ export default function MapFilters({ visible, onClose, filters, onFiltersChange 
           {/* Distance */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              Distance: {localFilters.maxDistance} km
+              Search Radius: {localFilters.maxDistance} km
             </Text>
             <Slider
               style={styles.slider}
@@ -112,10 +112,10 @@ export default function MapFilters({ visible, onClose, filters, onFiltersChange 
           {/* Age Range - Fixed */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              Age: Fixed range (18 - 100)
+              Activity Partner Age Range
             </Text>
             <Text style={styles.ageDisabledText}>
-              Age filtering has been disabled. All ages (18-100) are shown.
+              Age filtering is currently disabled. All activity partners (18-100) are shown.
             </Text>
           </View>
         </View>

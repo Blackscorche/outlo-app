@@ -2,7 +2,7 @@
  * Enhanced security utilities with additional protections
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '../integrations/supabase/client';
 
 interface SecurityConfig {
   maxLoginAttempts: number;

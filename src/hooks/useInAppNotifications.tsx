@@ -202,7 +202,7 @@ export const useInAppNotifications = () => {
       if (appState.current === 'active') {
         showToast({
           type: 'connection_request',
-          title: 'New Connection Request',
+          title: 'New Partner Request',
           message: `${senderName} wants to connect with you`,
           senderName,
           senderPhoto,
@@ -215,7 +215,7 @@ export const useInAppNotifications = () => {
         // Show system notification if app is in background
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: 'New Connection Request',
+            title: 'New Partner Request',
             body: `${senderName} wants to connect with you`,
             data: { 
               type: 'connection_request',
@@ -249,7 +249,7 @@ export const useInAppNotifications = () => {
         showToast({
           type: 'connection_accepted',
           title: 'Connection Accepted! 🎉',
-          message: `${receiverName} accepted your connection request`,
+          message: `${receiverName} accepted your partner request`,
           senderName: receiverName,
           senderPhoto: receiverPhoto,
           duration: 8000,
@@ -262,7 +262,7 @@ export const useInAppNotifications = () => {
         await Notifications.scheduleNotificationAsync({
           content: {
             title: 'Connection Accepted! 🎉',
-            body: `${receiverName} accepted your connection request`,
+            body: `${receiverName} accepted your partner request`,
             data: { 
               type: 'connection_accepted',
               receiverId: request.receiver_id,

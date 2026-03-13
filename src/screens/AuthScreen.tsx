@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,20 +10,52 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  ImageBackground,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import { showImagePickerOptions } from '../utils/imagePicker';
 import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../integrations/supabase/client';
 
+GoogleSignin.configure({
+  webClientId: '447020157078-j7dgtcldvhhom3tbbshbm4hhg0k9pg9j.apps.googleusercontent.com',
+  iosClientId: '447020157078-5erck39597ss1lohdc4vjc809di4g3bc.apps.googleusercontent.com',
+});
+
 const INTERESTS_OPTIONS = [
-  'Travel', 'Photography', 'Music', 'Sports', 'Art', 'Reading', 'Movies', 'Dancing',
-  'Cooking', 'Gaming', 'Hiking', 'Fitness', 'Fashion', 'Food', 'Animals', 'Technology',
-  'Nature', 'Coffee', 'Wine', 'Yoga', 'Running', 'Swimming', 'Cycling', 'Meditation'
+  { label: 'Travel', icon: 'airplane' as const },
+  { label: 'Photography', icon: 'camera' as const },
+  { label: 'Music', icon: 'musical-notes' as const },
+  { label: 'Sports', icon: 'football' as const },
+  { label: 'Art', icon: 'color-palette' as const },
+  { label: 'Reading', icon: 'book' as const },
+  { label: 'Movies', icon: 'film' as const },
+  { label: 'Dancing', icon: 'body' as const },
+  { label: 'Cooking', icon: 'restaurant' as const },
+  { label: 'Gaming', icon: 'game-controller' as const },
+  { label: 'Hiking', icon: 'walk' as const },
+  { label: 'Fitness', icon: 'barbell' as const },
+  { label: 'Fashion', icon: 'shirt' as const },
+  { label: 'Food', icon: 'fast-food' as const },
+  { label: 'Animals', icon: 'paw' as const },
+  { label: 'Technology', icon: 'laptop' as const },
+  { label: 'Nature', icon: 'leaf' as const },
+  { label: 'Coffee', icon: 'cafe' as const },
+  { label: 'Wine', icon: 'wine' as const },
+  { label: 'Yoga', icon: 'accessibility' as const },
+  { label: 'Running', icon: 'speedometer' as const },
+  { label: 'Swimming', icon: 'water' as const },
+  { label: 'Cycling', icon: 'bicycle' as const },
+  { label: 'Meditation', icon: 'rose' as const }
 ];
 
 const AuthScreen = ({ navigation }) => {
@@ -31,9 +63,32 @@ const AuthScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [forgotPasswordStep, setForgotPasswordStep] = useState(1);
+  const [otpCode, setOtpCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [signupStep, setSignupStep] = useState(1); // 1: Basic Info, 2: Profile Details, 3: Photos & Interests
+
   // Profile data for sign-up
-  const [profileData, setProfileData] = useState({
+  const [profileData, setProfileData] = useState<{
+    fullName: string;
+    age: string;
+    gender: string;
+    bio: string;
+    location: string;
+    lookingFor: string;
+    interests: string[];
+    avatar: string | null;
+    photos: string[];
+  }>({
     fullName: '',
     age: '',
     gender: '',
@@ -44,6 +99,23 @@ const AuthScreen = ({ navigation }) => {
     avatar: null,
     photos: []
   });
+
+  useEffect(() => {
+    const loadSavedCredentials = async () => {
+      try {
+        const savedEmail = await AsyncStorage.getItem('rememberedEmail');
+        const savedPassword = await AsyncStorage.getItem('rememberedPassword');
+        if (savedEmail && savedPassword) {
+          setEmail(savedEmail);
+          setPassword(savedPassword);
+          setRememberMe(true);
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    loadSavedCredentials();
+  }, []);
 
   const updateProfileData = (key, value) => {
     setProfileData(prev => ({ ...prev, [key]: value }));
@@ -118,7 +190,7 @@ const AuthScreen = ({ navigation }) => {
       return false;
     }
     if (!profileData.lookingFor) {
-      Alert.alert('Error', 'Please specify what you\'re looking for');
+      Alert.alert('Error', 'Please specify who you prefer to connect with');
       return false;
     }
     if (profileData.interests.length < 3) {
@@ -243,6 +315,13 @@ const AuthScreen = ({ navigation }) => {
           password,
         });
         if (error) throw error;
+        if (rememberMe) {
+          await AsyncStorage.setItem('rememberedEmail', email);
+          await AsyncStorage.setItem('rememberedPassword', password);
+        } else {
+          await AsyncStorage.removeItem('rememberedEmail');
+          await AsyncStorage.removeItem('rememberedPassword');
+        }
       } else {
         // Validate sign-up data
         if (!validateSignUpData()) {
@@ -341,7 +420,9 @@ const AuthScreen = ({ navigation }) => {
           }
 
           console.log('Posts created successfully');
-          Alert.alert('Welcome!', 'Your account has been created successfully! You can start using the app right away.');
+          // Show email verification notice
+          setVerifyEmail(email);
+          setShowVerifyModal(true);
         }
       }
     } catch (error) {
@@ -351,105 +432,340 @@ const AuthScreen = ({ navigation }) => {
     }
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.header}>
-            <Text style={styles.title}>LoveMap</Text>
-            <Text style={styles.subtitle}>
-              {isLogin ? 'Welcome back!' : 'Create your complete profile'}
-            </Text>
-          </View>
+  const handleGoogleLogin = async () => {
+    try {
+      setGoogleLoading(true);
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const response = await GoogleSignin.signIn();
+      const idToken = response?.data?.idToken;
+      if (!idToken) throw new Error('No ID token from Google');
 
-          <View style={styles.form}>
-            {/* Profile Avatar - Show first for sign up */}
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      if (error.code !== 'SIGN_IN_CANCELLED') {
+        Alert.alert('Google Sign In Failed', error.message);
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    try {
+      setAppleLoading(true);
+
+      const rawNonce = Math.random().toString(36).substring(2, 10) +
+        Math.random().toString(36).substring(2, 10);
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        rawNonce,
+      );
+
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+
+      const identityToken = credential.identityToken;
+      if (!identityToken) throw new Error('No identity token from Apple');
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: identityToken,
+        nonce: rawNonce,
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      if (error.code !== 'ERR_REQUEST_CANCELED') {
+        Alert.alert('Apple Sign In Failed', error.message);
+      }
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
+  const handleSendOtp = async () => {
+    if (!forgotPasswordEmail.trim()) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+    setForgotPasswordLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim());
+    setForgotPasswordLoading(false);
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+    setForgotPasswordStep(2);
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode.trim()) {
+      Alert.alert('Error', 'Please enter the verification code');
+      return;
+    }
+    setForgotPasswordLoading(true);
+    const { error } = await supabase.auth.verifyOtp({
+      email: forgotPasswordEmail.trim(),
+      token: otpCode.trim(),
+      type: 'recovery',
+    });
+    setForgotPasswordLoading(false);
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+    setForgotPasswordStep(3);
+  };
+
+  const handleResetPassword = async () => {
+    if (!newPassword.trim() || newPassword.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+    setForgotPasswordLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setForgotPasswordLoading(false);
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+    await supabase.auth.signOut();
+    setForgotPasswordStep(4);
+  };
+
+  return (
+    <>
+    <ImageBackground
+      source={require('../../assets/background.png')}
+      style={styles.backgroundImage}
+      resizeMode="contain"
+      imageStyle={{ opacity: 0.95 }}
+    >
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Back Button - Show only in signup mode */}
             {!isLogin && (
-              <View style={styles.section}>
-                <View style={styles.avatarContainer}>
-                  {profileData.avatar ? (
-                    <View style={styles.avatarWrapper}>
-                      <Image source={{ uri: profileData.avatar }} style={styles.avatar} />
-                      <TouchableOpacity
-                        style={styles.removeAvatar}
-                        onPress={() => updateProfileData('avatar', null)}
-                      >
-                        <Ionicons name="close" size={16} color="white" />
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <TouchableOpacity style={styles.addAvatar} onPress={pickAvatar}>
-                      <Ionicons name="person" size={40} color={theme.colors.primary} />
-                      <Text style={styles.addAvatarText}>Add Avatar</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => setIsLogin(true)}
+              >
+                <Ionicons name="arrow-back" size={24} color="#333" />
+              </TouchableOpacity>
             )}
 
-            {/* Login Fields */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Account Details</Text>
-              
-              {!isLogin && (
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Full Name</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your full name"
-                    placeholderTextColor={theme.colors.textSecondary}
-                    value={profileData.fullName}
-                    onChangeText={(text) => updateProfileData('fullName', text)}
-                    autoCapitalize="words"
-                  />
-                </View>
-              )}
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Email</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your email"
-                  placeholderTextColor={theme.colors.textSecondary}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Password</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your password"
-                  placeholderTextColor={theme.colors.textSecondary}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                />
-              </View>
+            {/* Logo Header */}
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('../../assets/adaptive-icon.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
             </View>
 
-            {/* Profile Fields for Sign Up */}
-            {!isLogin && (
+          <View style={styles.form}>
+            {isLogin ? (
+              // Login Form
               <>
-                {/* Basic Info */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Basic Information</Text>
-                  
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Age</Text>
+                <View style={styles.loginSection}>
+                  <Text style={styles.welcomeText}>Welcome Back</Text>
+
+                  <Text style={styles.inputLabel}>Email Address</Text>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
                     <TextInput
-                      style={styles.input}
-                      placeholder="Enter your age"
-                      placeholderTextColor={theme.colors.textSecondary}
+                      style={styles.inputField}
+                      placeholder="Enter your email"
+                      placeholderTextColor="#999"
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                    />
+                  </View>
+
+                  <Text style={styles.inputLabel}>Password</Text>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.inputField}
+                      placeholder="Enter your password"
+                      placeholderTextColor="#999"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={styles.eyeIcon}
+                    >
+                      <Ionicons
+                        name={showPassword ? "eye-outline" : "eye-off-outline"}
+                        size={20}
+                        color="#999"
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.rememberRow}>
+                    <TouchableOpacity
+                      style={styles.rememberContainer}
+                      onPress={() => setRememberMe(!rememberMe)}
+                    >
+                      <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                        {rememberMe && <Ionicons name="checkmark" size={14} color="white" />}
+                      </View>
+                      <Text style={styles.rememberText}>Remember me</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => {
+                      setForgotPasswordEmail(email);
+                      setForgotPasswordStep(1);
+                      setOtpCode('');
+                      setNewPassword('');
+                      setShowForgotPassword(true);
+                    }}>
+                      <Text style={styles.forgotText}>Forgot password?</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.signInButton, loading && styles.buttonDisabled]}
+                    onPress={handleAuth}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <ActivityIndicator size="small" color="white" />
+                    ) : (
+                      <Text style={styles.signInButtonText}>Sign In</Text>
+                    )}
+                  </TouchableOpacity>
+
+                  <Text style={styles.orText}>Or continue with</Text>
+
+                  <View style={styles.socialButtons}>
+                    {Platform.OS === 'android' && (
+                      <TouchableOpacity
+                        style={styles.socialButton}
+                        onPress={handleGoogleLogin}
+                        disabled={googleLoading}
+                      >
+                        {googleLoading
+                          ? <ActivityIndicator size="small" color="#DB4437" />
+                          : <Ionicons name="logo-google" size={20} color="#DB4437" />
+                        }
+                        <Text style={styles.socialButtonText}>Google</Text>
+                      </TouchableOpacity>
+                    )}
+                    {Platform.OS === 'ios' && (
+                      <TouchableOpacity
+                        style={styles.socialButton}
+                        onPress={handleAppleLogin}
+                        disabled={appleLoading}
+                      >
+                        {appleLoading
+                          ? <ActivityIndicator size="small" color="#000000" />
+                          : <Ionicons name="logo-apple" size={20} color="#000000" />
+                        }
+                        <Text style={styles.socialButtonText}>Apple</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  <View style={styles.signUpPrompt}>
+                    <Text style={styles.signUpText}>Don't have an account? </Text>
+                    <TouchableOpacity onPress={() => setIsLogin(false)}>
+                      <Text style={styles.signUpLink}>Sign up</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </>
+            ) : (
+              // Modern Sign Up Form
+              <View style={styles.signupContainer}>
+                  {/* Avatar Upload */}
+                <View style={styles.modernAvatarSection}>
+                  <TouchableOpacity style={styles.modernAvatarButton} onPress={pickAvatar}>
+                    {profileData.avatar ? (
+                      <>
+                        <Image source={{ uri: profileData.avatar }} style={styles.modernAvatar} />
+                        <TouchableOpacity
+                          style={styles.modernRemoveAvatar}
+                          onPress={() => updateProfileData('avatar', null)}
+                        >
+                          <Ionicons name="close-circle" size={28} color="#FF1744" />
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <View style={styles.modernAvatarPlaceholder}>
+                        <Ionicons name="camera" size={32} color="#FF1744" />
+                        <Text style={styles.modernAvatarText}>Add Photo</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                {/* Account Info */}
+                <View style={styles.modernInputGroup}>
+                  <View style={styles.modernInputWrapper}>
+                    <Ionicons name="person-outline" size={20} color="#999" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.modernInput}
+                      placeholder="Full Name"
+                      placeholderTextColor="#999"
+                      value={profileData.fullName}
+                      onChangeText={(text) => updateProfileData('fullName', text)}
+                      autoCapitalize="words"
+                    />
+                  </View>
+
+                  <View style={styles.modernInputWrapper}>
+                    <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.modernInput}
+                      placeholder="Email Address"
+                      placeholderTextColor="#999"
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                    />
+                  </View>
+
+                  <View style={styles.modernInputWrapper}>
+                    <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.modernInput}
+                      placeholder="Password"
+                      placeholderTextColor="#999"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                      <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color="#999" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.modernInputWrapper}>
+                    <Ionicons name="calendar-outline" size={20} color="#999" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.modernInput}
+                      placeholder="Age"
+                      placeholderTextColor="#999"
                       value={profileData.age}
                       onChangeText={(text) => updateProfileData('age', text)}
                       keyboardType="numeric"
@@ -457,206 +773,562 @@ const AuthScreen = ({ navigation }) => {
                     />
                   </View>
 
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Gender</Text>
-                    <View style={styles.optionsRow}>
-                      {[
-                        { display: 'Man', value: 'male' },
-                        { display: 'Woman', value: 'female' },
-                        { display: 'Other', value: 'other' }
-                      ].map((gender) => (
-                        <TouchableOpacity
-                          key={gender.value}
-                          style={[
-                            styles.optionChip,
-                            profileData.gender === gender.value && styles.optionChipSelected
-                          ]}
-                          onPress={() => updateProfileData('gender', gender.value)}
-                        >
-                          <Text style={[
-                            styles.optionText,
-                            profileData.gender === gender.value && styles.optionTextSelected
-                          ]}>
-                            {gender.display}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Location</Text>
+                  <View style={styles.modernInputWrapper}>
+                    <Ionicons name="location-outline" size={20} color="#999" style={styles.inputIcon} />
                     <TextInput
-                      style={styles.input}
-                      placeholder="Enter your city"
-                      placeholderTextColor={theme.colors.textSecondary}
+                      style={styles.modernInput}
+                      placeholder="City"
+                      placeholderTextColor="#999"
                       value={profileData.location}
                       onChangeText={(text) => updateProfileData('location', text)}
                     />
                   </View>
+                </View>
 
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Looking For</Text>
-                    <View style={styles.optionsRow}>
-                      {[
-                        { display: 'Men', value: 'men' },
-                        { display: 'Women', value: 'women' },
-                        { display: 'Everyone', value: 'everyone' }
-                      ].map((option) => (
-                        <TouchableOpacity
-                          key={option.value}
-                          style={[
-                            styles.optionChip,
-                            profileData.lookingFor === option.value && styles.optionChipSelected
-                          ]}
-                          onPress={() => updateProfileData('lookingFor', option.value)}
-                        >
-                          <Text style={[
-                            styles.optionText,
-                            profileData.lookingFor === option.value && styles.optionTextSelected
-                          ]}>
-                            {option.display}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
+                {/* Gender Selection */}
+                <View style={styles.modernSection}>
+                  <Text style={styles.modernLabel}>I am</Text>
+                  <View style={styles.modernOptionsRow}>
+                    {[
+                      { display: 'Man', value: 'male', icon: 'male' },
+                      { display: 'Woman', value: 'female', icon: 'female' },
+                      { display: 'Other', value: 'other', icon: 'male-female' }
+                    ].map((gender) => (
+                      <TouchableOpacity
+                        key={gender.value}
+                        style={[
+                          styles.modernOptionCard,
+                          profileData.gender === gender.value && styles.modernOptionCardSelected
+                        ]}
+                        onPress={() => updateProfileData('gender', gender.value)}
+                      >
+                        <Ionicons
+                          name={gender.icon}
+                          size={24}
+                          color={profileData.gender === gender.value ? '#FFF' : '#FF1744'}
+                        />
+                        <Text style={[
+                          styles.modernOptionText,
+                          profileData.gender === gender.value && styles.modernOptionTextSelected
+                        ]}>
+                          {gender.display}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Looking For */}
+                <View style={styles.modernSection}>
+                  <Text style={styles.modernLabel}>I want to meet</Text>
+                  <View style={styles.modernOptionsRow}>
+                    {[
+                      { display: 'Men', value: 'men' },
+                      { display: 'Women', value: 'women' },
+                      { display: 'Everyone', value: 'everyone' }
+                    ].map((option) => (
+                      <TouchableOpacity
+                        key={option.value}
+                        style={[
+                          styles.modernOptionCard,
+                          profileData.lookingFor === option.value && styles.modernOptionCardSelected
+                        ]}
+                        onPress={() => updateProfileData('lookingFor', option.value)}
+                      >
+                        <Text style={[
+                          styles.modernOptionText,
+                          profileData.lookingFor === option.value && styles.modernOptionTextSelected
+                        ]}>
+                          {option.display}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 </View>
 
                 {/* Bio */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>About You</Text>
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Bio</Text>
-                    <TextInput
-                      style={[styles.input, styles.bioInput]}
-                      placeholder="Tell us about yourself..."
-                      placeholderTextColor={theme.colors.textSecondary}
-                      value={profileData.bio}
-                      onChangeText={(text) => updateProfileData('bio', text)}
-                      multiline
-                      numberOfLines={4}
-                      maxLength={500}
-                    />
-                  </View>
+                <View style={styles.modernSection}>
+                  <Text style={styles.modernLabel}>About Me</Text>
+                  <TextInput
+                    style={styles.modernBioInput}
+                    placeholder="Tell us about yourself, your interests, what you're looking for..."
+                    placeholderTextColor="#999"
+                    value={profileData.bio}
+                    onChangeText={(text) => updateProfileData('bio', text)}
+                    multiline
+                    numberOfLines={4}
+                    maxLength={500}
+                    textAlignVertical="top"
+                  />
+                  <Text style={styles.charCount}>{profileData.bio.length}/500</Text>
                 </View>
 
-                {/* Post Images */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Post Images (Add at least 2)</Text>
-                  <View style={styles.photosGrid}>
+                {/* Photos */}
+                <View style={styles.modernSection}>
+                  <Text style={styles.modernLabel}>Add Photos (Min. 2)</Text>
+                  <View style={styles.modernPhotosGrid}>
                     {profileData.photos.map((photo, index) => (
-                      <View key={index} style={styles.photoContainer}>
-                        <Image source={{ uri: photo }} style={styles.photo} />
+                      <View key={index} style={styles.modernPhotoItem}>
+                        <Image source={{ uri: photo }} style={styles.modernPhoto} />
                         <TouchableOpacity
-                          style={styles.removePhoto}
+                          style={styles.modernRemovePhoto}
                           onPress={() => removePhoto(index)}
                         >
-                          <Ionicons name="close" size={16} color="white" />
+                          <Ionicons name="close-circle" size={24} color="#FF1744" />
                         </TouchableOpacity>
                       </View>
                     ))}
                     {profileData.photos.length < 4 && (
-                      <TouchableOpacity style={styles.addPhoto} onPress={pickImage}>
-                        <Ionicons name="camera" size={30} color={theme.colors.primary} />
-                        <Text style={styles.addPhotoText}>Add Image</Text>
+                      <TouchableOpacity style={styles.modernAddPhoto} onPress={pickImage}>
+                        <Ionicons name="add-circle" size={48} color="#FF1744" />
+                        <Text style={styles.modernAddPhotoText}>Add</Text>
                       </TouchableOpacity>
                     )}
                   </View>
                 </View>
 
                 {/* Interests */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Interests (Select at least 3)</Text>
-                  <View style={styles.interestsGrid}>
+                <View style={styles.modernSection}>
+                  <Text style={styles.modernLabel}>My Interests (Select at least 3)</Text>
+                  <View style={styles.modernInterestsGrid}>
                     {INTERESTS_OPTIONS.map((interest) => (
                       <TouchableOpacity
-                        key={interest}
+                        key={interest.label}
                         style={[
-                          styles.interestChip,
-                          profileData.interests.includes(interest) && styles.interestChipSelected
+                          styles.modernInterestChip,
+                          profileData.interests.includes(interest.label) && styles.modernInterestChipSelected
                         ]}
-                        onPress={() => toggleInterest(interest)}
+                        onPress={() => toggleInterest(interest.label)}
                       >
+                        <Ionicons
+                          name={interest.icon}
+                          size={16}
+                          color={profileData.interests.includes(interest.label) ? '#FFF' : '#FF1744'}
+                          style={{ marginRight: 6 }}
+                        />
                         <Text style={[
-                          styles.interestText,
-                          profileData.interests.includes(interest) && styles.interestTextSelected
+                          styles.modernInterestText,
+                          profileData.interests.includes(interest.label) && styles.modernInterestTextSelected
                         ]}>
-                          {interest}
+                          {interest.label}
                         </Text>
+                        {profileData.interests.includes(interest.label) && (
+                          <Ionicons name="checkmark-circle" size={16} color="#FFF" style={{ marginLeft: 6 }} />
+                        )}
                       </TouchableOpacity>
                     ))}
                   </View>
                 </View>
-              </>
-            )}
 
-            <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
-              onPress={handleAuth}
-              disabled={loading}
-            >
-              {loading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color="white" />
-                  <Text style={styles.buttonText}>
-                    {isLogin ? 'Signing in...' : 'Creating account & uploading photos...'}
-                  </Text>
+                {/* Sign Up Button */}
+                <TouchableOpacity
+                  style={[styles.modernSignupButton, loading && styles.buttonDisabled]}
+                  onPress={handleAuth}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <>
+                      <Text style={styles.modernSignupButtonText}>Create Account</Text>
+                      <Ionicons name="arrow-forward" size={20} color="white" />
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                {/* Sign In Link */}
+                <View style={styles.signUpPrompt}>
+                  <Text style={styles.signUpText}>Already have an account? </Text>
+                  <TouchableOpacity onPress={() => setIsLogin(true)}>
+                    <Text style={styles.signUpLink}>Sign In</Text>
+                  </TouchableOpacity>
                 </View>
-              ) : (
-                <Text style={styles.buttonText}>
-                  {isLogin ? 'Sign In' : 'Create Account'}
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.switchMode}
-              onPress={() => setIsLogin(!isLogin)}
-            >
-              <Text style={styles.switchModeText}>
-                {isLogin
-                  ? "Don't have an account? Sign Up"
-                  : 'Already have an account? Sign In'}
-              </Text>
-            </TouchableOpacity>
+              </View>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+    </ImageBackground>
+
+      {/* ── EMAIL VERIFICATION MODAL ── */}
+      <Modal visible={showVerifyModal} transparent animationType="fade">
+        <View style={styles.verifyOverlay}>
+          <View style={styles.verifyCard}>
+            <View style={styles.verifyIconCircle}>
+              <Ionicons name="mail-outline" size={36} color={theme.colors.primary} />
+            </View>
+            <Text style={styles.verifyTitle}>Verify your email</Text>
+            <Text style={styles.verifyBody}>
+              We sent a verification link to{'\n'}
+              <Text style={styles.verifyEmailText}>{verifyEmail}</Text>
+            </Text>
+            <Text style={styles.verifyHint}>
+              Please check your inbox and click the link to activate your account.
+            </Text>
+            <TouchableOpacity
+              style={styles.verifyBtn}
+              onPress={() => setShowVerifyModal(false)}
+            >
+              <Text style={styles.verifyBtnText}>Got it</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={async () => {
+                await supabase.auth.resend({ type: 'signup', email: verifyEmail });
+                Alert.alert('Sent', 'Verification email resent.');
+              }}
+            >
+              <Text style={styles.verifyResend}>Resend email</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── FORGOT PASSWORD MODAL ── */}
+      <Modal visible={showForgotPassword} transparent animationType="fade">
+        <View style={styles.verifyOverlay}>
+          <View style={styles.verifyCard}>
+            {forgotPasswordStep === 1 && (
+              <>
+                <View style={styles.verifyIconCircle}>
+                  <Ionicons name="key-outline" size={36} color={theme.colors.primary} />
+                </View>
+                <Text style={styles.verifyTitle}>Reset Password</Text>
+                <Text style={styles.verifyBody}>
+                  Enter your email address and we'll send you a verification code.
+                </Text>
+                <View style={[styles.inputWrapper, { marginTop: 16, marginBottom: 16 }]}>
+                  <Ionicons name="mail-outline" size={18} color="#999" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.inputField}
+                    placeholder="Email address"
+                    placeholderTextColor="#999"
+                    value={forgotPasswordEmail}
+                    onChangeText={setForgotPasswordEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+                <TouchableOpacity
+                  style={[styles.verifyBtn, forgotPasswordLoading && { opacity: 0.7 }]}
+                  onPress={handleSendOtp}
+                  disabled={forgotPasswordLoading}
+                >
+                  {forgotPasswordLoading ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.verifyBtnText}>Send Code</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowForgotPassword(false)}>
+                  <Text style={styles.verifyResend}>Cancel</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {forgotPasswordStep === 2 && (
+              <>
+                <View style={styles.verifyIconCircle}>
+                  <Ionicons name="mail-outline" size={36} color={theme.colors.primary} />
+                </View>
+                <Text style={styles.verifyTitle}>Enter Code</Text>
+                <Text style={styles.verifyBody}>
+                  We sent a 6-digit code to{'\n'}
+                  <Text style={styles.verifyEmailText}>{forgotPasswordEmail}</Text>
+                </Text>
+                <View style={[styles.inputWrapper, { marginTop: 16, marginBottom: 16 }]}>
+                  <Ionicons name="keypad-outline" size={18} color="#999" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.inputField}
+                    placeholder="6-digit code"
+                    placeholderTextColor="#999"
+                    value={otpCode}
+                    onChangeText={setOtpCode}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                  />
+                </View>
+                <TouchableOpacity
+                  style={[styles.verifyBtn, forgotPasswordLoading && { opacity: 0.7 }]}
+                  onPress={handleVerifyOtp}
+                  disabled={forgotPasswordLoading}
+                >
+                  {forgotPasswordLoading ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.verifyBtnText}>Verify Code</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleSendOtp}>
+                  <Text style={styles.verifyResend}>Resend code</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {forgotPasswordStep === 3 && (
+              <>
+                <View style={styles.verifyIconCircle}>
+                  <Ionicons name="lock-closed-outline" size={36} color={theme.colors.primary} />
+                </View>
+                <Text style={styles.verifyTitle}>New Password</Text>
+                <Text style={styles.verifyBody}>
+                  Enter your new password (at least 6 characters).
+                </Text>
+                <View style={[styles.inputWrapper, { marginTop: 16, marginBottom: 16 }]}>
+                  <Ionicons name="lock-closed-outline" size={18} color="#999" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.inputField}
+                    placeholder="New password"
+                    placeholderTextColor="#999"
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry
+                  />
+                </View>
+                <TouchableOpacity
+                  style={[styles.verifyBtn, forgotPasswordLoading && { opacity: 0.7 }]}
+                  onPress={handleResetPassword}
+                  disabled={forgotPasswordLoading}
+                >
+                  {forgotPasswordLoading ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.verifyBtnText}>Reset Password</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+
+            {forgotPasswordStep === 4 && (
+              <>
+                <View style={styles.verifyIconCircle}>
+                  <Ionicons name="checkmark-circle-outline" size={36} color={theme.colors.primary} />
+                </View>
+                <Text style={styles.verifyTitle}>Password Reset!</Text>
+                <Text style={styles.verifyBody}>
+                  Your password has been successfully updated. You can now sign in with your new password.
+                </Text>
+                <TouchableOpacity
+                  style={styles.verifyBtn}
+                  onPress={() => setShowForgotPassword(false)}
+                >
+                  <Text style={styles.verifyBtnText}>Done</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: 'transparent',
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 100,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginTop: 0,
+    marginBottom: 10,
+    position: 'relative',
+    height: 180,
+    justifyContent: 'center',
+  },
+  decorativeElements: {
+    position: 'absolute',
+    width: '130%',
+    height: '100%',
+    left: '-15%',
+  },
+  decorIcon: {
+    position: 'absolute',
+    opacity: 0.7,
+  },
+  logo: {
+    height: 400,
+    zIndex: 10,
+  },
+  welcomeText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 28,
+    marginTop: 4,
+    letterSpacing: 0.5,
+  },
+  loginSection: {
+    backgroundColor: 'white',
+    borderRadius: 24,
+    padding: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+    marginHorizontal: 4,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    marginBottom: 16,
+    paddingHorizontal: 12,
+    height: 50,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  inputField: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333',
+  },
+  eyeIcon: {
+    padding: 4,
+  },
+  rememberRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  rememberContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#DDD',
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  rememberText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  forgotText: {
+    fontSize: 14,
+    color: theme.colors.primary,
+    fontWeight: '500',
+  },
+  signInButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 25,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  signInButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  orText: {
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 14,
+    marginBottom: 16,
+  },
+  socialButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 20,
+  },
+  socialButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  socialButtonText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+  },
+  signUpPrompt: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  signUpText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  signUpLink: {
+    fontSize: 14,
+    color: theme.colors.primary,
+    fontWeight: '600',
   },
   header: {
     alignItems: 'center',
     marginBottom: theme.spacing.xl,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.xl,
+    borderRadius: theme.borderRadius.xl,
   },
   title: {
     fontSize: theme.fontSize.xxxl,
     fontWeight: 'bold',
     color: theme.colors.primary,
     marginBottom: theme.spacing.sm,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   subtitle: {
     fontSize: theme.fontSize.lg,
-    color: theme.colors.textSecondary,
+    color: theme.colors.text,
     textAlign: 'center',
+    fontWeight: '500',
   },
   form: {
     width: '100%',
   },
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
@@ -844,6 +1516,304 @@ const styles = StyleSheet.create({
   switchModeText: {
     color: theme.colors.primary,
     fontSize: theme.fontSize.base,
+  },
+  // Modern Signup Styles
+  backButton: {
+    position: 'absolute',
+    top: 0,
+    left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1000,
+  },
+  signupContainer: {
+    backgroundColor: 'white',
+    borderRadius: 24,
+    padding: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+    marginHorizontal: 4,
+  },
+  signupTitle: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  signupSubtitle: {
+    fontSize: 15,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  modernAvatarSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modernAvatarButton: {
+    position: 'relative',
+  },
+  modernAvatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  modernAvatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FF1744',
+    borderStyle: 'dashed',
+  },
+  modernAvatarText: {
+    fontSize: 12,
+    color: '#FF1744',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  modernRemoveAvatar: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+  },
+  modernInputGroup: {
+    marginBottom: 20,
+  },
+  modernInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    height: 50,
+  },
+  modernInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333',
+  },
+  modernSection: {
+    marginBottom: 24,
+  },
+  modernLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  modernOptionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modernOptionCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    gap: 6,
+  },
+  modernOptionCardSelected: {
+    backgroundColor: '#FF1744',
+    borderColor: '#FF1744',
+  },
+  modernOptionText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+  },
+  modernOptionTextSelected: {
+    color: '#FFF',
+  },
+  modernBioInput: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: '#333',
+    minHeight: 100,
+  },
+  charCount: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'right',
+    marginTop: 4,
+  },
+  modernPhotosGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  modernPhotoItem: {
+    width: '47%',
+    aspectRatio: 1,
+    position: 'relative',
+  },
+  modernPhoto: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  modernRemovePhoto: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+  },
+  modernAddPhoto: {
+    width: '47%',
+    aspectRatio: 1,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FF1744',
+    borderStyle: 'dashed',
+  },
+  modernAddPhotoText: {
+    fontSize: 13,
+    color: '#FF1744',
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  modernInterestsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  modernInterestChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    gap: 4,
+  },
+  modernInterestChipSelected: {
+    backgroundColor: '#FF1744',
+    borderColor: '#FF1744',
+  },
+  modernInterestText: {
+    fontSize: 13,
+    color: '#333',
+    fontWeight: '500',
+  },
+  modernInterestTextSelected: {
+    color: '#FFF',
+  },
+  modernSignupButton: {
+    backgroundColor: '#FF1744',
+    borderRadius: 25,
+    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 20,
+    shadowColor: '#FF1744',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+    gap: 8,
+  },
+  modernSignupButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+
+  // Email verification modal
+  verifyOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  verifyCard: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    width: '100%',
+  },
+  verifyIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#FFF0F3',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  verifyTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: 10,
+  },
+  verifyBody: {
+    fontSize: 15,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  verifyEmailText: {
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  verifyHint: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 18,
+  },
+  verifyBtn: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  verifyBtnText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  verifyResend: {
+    fontSize: 14,
+    color: theme.colors.primary,
+    fontWeight: '500',
   },
 });
 

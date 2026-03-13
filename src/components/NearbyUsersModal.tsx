@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
+import AppLoading from './AppLoading';
 import { supabase } from '../integrations/supabase/client';
 import { usePinnedUsers } from '../hooks/usePinnedUsers';
 
@@ -208,7 +209,7 @@ export default function NearbyUsersModal({
         // Users are not connected
         Alert.alert(
           'Not Connected',
-          `You need to be connected with ${userName} to send messages. Send a connection request first.`,
+          `You need to be connected with ${userName} to send messages. Send a partner request first.`,
           [
             { text: 'Cancel', style: 'cancel' },
             {
@@ -462,8 +463,7 @@ export default function NearbyUsersModal({
         <View style={styles.content}>
           {!connectionsLoaded ? (
             <View style={styles.emptyContainer}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
-              <Text style={styles.emptyTitle}>Loading connections...</Text>
+              <AppLoading />
             </View>
           ) : activeTab === 'online' && onlineUsers.length === 0 ? (
             <View style={styles.emptyContainer}>
