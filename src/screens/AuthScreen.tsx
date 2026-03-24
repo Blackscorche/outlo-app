@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,69 +13,78 @@ import {
   ImageBackground,
   ActivityIndicator,
   Modal,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Crypto from 'expo-crypto';
-import { showImagePickerOptions } from '../utils/imagePicker';
-import { theme } from '../styles/theme';
-import { commonStyles } from '../styles/common';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../integrations/supabase/client';
+  Linking,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import * as AppleAuthentication from "expo-apple-authentication";
+import * as Crypto from "expo-crypto";
+import { showImagePickerOptions } from "../utils/imagePicker";
+import { theme } from "../styles/theme";
+import { commonStyles } from "../styles/common";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "../integrations/supabase/client";
 
 GoogleSignin.configure({
-  webClientId: '447020157078-j7dgtcldvhhom3tbbshbm4hhg0k9pg9j.apps.googleusercontent.com',
-  iosClientId: '447020157078-5erck39597ss1lohdc4vjc809di4g3bc.apps.googleusercontent.com',
+  webClientId:
+    "447020157078-j7dgtcldvhhom3tbbshbm4hhg0k9pg9j.apps.googleusercontent.com",
+  iosClientId:
+    "447020157078-5erck39597ss1lohdc4vjc809di4g3bc.apps.googleusercontent.com",
 });
 
 const INTERESTS_OPTIONS = [
-  { label: 'Travel', icon: 'airplane' as const },
-  { label: 'Photography', icon: 'camera' as const },
-  { label: 'Music', icon: 'musical-notes' as const },
-  { label: 'Sports', icon: 'football' as const },
-  { label: 'Art', icon: 'color-palette' as const },
-  { label: 'Reading', icon: 'book' as const },
-  { label: 'Movies', icon: 'film' as const },
-  { label: 'Dancing', icon: 'body' as const },
-  { label: 'Cooking', icon: 'restaurant' as const },
-  { label: 'Gaming', icon: 'game-controller' as const },
-  { label: 'Hiking', icon: 'walk' as const },
-  { label: 'Fitness', icon: 'barbell' as const },
-  { label: 'Fashion', icon: 'shirt' as const },
-  { label: 'Food', icon: 'fast-food' as const },
-  { label: 'Animals', icon: 'paw' as const },
-  { label: 'Technology', icon: 'laptop' as const },
-  { label: 'Nature', icon: 'leaf' as const },
-  { label: 'Coffee', icon: 'cafe' as const },
-  { label: 'Wine', icon: 'wine' as const },
-  { label: 'Yoga', icon: 'accessibility' as const },
-  { label: 'Running', icon: 'speedometer' as const },
-  { label: 'Swimming', icon: 'water' as const },
-  { label: 'Cycling', icon: 'bicycle' as const },
-  { label: 'Meditation', icon: 'rose' as const }
+  { label: "Travel", icon: "airplane" as const },
+  { label: "Photography", icon: "camera" as const },
+  { label: "Music", icon: "musical-notes" as const },
+  { label: "Sports", icon: "football" as const },
+  { label: "Art", icon: "color-palette" as const },
+  { label: "Reading", icon: "book" as const },
+  { label: "Movies", icon: "film" as const },
+  { label: "Dancing", icon: "body" as const },
+  { label: "Cooking", icon: "restaurant" as const },
+  { label: "Gaming", icon: "game-controller" as const },
+  { label: "Hiking", icon: "walk" as const },
+  { label: "Fitness", icon: "barbell" as const },
+  { label: "Fashion", icon: "shirt" as const },
+  { label: "Food", icon: "fast-food" as const },
+  { label: "Animals", icon: "paw" as const },
+  { label: "Technology", icon: "laptop" as const },
+  { label: "Nature", icon: "leaf" as const },
+  { label: "Coffee", icon: "cafe" as const },
+  { label: "Wine", icon: "wine" as const },
+  { label: "Yoga", icon: "accessibility" as const },
+  { label: "Running", icon: "speedometer" as const },
+  { label: "Swimming", icon: "water" as const },
+  { label: "Cycling", icon: "bicycle" as const },
+  { label: "Meditation", icon: "rose" as const },
 ];
+
+const TERMS_URL =
+  "https://youthful-bath-564.notion.site/LoveMap-Community-Guidelines-1f12528e6c41806ab694d4ec2bc722be";
+const COMMUNITY_GUIDELINES_URL =
+  "https://youthful-bath-564.notion.site/LoveMap-Community-Guidelines-1f12528e6c41806ab694d4ec2bc722be";
 
 const AuthScreen = ({ navigation }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
-  const [verifyEmail, setVerifyEmail] = useState('');
+  const [verifyEmail, setVerifyEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const [forgotPasswordStep, setForgotPasswordStep] = useState(1);
-  const [otpCode, setOtpCode] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [otpCode, setOtpCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [signupStep, setSignupStep] = useState(1); // 1: Basic Info, 2: Profile Details, 3: Photos & Interests
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Profile data for sign-up
   const [profileData, setProfileData] = useState<{
@@ -89,22 +98,22 @@ const AuthScreen = ({ navigation }) => {
     avatar: string | null;
     photos: string[];
   }>({
-    fullName: '',
-    age: '',
-    gender: '',
-    bio: '',
-    location: '',
-    lookingFor: '',
+    fullName: "",
+    age: "",
+    gender: "",
+    bio: "",
+    location: "",
+    lookingFor: "",
     interests: [],
     avatar: null,
-    photos: []
+    photos: [],
   });
 
   useEffect(() => {
     const loadSavedCredentials = async () => {
       try {
-        const savedEmail = await AsyncStorage.getItem('rememberedEmail');
-        const savedPassword = await AsyncStorage.getItem('rememberedPassword');
+        const savedEmail = await AsyncStorage.getItem("rememberedEmail");
+        const savedPassword = await AsyncStorage.getItem("rememberedPassword");
         if (savedEmail && savedPassword) {
           setEmail(savedEmail);
           setPassword(savedPassword);
@@ -118,14 +127,14 @@ const AuthScreen = ({ navigation }) => {
   }, []);
 
   const updateProfileData = (key, value) => {
-    setProfileData(prev => ({ ...prev, [key]: value }));
+    setProfileData((prev) => ({ ...prev, [key]: value }));
   };
 
   const toggleInterest = (interest) => {
     const newInterests = profileData.interests.includes(interest)
-      ? profileData.interests.filter(i => i !== interest)
+      ? profileData.interests.filter((i) => i !== interest)
       : [...profileData.interests, interest];
-    updateProfileData('interests', newInterests);
+    updateProfileData("interests", newInterests);
   };
 
   const pickAvatar = async () => {
@@ -136,16 +145,16 @@ const AuthScreen = ({ navigation }) => {
         quality: 0.8,
       },
       (imageUri) => {
-        console.log('Avatar selected:', imageUri);
+        console.log("Avatar selected:", imageUri);
         // Store local URI for now, will upload during account creation
-        updateProfileData('avatar', imageUri);
-      }
+        updateProfileData("avatar", imageUri);
+      },
     );
   };
 
   const pickImage = async () => {
     if (profileData.photos.length >= 4) {
-      Alert.alert('Limit reached', 'You can upload maximum 4 post images');
+      Alert.alert("Limit reached", "You can upload maximum 4 post images");
       return;
     }
 
@@ -156,59 +165,63 @@ const AuthScreen = ({ navigation }) => {
         quality: 0.8,
       },
       (imageUri) => {
-        console.log('Post image selected:', imageUri);
+        console.log("Post image selected:", imageUri);
         // Store local URI for now, will upload during account creation
-        updateProfileData('photos', [...profileData.photos, imageUri]);
-      }
+        updateProfileData("photos", [...profileData.photos, imageUri]);
+      },
     );
   };
 
   const removePhoto = (index) => {
     const newPhotos = profileData.photos.filter((_, i) => i !== index);
-    updateProfileData('photos', newPhotos);
+    updateProfileData("photos", newPhotos);
   };
 
   const validateSignUpData = () => {
     if (!profileData.fullName.trim()) {
-      Alert.alert('Error', 'Please enter your full name');
+      Alert.alert("Error", "Please enter your full name");
       return false;
     }
     if (!profileData.age.trim() || parseInt(profileData.age) < 18) {
-      Alert.alert('Error', 'Please enter a valid age (18+)');
+      Alert.alert("Error", "Please enter a valid age (18+)");
       return false;
     }
     if (!profileData.gender) {
-      Alert.alert('Error', 'Please select your gender');
+      Alert.alert("Error", "Please select your gender");
       return false;
     }
     if (!profileData.bio.trim()) {
-      Alert.alert('Error', 'Please write a short bio');
+      Alert.alert("Error", "Please write a short bio");
       return false;
     }
     if (!profileData.location.trim()) {
-      Alert.alert('Error', 'Please enter your location');
+      Alert.alert("Error", "Please enter your location");
       return false;
     }
     if (!profileData.lookingFor) {
-      Alert.alert('Error', 'Please specify who you prefer to connect with');
+      Alert.alert("Error", "Please specify who you prefer to connect with");
       return false;
     }
     if (profileData.interests.length < 3) {
-      Alert.alert('Error', 'Please select at least 3 interests');
+      Alert.alert("Error", "Please select at least 3 interests");
       return false;
     }
     if (!profileData.avatar) {
-      Alert.alert('Error', 'Please add a profile avatar');
+      Alert.alert("Error", "Please add a profile avatar");
       return false;
     }
     if (profileData.photos.length < 2) {
-      Alert.alert('Error', 'Please add at least 2 post images');
+      Alert.alert("Error", "Please add at least 2 post images");
       return false;
     }
     return true;
   };
 
-  const uploadImageToStorage = async (imageUri, userId, bucket = 'user-photos') => {
+  const uploadImageToStorage = async (
+    imageUri,
+    userId,
+    bucket = "user-photos",
+  ) => {
     try {
       // Create a unique filename with user ID in the path
       const fileName = `${Date.now()}.jpeg`;
@@ -219,176 +232,200 @@ const AuthScreen = ({ navigation }) => {
       // Convert image to base64
       const response = await fetch(imageUri);
       const blob = await response.blob();
-      
+
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = async () => {
           try {
             const base64String = reader.result as string;
-            const base64Data = base64String.split(',')[1];
-            
-            console.log('Converted to base64, uploading to Supabase...');
-            
+            const base64Data = base64String.split(",")[1];
+
+            console.log("Converted to base64, uploading to Supabase...");
+
             // Decode base64 to array buffer
             const decode = atob(base64Data);
             const arrayBuffer = new Uint8Array(decode.length);
             for (let i = 0; i < decode.length; i++) {
               arrayBuffer[i] = decode.charCodeAt(i);
             }
-            
+
             // Upload to Supabase with proper authentication
             const { data, error } = await supabase.storage
               .from(bucket)
               .upload(filePath, arrayBuffer.buffer, {
-                contentType: 'image/jpeg',
-                cacheControl: '3600',
-                upsert: true // Allow overwriting if needed
+                contentType: "image/jpeg",
+                cacheControl: "3600",
+                upsert: true, // Allow overwriting if needed
               });
 
             if (error) {
-              console.error('Supabase upload error:', error);
-              
-              if (error.message?.includes('row-level security policy')) {
+              console.error("Supabase upload error:", error);
+
+              if (error.message?.includes("row-level security policy")) {
                 Alert.alert(
-                  'Storage Permission Error',
+                  "Storage Permission Error",
                   `Please run the following SQL in your Supabase dashboard:\n\n` +
-                  '1. Go to SQL Editor\n' +
-                  '2. Create bucket if not exists:\n' +
-                  `INSERT INTO storage.buckets (id, name, public) VALUES ('${bucket}', '${bucket}', true) ON CONFLICT DO NOTHING;\n\n` +
-                  '3. Set RLS policies:\n' +
-                  `CREATE POLICY "Anyone can upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = '${bucket}');\n` +
-                  `CREATE POLICY "Anyone can view" ON storage.objects FOR SELECT USING (bucket_id = '${bucket}');\n` +
-                  `CREATE POLICY "Users can update own" ON storage.objects FOR UPDATE USING (bucket_id = '${bucket}' AND auth.uid()::text = owner);\n` +
-                  `CREATE POLICY "Users can delete own" ON storage.objects FOR DELETE USING (bucket_id = '${bucket}' AND auth.uid()::text = owner);`
+                    "1. Go to SQL Editor\n" +
+                    "2. Create bucket if not exists:\n" +
+                    `INSERT INTO storage.buckets (id, name, public) VALUES ('${bucket}', '${bucket}', true) ON CONFLICT DO NOTHING;\n\n` +
+                    "3. Set RLS policies:\n" +
+                    `CREATE POLICY "Anyone can upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = '${bucket}');\n` +
+                    `CREATE POLICY "Anyone can view" ON storage.objects FOR SELECT USING (bucket_id = '${bucket}');\n` +
+                    `CREATE POLICY "Users can update own" ON storage.objects FOR UPDATE USING (bucket_id = '${bucket}' AND auth.uid()::text = owner);\n` +
+                    `CREATE POLICY "Users can delete own" ON storage.objects FOR DELETE USING (bucket_id = '${bucket}' AND auth.uid()::text = owner);`,
                 );
-              } else if (error.message?.includes('bucket') || error.message?.includes('not found')) {
+              } else if (
+                error.message?.includes("bucket") ||
+                error.message?.includes("not found")
+              ) {
                 Alert.alert(
-                  'Storage Setup Required',
-                  `Please ensure the "${bucket}" storage bucket exists in your Supabase project.`
+                  "Storage Setup Required",
+                  `Please ensure the "${bucket}" storage bucket exists in your Supabase project.`,
                 );
               }
               throw error;
             }
 
             // Get public URL
-            const { data: { publicUrl } } = supabase.storage
-              .from(bucket)
-              .getPublicUrl(filePath);
+            const {
+              data: { publicUrl },
+            } = supabase.storage.from(bucket).getPublicUrl(filePath);
 
-            console.log('Upload successful! URL:', publicUrl);
+            console.log("Upload successful! URL:", publicUrl);
             resolve(publicUrl);
           } catch (error) {
-            console.error('Error in base64 upload:', error);
+            console.error("Error in base64 upload:", error);
             reject(error);
           }
         };
-        
+
         reader.onerror = (error) => {
-          console.error('FileReader error:', error);
+          console.error("FileReader error:", error);
           reject(error);
         };
-        
+
         reader.readAsDataURL(blob);
       });
-
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error("Error uploading image:", error);
       Alert.alert(
-        'Upload Failed',
-        'Failed to upload image. Please check your internet connection and try again.'
+        "Upload Failed",
+        "Failed to upload image. Please check your internet connection and try again.",
       );
       return null;
     }
   };
 
+  const openExternalLink = async (url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      // console.error("Failed to open URL:", url, error)
+      Alert.alert("Error", "Unable to open link");
+    }
+  };
+
   const handleAuth = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
     setLoading(true);
+
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
+
         if (error) throw error;
+
         if (rememberMe) {
-          await AsyncStorage.setItem('rememberedEmail', email);
-          await AsyncStorage.setItem('rememberedPassword', password);
+          await AsyncStorage.setItem("rememberedEmail", email);
+          await AsyncStorage.setItem("rememberedPassword", password);
         } else {
-          await AsyncStorage.removeItem('rememberedEmail');
-          await AsyncStorage.removeItem('rememberedPassword');
+          await AsyncStorage.removeItem("rememberedEmail");
+          await AsyncStorage.removeItem("rememberedPassword");
         }
       } else {
-        // Validate sign-up data
-        if (!validateSignUpData()) {
-          setLoading(false);
+        if (!acceptedTerms) {
+          Alert.alert(
+            "Terms Required",
+            "You must agree to the Terms of Use and Community Guidelines before creating an account.",
+          );
           return;
         }
 
-        // Sign up user without email confirmation
-        const { data: authData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: undefined, // Disable email verification
-            data: {
-              full_name: profileData.fullName,
+        if (!validateSignUpData()) {
+          return;
+        }
+
+        const { data: authData, error: signUpError } =
+          await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: undefined,
+              data: {
+                full_name: profileData.fullName,
+              },
             },
-          },
-        });
+          });
 
         if (signUpError) throw signUpError;
 
         if (authData.user) {
-          // Upload avatar to Supabase Storage (user-photos bucket)
-          console.log('Uploading avatar to Supabase...');
-          const uploadedAvatar = await uploadImageToStorage(profileData.avatar, authData.user.id, 'user-photos');
-          
+          console.log("Uploading avatar to Supabase...");
+          const uploadedAvatar = await uploadImageToStorage(
+            profileData.avatar,
+            authData.user.id,
+            "user-photos",
+          );
+
           if (!uploadedAvatar) {
             Alert.alert(
-              'Upload Failed',
-              'Failed to upload avatar. Please check your internet connection and try again.'
+              "Upload Failed",
+              "Failed to upload avatar. Please check your internet connection and try again.",
             );
-            setLoading(false);
             return;
           }
 
-          // Upload post images to Supabase Storage (posts-media bucket)
-          console.log('Uploading post images to Supabase...');
-          const uploadedPhotos = [];
+          console.log("Uploading post images to Supabase...");
+          const uploadedPhotos: string[] = [];
+
           for (const photo of profileData.photos) {
-            const uploadedUrl = await uploadImageToStorage(photo, authData.user.id, 'posts-media');
+            const uploadedUrl = await uploadImageToStorage(
+              photo,
+              authData.user.id,
+              "posts-media",
+            );
             if (uploadedUrl) {
-              uploadedPhotos.push(uploadedUrl);
+              uploadedPhotos.push(uploadedUrl as string);
             }
           }
 
           if (uploadedPhotos.length < 2) {
             Alert.alert(
-              'Upload Failed',
-              'Failed to upload post images. Please check your internet connection and try again.'
+              "Upload Failed",
+              "Failed to upload post images. Please check your internet connection and try again.",
             );
-            setLoading(false);
             return;
           }
 
-          // Create profile with only avatar in photos array
           const { error: profileError } = await supabase
-            .from('profiles')
+            .from("profiles")
             .upsert({
               id: authData.user.id,
               name: profileData.fullName,
               bio: profileData.bio,
-              age: parseInt(profileData.age),
+              age: parseInt(profileData.age, 10),
               gender: profileData.gender,
               location: profileData.location,
               looking_for: profileData.lookingFor,
               interests: profileData.interests,
-              photos: [uploadedAvatar], // Only avatar in profile photos
+              photos: [uploadedAvatar],
               is_online: true,
               is_visible: true,
               created_at: new Date().toISOString(),
@@ -397,36 +434,30 @@ const AuthScreen = ({ navigation }) => {
 
           if (profileError) throw profileError;
 
-          console.log('Profile created successfully with avatar');
+          console.log("Profile created successfully with avatar");
 
-          // Create posts for each uploaded photo
-          console.log('Creating posts for uploaded photos...');
           for (let i = 0; i < uploadedPhotos.length; i++) {
-            const { error: postError } = await supabase
-              .from('posts')
-              .insert({
-                user_id: authData.user.id,
-                media_url: uploadedPhotos[i],
-                media_type: 'photo',
-                caption: i === 0 ? 'My first post!' : '',
-                is_deleted: false,
-                created_at: new Date().toISOString(),
-              });
+            const { error: postError } = await supabase.from("posts").insert({
+              user_id: authData.user.id,
+              media_url: uploadedPhotos[i],
+              media_type: "photo",
+              caption: i === 0 ? "My first post!" : "",
+              is_deleted: false,
+              created_at: new Date().toISOString(),
+            });
 
             if (postError) {
-              console.error('Error creating post:', postError);
-              // Continue creating other posts even if one fails
+              console.error("Error creating post:", postError);
             }
           }
 
-          console.log('Posts created successfully');
-          // Show email verification notice
+          console.log("Posts created successfully");
           setVerifyEmail(email);
           setShowVerifyModal(true);
         }
       }
-    } catch (error) {
-      Alert.alert('Error', error.message);
+    } catch (error: any) {
+      Alert.alert("Error", error?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -435,19 +466,21 @@ const AuthScreen = ({ navigation }) => {
   const handleGoogleLogin = async () => {
     try {
       setGoogleLoading(true);
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
       const response = await GoogleSignin.signIn();
       const idToken = response?.data?.idToken;
-      if (!idToken) throw new Error('No ID token from Google');
+      if (!idToken) throw new Error("No ID token from Google");
 
       const { error } = await supabase.auth.signInWithIdToken({
-        provider: 'google',
+        provider: "google",
         token: idToken,
       });
       if (error) throw error;
     } catch (error: any) {
-      if (error.code !== 'SIGN_IN_CANCELLED') {
-        Alert.alert('Google Sign In Failed', error.message);
+      if (error.code !== "SIGN_IN_CANCELLED") {
+        Alert.alert("Google Sign In Failed", error.message);
       }
     } finally {
       setGoogleLoading(false);
@@ -458,7 +491,8 @@ const AuthScreen = ({ navigation }) => {
     try {
       setAppleLoading(true);
 
-      const rawNonce = Math.random().toString(36).substring(2, 10) +
+      const rawNonce =
+        Math.random().toString(36).substring(2, 10) +
         Math.random().toString(36).substring(2, 10);
       const hashedNonce = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
@@ -474,17 +508,17 @@ const AuthScreen = ({ navigation }) => {
       });
 
       const identityToken = credential.identityToken;
-      if (!identityToken) throw new Error('No identity token from Apple');
+      if (!identityToken) throw new Error("No identity token from Apple");
 
       const { error } = await supabase.auth.signInWithIdToken({
-        provider: 'apple',
+        provider: "apple",
         token: identityToken,
         nonce: rawNonce,
       });
       if (error) throw error;
     } catch (error: any) {
-      if (error.code !== 'ERR_REQUEST_CANCELED') {
-        Alert.alert('Apple Sign In Failed', error.message);
+      if (error.code !== "ERR_REQUEST_CANCELED") {
+        Alert.alert("Apple Sign In Failed", error.message);
       }
     } finally {
       setAppleLoading(false);
@@ -493,14 +527,16 @@ const AuthScreen = ({ navigation }) => {
 
   const handleSendOtp = async () => {
     if (!forgotPasswordEmail.trim()) {
-      Alert.alert('Error', 'Please enter your email address');
+      Alert.alert("Error", "Please enter your email address");
       return;
     }
     setForgotPasswordLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim());
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      forgotPasswordEmail.trim(),
+    );
     setForgotPasswordLoading(false);
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert("Error", error.message);
       return;
     }
     setForgotPasswordStep(2);
@@ -508,18 +544,18 @@ const AuthScreen = ({ navigation }) => {
 
   const handleVerifyOtp = async () => {
     if (!otpCode.trim()) {
-      Alert.alert('Error', 'Please enter the verification code');
+      Alert.alert("Error", "Please enter the verification code");
       return;
     }
     setForgotPasswordLoading(true);
     const { error } = await supabase.auth.verifyOtp({
       email: forgotPasswordEmail.trim(),
       token: otpCode.trim(),
-      type: 'recovery',
+      type: "recovery",
     });
     setForgotPasswordLoading(false);
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert("Error", error.message);
       return;
     }
     setForgotPasswordStep(3);
@@ -527,14 +563,14 @@ const AuthScreen = ({ navigation }) => {
 
   const handleResetPassword = async () => {
     if (!newPassword.trim() || newPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert("Error", "Password must be at least 6 characters");
       return;
     }
     setForgotPasswordLoading(true);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setForgotPasswordLoading(false);
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert("Error", error.message);
       return;
     }
     await supabase.auth.signOut();
@@ -543,428 +579,685 @@ const AuthScreen = ({ navigation }) => {
 
   return (
     <>
-    <ImageBackground
-      source={require('../../assets/background.png')}
-      style={styles.backgroundImage}
-      resizeMode="contain"
-      imageStyle={{ opacity: 0.95 }}
-    >
-      <SafeAreaView style={styles.container}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.container}
-        >
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
+      <ImageBackground
+        source={require("../../assets/background.png")}
+        style={styles.backgroundImage}
+        resizeMode="contain"
+        imageStyle={{ opacity: 0.95 }}
+      >
+        <SafeAreaView style={styles.container}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.container}
           >
-            {/* Back Button - Show only in signup mode */}
-            {!isLogin && (
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => setIsLogin(true)}
-              >
-                <Ionicons name="arrow-back" size={24} color="#333" />
-              </TouchableOpacity>
-            )}
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Back Button - Show only in signup mode */}
+              {!isLogin && (
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={() => setIsLogin(true)}
+                >
+                  <Ionicons name="arrow-back" size={24} color="#333" />
+                </TouchableOpacity>
+              )}
 
-            {/* Logo Header */}
-            <View style={styles.logoContainer}>
-              <Image
-                source={require('../../assets/adaptive-icon.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
+              {/* Logo Header */}
+              <View style={styles.logoContainer}>
+                <Image
+                  source={require("../../assets/adaptive-icon.png")}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
+              </View>
 
-          <View style={styles.form}>
-            {isLogin ? (
-              // Login Form
-              <>
-                <View style={styles.loginSection}>
-                  <Text style={styles.welcomeText}>Welcome Back</Text>
+              <View style={styles.form}>
+                {isLogin ? (
+                  // Login Form
+                  <>
+                    <View style={styles.loginSection}>
+                      <Text style={styles.welcomeText}>Welcome Back</Text>
 
-                  <Text style={styles.inputLabel}>Email Address</Text>
-                  <View style={styles.inputWrapper}>
-                    <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.inputField}
-                      placeholder="Enter your email"
-                      placeholderTextColor="#999"
-                      value={email}
-                      onChangeText={setEmail}
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                    />
-                  </View>
-
-                  <Text style={styles.inputLabel}>Password</Text>
-                  <View style={styles.inputWrapper}>
-                    <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.inputField}
-                      placeholder="Enter your password"
-                      placeholderTextColor="#999"
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry={!showPassword}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowPassword(!showPassword)}
-                      style={styles.eyeIcon}
-                    >
-                      <Ionicons
-                        name={showPassword ? "eye-outline" : "eye-off-outline"}
-                        size={20}
-                        color="#999"
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.rememberRow}>
-                    <TouchableOpacity
-                      style={styles.rememberContainer}
-                      onPress={() => setRememberMe(!rememberMe)}
-                    >
-                      <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-                        {rememberMe && <Ionicons name="checkmark" size={14} color="white" />}
-                      </View>
-                      <Text style={styles.rememberText}>Remember me</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => {
-                      setForgotPasswordEmail(email);
-                      setForgotPasswordStep(1);
-                      setOtpCode('');
-                      setNewPassword('');
-                      setShowForgotPassword(true);
-                    }}>
-                      <Text style={styles.forgotText}>Forgot password?</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <TouchableOpacity
-                    style={[styles.signInButton, loading && styles.buttonDisabled]}
-                    onPress={handleAuth}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <ActivityIndicator size="small" color="white" />
-                    ) : (
-                      <Text style={styles.signInButtonText}>Sign In</Text>
-                    )}
-                  </TouchableOpacity>
-
-                  <Text style={styles.orText}>Or continue with</Text>
-
-                  <View style={styles.socialButtons}>
-                    {Platform.OS === 'android' && (
-                      <TouchableOpacity
-                        style={styles.socialButton}
-                        onPress={handleGoogleLogin}
-                        disabled={googleLoading}
-                      >
-                        {googleLoading
-                          ? <ActivityIndicator size="small" color="#DB4437" />
-                          : <Ionicons name="logo-google" size={20} color="#DB4437" />
-                        }
-                        <Text style={styles.socialButtonText}>Google</Text>
-                      </TouchableOpacity>
-                    )}
-                    {Platform.OS === 'ios' && (
-                      <TouchableOpacity
-                        style={styles.socialButton}
-                        onPress={handleAppleLogin}
-                        disabled={appleLoading}
-                      >
-                        {appleLoading
-                          ? <ActivityIndicator size="small" color="#000000" />
-                          : <Ionicons name="logo-apple" size={20} color="#000000" />
-                        }
-                        <Text style={styles.socialButtonText}>Apple</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  <View style={styles.signUpPrompt}>
-                    <Text style={styles.signUpText}>Don't have an account? </Text>
-                    <TouchableOpacity onPress={() => setIsLogin(false)}>
-                      <Text style={styles.signUpLink}>Sign up</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </>
-            ) : (
-              // Modern Sign Up Form
-              <View style={styles.signupContainer}>
-                  {/* Avatar Upload */}
-                <View style={styles.modernAvatarSection}>
-                  <TouchableOpacity style={styles.modernAvatarButton} onPress={pickAvatar}>
-                    {profileData.avatar ? (
-                      <>
-                        <Image source={{ uri: profileData.avatar }} style={styles.modernAvatar} />
-                        <TouchableOpacity
-                          style={styles.modernRemoveAvatar}
-                          onPress={() => updateProfileData('avatar', null)}
-                        >
-                          <Ionicons name="close-circle" size={28} color="#FF1744" />
-                        </TouchableOpacity>
-                      </>
-                    ) : (
-                      <View style={styles.modernAvatarPlaceholder}>
-                        <Ionicons name="camera" size={32} color="#FF1744" />
-                        <Text style={styles.modernAvatarText}>Add Photo</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                </View>
-
-                {/* Account Info */}
-                <View style={styles.modernInputGroup}>
-                  <View style={styles.modernInputWrapper}>
-                    <Ionicons name="person-outline" size={20} color="#999" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.modernInput}
-                      placeholder="Full Name"
-                      placeholderTextColor="#999"
-                      value={profileData.fullName}
-                      onChangeText={(text) => updateProfileData('fullName', text)}
-                      autoCapitalize="words"
-                    />
-                  </View>
-
-                  <View style={styles.modernInputWrapper}>
-                    <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.modernInput}
-                      placeholder="Email Address"
-                      placeholderTextColor="#999"
-                      value={email}
-                      onChangeText={setEmail}
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                    />
-                  </View>
-
-                  <View style={styles.modernInputWrapper}>
-                    <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.modernInput}
-                      placeholder="Password"
-                      placeholderTextColor="#999"
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry={!showPassword}
-                    />
-                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                      <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color="#999" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.modernInputWrapper}>
-                    <Ionicons name="calendar-outline" size={20} color="#999" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.modernInput}
-                      placeholder="Age"
-                      placeholderTextColor="#999"
-                      value={profileData.age}
-                      onChangeText={(text) => updateProfileData('age', text)}
-                      keyboardType="numeric"
-                      maxLength={2}
-                    />
-                  </View>
-
-                  <View style={styles.modernInputWrapper}>
-                    <Ionicons name="location-outline" size={20} color="#999" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.modernInput}
-                      placeholder="City"
-                      placeholderTextColor="#999"
-                      value={profileData.location}
-                      onChangeText={(text) => updateProfileData('location', text)}
-                    />
-                  </View>
-                </View>
-
-                {/* Gender Selection */}
-                <View style={styles.modernSection}>
-                  <Text style={styles.modernLabel}>I am</Text>
-                  <View style={styles.modernOptionsRow}>
-                    {[
-                      { display: 'Man', value: 'male', icon: 'male' },
-                      { display: 'Woman', value: 'female', icon: 'female' },
-                      { display: 'Other', value: 'other', icon: 'male-female' }
-                    ].map((gender) => (
-                      <TouchableOpacity
-                        key={gender.value}
-                        style={[
-                          styles.modernOptionCard,
-                          profileData.gender === gender.value && styles.modernOptionCardSelected
-                        ]}
-                        onPress={() => updateProfileData('gender', gender.value)}
-                      >
+                      <Text style={styles.inputLabel}>Email Address</Text>
+                      <View style={styles.inputWrapper}>
                         <Ionicons
-                          name={gender.icon}
-                          size={24}
-                          color={profileData.gender === gender.value ? '#FFF' : '#FF1744'}
+                          name="mail-outline"
+                          size={20}
+                          color="#999"
+                          style={styles.inputIcon}
                         />
-                        <Text style={[
-                          styles.modernOptionText,
-                          profileData.gender === gender.value && styles.modernOptionTextSelected
-                        ]}>
-                          {gender.display}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
+                        <TextInput
+                          style={styles.inputField}
+                          placeholder="Enter your email"
+                          placeholderTextColor="#999"
+                          value={email}
+                          onChangeText={setEmail}
+                          autoCapitalize="none"
+                          keyboardType="email-address"
+                        />
+                      </View>
 
-                {/* Looking For */}
-                <View style={styles.modernSection}>
-                  <Text style={styles.modernLabel}>I want to meet</Text>
-                  <View style={styles.modernOptionsRow}>
-                    {[
-                      { display: 'Men', value: 'men' },
-                      { display: 'Women', value: 'women' },
-                      { display: 'Everyone', value: 'everyone' }
-                    ].map((option) => (
-                      <TouchableOpacity
-                        key={option.value}
-                        style={[
-                          styles.modernOptionCard,
-                          profileData.lookingFor === option.value && styles.modernOptionCardSelected
-                        ]}
-                        onPress={() => updateProfileData('lookingFor', option.value)}
-                      >
-                        <Text style={[
-                          styles.modernOptionText,
-                          profileData.lookingFor === option.value && styles.modernOptionTextSelected
-                        ]}>
-                          {option.display}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                {/* Bio */}
-                <View style={styles.modernSection}>
-                  <Text style={styles.modernLabel}>About Me</Text>
-                  <TextInput
-                    style={styles.modernBioInput}
-                    placeholder="Tell us about yourself, your interests, what you're looking for..."
-                    placeholderTextColor="#999"
-                    value={profileData.bio}
-                    onChangeText={(text) => updateProfileData('bio', text)}
-                    multiline
-                    numberOfLines={4}
-                    maxLength={500}
-                    textAlignVertical="top"
-                  />
-                  <Text style={styles.charCount}>{profileData.bio.length}/500</Text>
-                </View>
-
-                {/* Photos */}
-                <View style={styles.modernSection}>
-                  <Text style={styles.modernLabel}>Add Photos (Min. 2)</Text>
-                  <View style={styles.modernPhotosGrid}>
-                    {profileData.photos.map((photo, index) => (
-                      <View key={index} style={styles.modernPhotoItem}>
-                        <Image source={{ uri: photo }} style={styles.modernPhoto} />
+                      <Text style={styles.inputLabel}>Password</Text>
+                      <View style={styles.inputWrapper}>
+                        <Ionicons
+                          name="lock-closed-outline"
+                          size={20}
+                          color="#999"
+                          style={styles.inputIcon}
+                        />
+                        <TextInput
+                          style={styles.inputField}
+                          placeholder="Enter your password"
+                          placeholderTextColor="#999"
+                          value={password}
+                          onChangeText={setPassword}
+                          secureTextEntry={!showPassword}
+                        />
                         <TouchableOpacity
-                          style={styles.modernRemovePhoto}
-                          onPress={() => removePhoto(index)}
+                          onPress={() => setShowPassword(!showPassword)}
+                          style={styles.eyeIcon}
                         >
-                          <Ionicons name="close-circle" size={24} color="#FF1744" />
+                          <Ionicons
+                            name={
+                              showPassword ? "eye-outline" : "eye-off-outline"
+                            }
+                            size={20}
+                            color="#999"
+                          />
                         </TouchableOpacity>
                       </View>
-                    ))}
-                    {profileData.photos.length < 4 && (
-                      <TouchableOpacity style={styles.modernAddPhoto} onPress={pickImage}>
-                        <Ionicons name="add-circle" size={48} color="#FF1744" />
-                        <Text style={styles.modernAddPhotoText}>Add</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
 
-                {/* Interests */}
-                <View style={styles.modernSection}>
-                  <Text style={styles.modernLabel}>My Interests (Select at least 3)</Text>
-                  <View style={styles.modernInterestsGrid}>
-                    {INTERESTS_OPTIONS.map((interest) => (
+                      <View style={styles.rememberRow}>
+                        <TouchableOpacity
+                          style={styles.rememberContainer}
+                          onPress={() => setRememberMe(!rememberMe)}
+                        >
+                          <View
+                            style={[
+                              styles.checkbox,
+                              rememberMe && styles.checkboxChecked,
+                            ]}
+                          >
+                            {rememberMe && (
+                              <Ionicons
+                                name="checkmark"
+                                size={14}
+                                color="white"
+                              />
+                            )}
+                          </View>
+                          <Text style={styles.rememberText}>Remember me</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setForgotPasswordEmail(email);
+                            setForgotPasswordStep(1);
+                            setOtpCode("");
+                            setNewPassword("");
+                            setShowForgotPassword(true);
+                          }}
+                        >
+                          <Text style={styles.forgotText}>
+                            Forgot password?
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
                       <TouchableOpacity
-                        key={interest.label}
                         style={[
-                          styles.modernInterestChip,
-                          profileData.interests.includes(interest.label) && styles.modernInterestChipSelected
+                          styles.signInButton,
+                          loading && styles.buttonDisabled,
                         ]}
-                        onPress={() => toggleInterest(interest.label)}
+                        onPress={handleAuth}
+                        disabled={loading}
                       >
-                        <Ionicons
-                          name={interest.icon}
-                          size={16}
-                          color={profileData.interests.includes(interest.label) ? '#FFF' : '#FF1744'}
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text style={[
-                          styles.modernInterestText,
-                          profileData.interests.includes(interest.label) && styles.modernInterestTextSelected
-                        ]}>
-                          {interest.label}
-                        </Text>
-                        {profileData.interests.includes(interest.label) && (
-                          <Ionicons name="checkmark-circle" size={16} color="#FFF" style={{ marginLeft: 6 }} />
+                        {loading ? (
+                          <ActivityIndicator size="small" color="white" />
+                        ) : (
+                          <Text style={styles.signInButtonText}>Sign In</Text>
                         )}
                       </TouchableOpacity>
-                    ))}
+
+                      <Text style={styles.orText}>Or continue with</Text>
+
+                      <View style={styles.socialButtons}>
+                        {Platform.OS === "android" && (
+                          <TouchableOpacity
+                            style={styles.socialButton}
+                            onPress={handleGoogleLogin}
+                            disabled={googleLoading}
+                          >
+                            {googleLoading ? (
+                              <ActivityIndicator size="small" color="#DB4437" />
+                            ) : (
+                              <Ionicons
+                                name="logo-google"
+                                size={20}
+                                color="#DB4437"
+                              />
+                            )}
+                            <Text style={styles.socialButtonText}>Google</Text>
+                          </TouchableOpacity>
+                        )}
+                        {Platform.OS === "ios" && (
+                          <TouchableOpacity
+                            style={styles.socialButton}
+                            onPress={handleAppleLogin}
+                            disabled={appleLoading}
+                          >
+                            {appleLoading ? (
+                              <ActivityIndicator size="small" color="#000000" />
+                            ) : (
+                              <Ionicons
+                                name="logo-apple"
+                                size={20}
+                                color="#000000"
+                              />
+                            )}
+                            <Text style={styles.socialButtonText}>Apple</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+
+                      {/* <View style={styles.termsContainer}>
+                        <TouchableOpacity
+                          style={styles.termsCheckboxRow}
+                          onPress={() => setAcceptedTerms(!acceptedTerms)}
+                          activeOpacity={0.8}
+                        >
+                          <View
+                            style={[
+                              styles.checkbox,
+                              acceptedTerms && styles.checkboxChecked,
+                            ]}
+                          >
+                            {acceptedTerms && (
+                              <Ionicons
+                                name="checkmark"
+                                size={14}
+                                color="white"
+                              />
+                            )}
+                          </View>
+
+                          <Text style={styles.termsText}>
+                            I agree to the{" "}
+                            <Text
+                              style={styles.termsLink}
+                              onPress={() =>
+                                Linking.openURL("https://www.lovemap.biz/terms")
+                              }
+                            >
+                              Terms of Use
+                            </Text>{" "}
+                            and{" "}
+                            <Text
+                              style={styles.termsLink}
+                              onPress={() =>
+                                Linking.openURL(
+                                  "https://www.lovemap.biz/community-guidelines",
+                                )
+                              }
+                            >
+                              Community Guidelines
+                            </Text>
+                          </Text>
+                        </TouchableOpacity>
+                      </View> */}
+
+                      <View style={styles.signUpPrompt}>
+                        <Text style={styles.signUpText}>
+                          Don't have an account?{" "}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setIsLogin(false);
+                            setAcceptedTerms(false);
+                          }}
+                        >
+                          <Text style={styles.signUpLink}>Sign up</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </>
+                ) : (
+                  // Modern Sign Up Form
+                  <View style={styles.signupContainer}>
+                    {/* Avatar Upload */}
+                    <View style={styles.modernAvatarSection}>
+                      <TouchableOpacity
+                        style={styles.modernAvatarButton}
+                        onPress={pickAvatar}
+                      >
+                        {profileData.avatar ? (
+                          <>
+                            <Image
+                              source={{ uri: profileData.avatar }}
+                              style={styles.modernAvatar}
+                            />
+                            <TouchableOpacity
+                              style={styles.modernRemoveAvatar}
+                              onPress={() => updateProfileData("avatar", null)}
+                            >
+                              <Ionicons
+                                name="close-circle"
+                                size={28}
+                                color="#FF1744"
+                              />
+                            </TouchableOpacity>
+                          </>
+                        ) : (
+                          <View style={styles.modernAvatarPlaceholder}>
+                            <Ionicons name="camera" size={32} color="#FF1744" />
+                            <Text style={styles.modernAvatarText}>
+                              Add Photo
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Account Info */}
+                    <View style={styles.modernInputGroup}>
+                      <View style={styles.modernInputWrapper}>
+                        <Ionicons
+                          name="person-outline"
+                          size={20}
+                          color="#999"
+                          style={styles.inputIcon}
+                        />
+                        <TextInput
+                          style={styles.modernInput}
+                          placeholder="Full Name"
+                          placeholderTextColor="#999"
+                          value={profileData.fullName}
+                          onChangeText={(text) =>
+                            updateProfileData("fullName", text)
+                          }
+                          autoCapitalize="words"
+                        />
+                      </View>
+
+                      <View style={styles.modernInputWrapper}>
+                        <Ionicons
+                          name="mail-outline"
+                          size={20}
+                          color="#999"
+                          style={styles.inputIcon}
+                        />
+                        <TextInput
+                          style={styles.modernInput}
+                          placeholder="Email Address"
+                          placeholderTextColor="#999"
+                          value={email}
+                          onChangeText={setEmail}
+                          autoCapitalize="none"
+                          keyboardType="email-address"
+                        />
+                      </View>
+
+                      <View style={styles.modernInputWrapper}>
+                        <Ionicons
+                          name="lock-closed-outline"
+                          size={20}
+                          color="#999"
+                          style={styles.inputIcon}
+                        />
+                        <TextInput
+                          style={styles.modernInput}
+                          placeholder="Password"
+                          placeholderTextColor="#999"
+                          value={password}
+                          onChangeText={setPassword}
+                          secureTextEntry={!showPassword}
+                        />
+                        <TouchableOpacity
+                          onPress={() => setShowPassword(!showPassword)}
+                          style={styles.eyeIcon}
+                        >
+                          <Ionicons
+                            name={
+                              showPassword ? "eye-outline" : "eye-off-outline"
+                            }
+                            size={20}
+                            color="#999"
+                          />
+                        </TouchableOpacity>
+                      </View>
+
+                      <View style={styles.modernInputWrapper}>
+                        <Ionicons
+                          name="calendar-outline"
+                          size={20}
+                          color="#999"
+                          style={styles.inputIcon}
+                        />
+                        <TextInput
+                          style={styles.modernInput}
+                          placeholder="Age"
+                          placeholderTextColor="#999"
+                          value={profileData.age}
+                          onChangeText={(text) =>
+                            updateProfileData("age", text)
+                          }
+                          keyboardType="numeric"
+                          maxLength={2}
+                        />
+                      </View>
+
+                      <View style={styles.modernInputWrapper}>
+                        <Ionicons
+                          name="location-outline"
+                          size={20}
+                          color="#999"
+                          style={styles.inputIcon}
+                        />
+                        <TextInput
+                          style={styles.modernInput}
+                          placeholder="City"
+                          placeholderTextColor="#999"
+                          value={profileData.location}
+                          onChangeText={(text) =>
+                            updateProfileData("location", text)
+                          }
+                        />
+                      </View>
+                    </View>
+
+                    {/* Gender Selection */}
+                    <View style={styles.modernSection}>
+                      <Text style={styles.modernLabel}>I am</Text>
+                      <View style={styles.modernOptionsRow}>
+                        {[
+                          { display: "Man", value: "male", icon: "male" },
+                          { display: "Woman", value: "female", icon: "female" },
+                          {
+                            display: "Other",
+                            value: "other",
+                            icon: "male-female",
+                          },
+                        ].map((gender) => (
+                          <TouchableOpacity
+                            key={gender.value}
+                            style={[
+                              styles.modernOptionCard,
+                              profileData.gender === gender.value &&
+                                styles.modernOptionCardSelected,
+                            ]}
+                            onPress={() =>
+                              updateProfileData("gender", gender.value)
+                            }
+                          >
+                            <Ionicons
+                              name={gender.icon}
+                              size={24}
+                              color={
+                                profileData.gender === gender.value
+                                  ? "#FFF"
+                                  : "#FF1744"
+                              }
+                            />
+                            <Text
+                              style={[
+                                styles.modernOptionText,
+                                profileData.gender === gender.value &&
+                                  styles.modernOptionTextSelected,
+                              ]}
+                            >
+                              {gender.display}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+
+                    {/* Looking For */}
+                    <View style={styles.modernSection}>
+                      <Text style={styles.modernLabel}>I want to meet</Text>
+                      <View style={styles.modernOptionsRow}>
+                        {[
+                          { display: "Men", value: "men" },
+                          { display: "Women", value: "women" },
+                          { display: "Everyone", value: "everyone" },
+                        ].map((option) => (
+                          <TouchableOpacity
+                            key={option.value}
+                            style={[
+                              styles.modernOptionCard,
+                              profileData.lookingFor === option.value &&
+                                styles.modernOptionCardSelected,
+                            ]}
+                            onPress={() =>
+                              updateProfileData("lookingFor", option.value)
+                            }
+                          >
+                            <Text
+                              style={[
+                                styles.modernOptionText,
+                                profileData.lookingFor === option.value &&
+                                  styles.modernOptionTextSelected,
+                              ]}
+                            >
+                              {option.display}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+
+                    {/* Bio */}
+                    <View style={styles.modernSection}>
+                      <Text style={styles.modernLabel}>About Me</Text>
+                      <TextInput
+                        style={styles.modernBioInput}
+                        placeholder="Tell us about yourself, your interests, what you're looking for..."
+                        placeholderTextColor="#999"
+                        value={profileData.bio}
+                        onChangeText={(text) => updateProfileData("bio", text)}
+                        multiline
+                        numberOfLines={4}
+                        maxLength={500}
+                        textAlignVertical="top"
+                      />
+                      <Text style={styles.charCount}>
+                        {profileData.bio.length}/500
+                      </Text>
+                    </View>
+
+                    {/* Photos */}
+                    <View style={styles.modernSection}>
+                      <Text style={styles.modernLabel}>
+                        Add Photos (Min. 2)
+                      </Text>
+                      <View style={styles.modernPhotosGrid}>
+                        {profileData.photos.map((photo, index) => (
+                          <View key={index} style={styles.modernPhotoItem}>
+                            <Image
+                              source={{ uri: photo }}
+                              style={styles.modernPhoto}
+                            />
+                            <TouchableOpacity
+                              style={styles.modernRemovePhoto}
+                              onPress={() => removePhoto(index)}
+                            >
+                              <Ionicons
+                                name="close-circle"
+                                size={24}
+                                color="#FF1744"
+                              />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                        {profileData.photos.length < 4 && (
+                          <TouchableOpacity
+                            style={styles.modernAddPhoto}
+                            onPress={pickImage}
+                          >
+                            <Ionicons
+                              name="add-circle"
+                              size={48}
+                              color="#FF1744"
+                            />
+                            <Text style={styles.modernAddPhotoText}>Add</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Interests */}
+                    <View style={styles.modernSection}>
+                      <Text style={styles.modernLabel}>
+                        My Interests (Select at least 3)
+                      </Text>
+                      <View style={styles.modernInterestsGrid}>
+                        {INTERESTS_OPTIONS.map((interest) => (
+                          <TouchableOpacity
+                            key={interest.label}
+                            style={[
+                              styles.modernInterestChip,
+                              profileData.interests.includes(interest.label) &&
+                                styles.modernInterestChipSelected,
+                            ]}
+                            onPress={() => toggleInterest(interest.label)}
+                          >
+                            <Ionicons
+                              name={interest.icon}
+                              size={16}
+                              color={
+                                profileData.interests.includes(interest.label)
+                                  ? "#FFF"
+                                  : "#FF1744"
+                              }
+                              style={{ marginRight: 6 }}
+                            />
+                            <Text
+                              style={[
+                                styles.modernInterestText,
+                                profileData.interests.includes(
+                                  interest.label,
+                                ) && styles.modernInterestTextSelected,
+                              ]}
+                            >
+                              {interest.label}
+                            </Text>
+                            {profileData.interests.includes(interest.label) && (
+                              <Ionicons
+                                name="checkmark-circle"
+                                size={16}
+                                color="#FFF"
+                                style={{ marginLeft: 6 }}
+                              />
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+
+                    <View style={styles.termsContainer}>
+                      <TouchableOpacity
+                        style={styles.termsCheckboxRow}
+                        onPress={() => setAcceptedTerms(!acceptedTerms)}
+                        activeOpacity={0.8}
+                      >
+                        <View
+                          style={[
+                            styles.checkbox,
+                            acceptedTerms && styles.checkboxChecked,
+                          ]}
+                        >
+                          {acceptedTerms && (
+                            <Ionicons
+                              name="checkmark"
+                              size={14}
+                              color="white"
+                            />
+                          )}
+                        </View>
+
+                        <Text style={styles.termsText}>
+                          I agree to the{" "}
+                          <Text
+                            style={styles.termsLink}
+                            onPress={() => openExternalLink(TERMS_URL)}
+                          >
+                            Terms of Use
+                          </Text>{" "}
+                          and{" "}
+                          <Text
+                            style={styles.termsLink}
+                            onPress={() =>
+                              openExternalLink(COMMUNITY_GUIDELINES_URL)
+                            }
+                          >
+                            Community Guidelines
+                          </Text>
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Sign Up Button */}
+                    <TouchableOpacity
+                      style={[
+                        styles.modernSignupButton,
+                        (loading || !acceptedTerms) && styles.buttonDisabled,
+                      ]}
+                      onPress={handleAuth}
+                      disabled={loading || !acceptedTerms}
+                    >
+                      {loading ? (
+                        <ActivityIndicator size="small" color="white" />
+                      ) : (
+                        <>
+                          <Text style={styles.modernSignupButtonText}>
+                            Create Account
+                          </Text>
+                          <Ionicons
+                            name="arrow-forward"
+                            size={20}
+                            color="white"
+                          />
+                        </>
+                      )}
+                    </TouchableOpacity>
+
+                    {/* Sign In Link */}
+                    <View style={styles.signUpPrompt}>
+                      <Text style={styles.signUpText}>
+                        Already have an account?{" "}
+                      </Text>
+                      <TouchableOpacity onPress={() => setIsLogin(true)}>
+                        <Text style={styles.signUpLink}>Sign In</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
-
-                {/* Sign Up Button */}
-                <TouchableOpacity
-                  style={[styles.modernSignupButton, loading && styles.buttonDisabled]}
-                  onPress={handleAuth}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <ActivityIndicator size="small" color="white" />
-                  ) : (
-                    <>
-                      <Text style={styles.modernSignupButtonText}>Create Account</Text>
-                      <Ionicons name="arrow-forward" size={20} color="white" />
-                    </>
-                  )}
-                </TouchableOpacity>
-
-                {/* Sign In Link */}
-                <View style={styles.signUpPrompt}>
-                  <Text style={styles.signUpText}>Already have an account? </Text>
-                  <TouchableOpacity onPress={() => setIsLogin(true)}>
-                    <Text style={styles.signUpLink}>Sign In</Text>
-                  </TouchableOpacity>
-                </View>
+                )}
               </View>
-            )}
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-    </ImageBackground>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </ImageBackground>
 
       {/* ── EMAIL VERIFICATION MODAL ── */}
       <Modal visible={showVerifyModal} transparent animationType="fade">
         <View style={styles.verifyOverlay}>
           <View style={styles.verifyCard}>
             <View style={styles.verifyIconCircle}>
-              <Ionicons name="mail-outline" size={36} color={theme.colors.primary} />
+              <Ionicons
+                name="mail-outline"
+                size={36}
+                color={theme.colors.primary}
+              />
             </View>
             <Text style={styles.verifyTitle}>Verify your email</Text>
             <Text style={styles.verifyBody}>
-              We sent a verification link to{'\n'}
+              We sent a verification link to{"\n"}
               <Text style={styles.verifyEmailText}>{verifyEmail}</Text>
             </Text>
             <Text style={styles.verifyHint}>
-              Please check your inbox and click the link to activate your account.
+              Please check your inbox and click the link to activate your
+              account.
             </Text>
             <TouchableOpacity
               style={styles.verifyBtn}
@@ -974,8 +1267,11 @@ const AuthScreen = ({ navigation }) => {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={async () => {
-                await supabase.auth.resend({ type: 'signup', email: verifyEmail });
-                Alert.alert('Sent', 'Verification email resent.');
+                await supabase.auth.resend({
+                  type: "signup",
+                  email: verifyEmail,
+                });
+                Alert.alert("Sent", "Verification email resent.");
               }}
             >
               <Text style={styles.verifyResend}>Resend email</Text>
@@ -991,14 +1287,29 @@ const AuthScreen = ({ navigation }) => {
             {forgotPasswordStep === 1 && (
               <>
                 <View style={styles.verifyIconCircle}>
-                  <Ionicons name="key-outline" size={36} color={theme.colors.primary} />
+                  <Ionicons
+                    name="key-outline"
+                    size={36}
+                    color={theme.colors.primary}
+                  />
                 </View>
                 <Text style={styles.verifyTitle}>Reset Password</Text>
                 <Text style={styles.verifyBody}>
-                  Enter your email address and we'll send you a verification code.
+                  Enter your email address and we'll send you a verification
+                  code.
                 </Text>
-                <View style={[styles.inputWrapper, { marginTop: 16, marginBottom: 16 }]}>
-                  <Ionicons name="mail-outline" size={18} color="#999" style={{ marginRight: 8 }} />
+                <View
+                  style={[
+                    styles.inputWrapper,
+                    { marginTop: 16, marginBottom: 16 },
+                  ]}
+                >
+                  <Ionicons
+                    name="mail-outline"
+                    size={18}
+                    color="#999"
+                    style={{ marginRight: 8 }}
+                  />
                   <TextInput
                     style={styles.inputField}
                     placeholder="Email address"
@@ -1010,7 +1321,10 @@ const AuthScreen = ({ navigation }) => {
                   />
                 </View>
                 <TouchableOpacity
-                  style={[styles.verifyBtn, forgotPasswordLoading && { opacity: 0.7 }]}
+                  style={[
+                    styles.verifyBtn,
+                    forgotPasswordLoading && { opacity: 0.7 },
+                  ]}
                   onPress={handleSendOtp}
                   disabled={forgotPasswordLoading}
                 >
@@ -1029,15 +1343,31 @@ const AuthScreen = ({ navigation }) => {
             {forgotPasswordStep === 2 && (
               <>
                 <View style={styles.verifyIconCircle}>
-                  <Ionicons name="mail-outline" size={36} color={theme.colors.primary} />
+                  <Ionicons
+                    name="mail-outline"
+                    size={36}
+                    color={theme.colors.primary}
+                  />
                 </View>
                 <Text style={styles.verifyTitle}>Enter Code</Text>
                 <Text style={styles.verifyBody}>
-                  We sent a 6-digit code to{'\n'}
-                  <Text style={styles.verifyEmailText}>{forgotPasswordEmail}</Text>
+                  We sent a 6-digit code to{"\n"}
+                  <Text style={styles.verifyEmailText}>
+                    {forgotPasswordEmail}
+                  </Text>
                 </Text>
-                <View style={[styles.inputWrapper, { marginTop: 16, marginBottom: 16 }]}>
-                  <Ionicons name="keypad-outline" size={18} color="#999" style={{ marginRight: 8 }} />
+                <View
+                  style={[
+                    styles.inputWrapper,
+                    { marginTop: 16, marginBottom: 16 },
+                  ]}
+                >
+                  <Ionicons
+                    name="keypad-outline"
+                    size={18}
+                    color="#999"
+                    style={{ marginRight: 8 }}
+                  />
                   <TextInput
                     style={styles.inputField}
                     placeholder="6-digit code"
@@ -1049,7 +1379,10 @@ const AuthScreen = ({ navigation }) => {
                   />
                 </View>
                 <TouchableOpacity
-                  style={[styles.verifyBtn, forgotPasswordLoading && { opacity: 0.7 }]}
+                  style={[
+                    styles.verifyBtn,
+                    forgotPasswordLoading && { opacity: 0.7 },
+                  ]}
                   onPress={handleVerifyOtp}
                   disabled={forgotPasswordLoading}
                 >
@@ -1068,14 +1401,28 @@ const AuthScreen = ({ navigation }) => {
             {forgotPasswordStep === 3 && (
               <>
                 <View style={styles.verifyIconCircle}>
-                  <Ionicons name="lock-closed-outline" size={36} color={theme.colors.primary} />
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={36}
+                    color={theme.colors.primary}
+                  />
                 </View>
                 <Text style={styles.verifyTitle}>New Password</Text>
                 <Text style={styles.verifyBody}>
                   Enter your new password (at least 6 characters).
                 </Text>
-                <View style={[styles.inputWrapper, { marginTop: 16, marginBottom: 16 }]}>
-                  <Ionicons name="lock-closed-outline" size={18} color="#999" style={{ marginRight: 8 }} />
+                <View
+                  style={[
+                    styles.inputWrapper,
+                    { marginTop: 16, marginBottom: 16 },
+                  ]}
+                >
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={18}
+                    color="#999"
+                    style={{ marginRight: 8 }}
+                  />
                   <TextInput
                     style={styles.inputField}
                     placeholder="New password"
@@ -1086,7 +1433,10 @@ const AuthScreen = ({ navigation }) => {
                   />
                 </View>
                 <TouchableOpacity
-                  style={[styles.verifyBtn, forgotPasswordLoading && { opacity: 0.7 }]}
+                  style={[
+                    styles.verifyBtn,
+                    forgotPasswordLoading && { opacity: 0.7 },
+                  ]}
                   onPress={handleResetPassword}
                   disabled={forgotPasswordLoading}
                 >
@@ -1102,11 +1452,16 @@ const AuthScreen = ({ navigation }) => {
             {forgotPasswordStep === 4 && (
               <>
                 <View style={styles.verifyIconCircle}>
-                  <Ionicons name="checkmark-circle-outline" size={36} color={theme.colors.primary} />
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={36}
+                    color={theme.colors.primary}
+                  />
                 </View>
                 <Text style={styles.verifyTitle}>Password Reset!</Text>
                 <Text style={styles.verifyBody}>
-                  Your password has been successfully updated. You can now sign in with your new password.
+                  Your password has been successfully updated. You can now sign
+                  in with your new password.
                 </Text>
                 <TouchableOpacity
                   style={styles.verifyBtn}
@@ -1126,12 +1481,12 @@ const AuthScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   scrollContent: {
     flexGrow: 1,
@@ -1140,21 +1495,21 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   logoContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 0,
     marginBottom: 10,
-    position: 'relative',
+    position: "relative",
     height: 180,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   decorativeElements: {
-    position: 'absolute',
-    width: '130%',
-    height: '100%',
-    left: '-15%',
+    position: "absolute",
+    width: "130%",
+    height: "100%",
+    left: "-15%",
   },
   decorIcon: {
-    position: 'absolute',
+    position: "absolute",
     opacity: 0.7,
   },
   logo: {
@@ -1163,18 +1518,18 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#333',
-    textAlign: 'center',
+    fontWeight: "700",
+    color: "#333",
+    textAlign: "center",
     marginBottom: 28,
     marginTop: 4,
     letterSpacing: 0.5,
   },
   loginSection: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 24,
     padding: 28,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
@@ -1183,14 +1538,14 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
     marginBottom: 8,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
     borderRadius: 12,
     marginBottom: 16,
     paddingHorizontal: 12,
@@ -1202,30 +1557,30 @@ const styles = StyleSheet.create({
   inputField: {
     flex: 1,
     fontSize: 14,
-    color: '#333',
+    color: "#333",
   },
   eyeIcon: {
     padding: 4,
   },
   rememberRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 24,
   },
   rememberContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   checkbox: {
     width: 20,
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#DDD',
+    borderColor: "#DDD",
     marginRight: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   checkboxChecked: {
     backgroundColor: theme.colors.primary,
@@ -1233,19 +1588,19 @@ const styles = StyleSheet.create({
   },
   rememberText: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
   },
   forgotText: {
     fontSize: 14,
     color: theme.colors.primary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   signInButton: {
     backgroundColor: theme.colors.primary,
     borderRadius: 25,
     height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 20,
     shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 4 },
@@ -1254,88 +1609,88 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   signInButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   orText: {
-    textAlign: 'center',
-    color: '#999',
+    textAlign: "center",
+    color: "#999",
     fontSize: 14,
     marginBottom: 16,
   },
   socialButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     gap: 12,
     marginBottom: 20,
   },
   socialButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'white',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "white",
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: "#E0E0E0",
     borderRadius: 12,
     paddingVertical: 12,
     gap: 8,
   },
   socialButtonText: {
     fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
+    color: "#333",
+    fontWeight: "500",
   },
   signUpPrompt: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   signUpText: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
   },
   signUpLink: {
     fontSize: 14,
     color: theme.colors.primary,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: theme.spacing.xl,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     paddingVertical: theme.spacing.lg,
     paddingHorizontal: theme.spacing.xl,
     borderRadius: theme.borderRadius.xl,
   },
   title: {
     fontSize: theme.fontSize.xxxl,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: theme.colors.primary,
     marginBottom: theme.spacing.sm,
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
   subtitle: {
     fontSize: theme.fontSize.lg,
     color: theme.colors.text,
-    textAlign: 'center',
-    fontWeight: '500',
+    textAlign: "center",
+    fontWeight: "500",
   },
   form: {
-    width: '100%',
+    width: "100%",
   },
   section: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
   },
   sectionTitle: {
     fontSize: theme.fontSize.lg,
-    fontWeight: '600',
+    fontWeight: "600",
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
   },
@@ -1344,7 +1699,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: theme.fontSize.sm,
-    fontWeight: '600',
+    fontWeight: "600",
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
   },
@@ -1360,11 +1715,11 @@ const styles = StyleSheet.create({
   },
   bioInput: {
     minHeight: 100,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   optionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: theme.spacing.sm,
   },
   optionChip: {
@@ -1384,28 +1739,28 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   optionTextSelected: {
-    color: 'white',
+    color: "white",
   },
   photosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: theme.spacing.sm,
   },
   photoContainer: {
     width: 80,
     height: 80,
-    position: 'relative',
+    position: "relative",
   },
   photo: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     borderRadius: theme.borderRadius.md,
   },
   removePhoto: {
-    position: 'absolute',
+    position: "absolute",
     top: 4,
     right: 4,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: "rgba(0,0,0,0.6)",
     borderRadius: 10,
     padding: 2,
   },
@@ -1414,24 +1769,24 @@ const styles = StyleSheet.create({
     height: 80,
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
     borderColor: theme.colors.border,
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
   },
   addPhotoText: {
     color: theme.colors.primary,
     fontSize: theme.fontSize.xs,
     marginTop: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   avatarContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: theme.spacing.md,
   },
   avatarWrapper: {
-    position: 'relative',
+    position: "relative",
   },
   avatar: {
     width: 120,
@@ -1441,10 +1796,10 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary,
   },
   removeAvatar: {
-    position: 'absolute',
+    position: "absolute",
     top: 4,
     right: 4,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: "rgba(0,0,0,0.6)",
     borderRadius: 10,
     padding: 2,
   },
@@ -1453,21 +1808,21 @@ const styles = StyleSheet.create({
     height: 120,
     backgroundColor: theme.colors.background,
     borderRadius: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 3,
     borderColor: theme.colors.primary,
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
   },
   addAvatarText: {
     color: theme.colors.primary,
     fontSize: theme.fontSize.xs,
     marginTop: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   interestsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: theme.spacing.sm,
   },
   interestChip: {
@@ -1487,30 +1842,30 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   interestTextSelected: {
-    color: 'white',
+    color: "white",
   },
   button: {
     backgroundColor: theme.colors.primary,
     borderRadius: theme.borderRadius.md,
     paddingVertical: theme.spacing.md,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: theme.spacing.lg,
   },
   buttonText: {
-    color: 'white',
+    color: "white",
     fontSize: theme.fontSize.base,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: theme.spacing.sm,
   },
   switchMode: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: theme.spacing.lg,
   },
   switchModeText: {
@@ -1519,16 +1874,16 @@ const styles = StyleSheet.create({
   },
   // Modern Signup Styles
   backButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 20,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1536,10 +1891,10 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   signupContainer: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 24,
     padding: 28,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
@@ -1548,23 +1903,23 @@ const styles = StyleSheet.create({
   },
   signupTitle: {
     fontSize: 26,
-    fontWeight: '700',
-    color: '#333',
-    textAlign: 'center',
+    fontWeight: "700",
+    color: "#333",
+    textAlign: "center",
     marginBottom: 8,
   },
   signupSubtitle: {
     fontSize: 15,
-    color: '#666',
-    textAlign: 'center',
+    color: "#666",
+    textAlign: "center",
     marginBottom: 24,
   },
   modernAvatarSection: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 24,
   },
   modernAvatarButton: {
-    position: 'relative',
+    position: "relative",
   },
   modernAvatar: {
     width: 100,
@@ -1575,21 +1930,21 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F5F5F5",
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: '#FF1744',
-    borderStyle: 'dashed',
+    borderColor: "#FF1744",
+    borderStyle: "dashed",
   },
   modernAvatarText: {
     fontSize: 12,
-    color: '#FF1744',
+    color: "#FF1744",
     marginTop: 4,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   modernRemoveAvatar: {
-    position: 'absolute',
+    position: "absolute",
     top: -5,
     right: -5,
   },
@@ -1597,9 +1952,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modernInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
     borderRadius: 12,
     marginBottom: 12,
     paddingHorizontal: 12,
@@ -1608,135 +1963,135 @@ const styles = StyleSheet.create({
   modernInput: {
     flex: 1,
     fontSize: 14,
-    color: '#333',
+    color: "#333",
   },
   modernSection: {
     marginBottom: 24,
   },
   modernLabel: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
     marginBottom: 12,
   },
   modernOptionsRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 10,
   },
   modernOptionCard: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F5F5F5',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F5F5F5",
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
     gap: 6,
   },
   modernOptionCardSelected: {
-    backgroundColor: '#FF1744',
-    borderColor: '#FF1744',
+    backgroundColor: "#FF1744",
+    borderColor: "#FF1744",
   },
   modernOptionText: {
     fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
+    color: "#333",
+    fontWeight: "500",
   },
   modernOptionTextSelected: {
-    color: '#FFF',
+    color: "#FFF",
   },
   modernBioInput: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
     borderRadius: 12,
     padding: 12,
     fontSize: 14,
-    color: '#333',
+    color: "#333",
     minHeight: 100,
   },
   charCount: {
     fontSize: 12,
-    color: '#999',
-    textAlign: 'right',
+    color: "#999",
+    textAlign: "right",
     marginTop: 4,
   },
   modernPhotosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
   },
   modernPhotoItem: {
-    width: '47%',
+    width: "47%",
     aspectRatio: 1,
-    position: 'relative',
+    position: "relative",
   },
   modernPhoto: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     borderRadius: 12,
   },
   modernRemovePhoto: {
-    position: 'absolute',
+    position: "absolute",
     top: -8,
     right: -8,
   },
   modernAddPhoto: {
-    width: '47%',
+    width: "47%",
     aspectRatio: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: '#FF1744',
-    borderStyle: 'dashed',
+    borderColor: "#FF1744",
+    borderStyle: "dashed",
   },
   modernAddPhotoText: {
     fontSize: 13,
-    color: '#FF1744',
-    fontWeight: '500',
+    color: "#FF1744",
+    fontWeight: "500",
     marginTop: 4,
   },
   modernInterestsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   modernInterestChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: "#E0E0E0",
     gap: 4,
   },
   modernInterestChipSelected: {
-    backgroundColor: '#FF1744',
-    borderColor: '#FF1744',
+    backgroundColor: "#FF1744",
+    borderColor: "#FF1744",
   },
   modernInterestText: {
     fontSize: 13,
-    color: '#333',
-    fontWeight: '500',
+    color: "#333",
+    fontWeight: "500",
   },
   modernInterestTextSelected: {
-    color: '#FFF',
+    color: "#FFF",
   },
   modernSignupButton: {
-    backgroundColor: '#FF1744',
+    backgroundColor: "#FF1744",
     borderRadius: 25,
     height: 52,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 8,
     marginBottom: 20,
-    shadowColor: '#FF1744',
+    shadowColor: "#FF1744",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1744,56 +2099,56 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   modernSignupButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 
   // Email verification modal
   verifyOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 24,
   },
   verifyCard: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 20,
     padding: 28,
-    alignItems: 'center',
-    width: '100%',
+    alignItems: "center",
+    width: "100%",
   },
   verifyIconCircle: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#FFF0F3',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#FFF0F3",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
   },
   verifyTitle: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: "700",
     color: theme.colors.text,
     marginBottom: 10,
   },
   verifyBody: {
     fontSize: 15,
     color: theme.colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 22,
     marginBottom: 8,
   },
   verifyEmailText: {
-    fontWeight: '600',
+    fontWeight: "600",
     color: theme.colors.text,
   },
   verifyHint: {
     fontSize: 13,
     color: theme.colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 24,
     lineHeight: 18,
   },
@@ -1801,19 +2156,37 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     borderRadius: 12,
     paddingVertical: 14,
-    width: '100%',
-    alignItems: 'center',
+    width: "100%",
+    alignItems: "center",
     marginBottom: 12,
   },
   verifyBtnText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   verifyResend: {
     fontSize: 14,
     color: theme.colors.primary,
-    fontWeight: '500',
+    fontWeight: "500",
+  },
+  termsContainer: {
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  termsCheckboxRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#666",
+    lineHeight: 20,
+  },
+  termsLink: {
+    color: theme.colors.primary,
+    fontWeight: "600",
   },
 });
 

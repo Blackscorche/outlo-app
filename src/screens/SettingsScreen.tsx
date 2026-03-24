@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,25 +9,35 @@ import {
   Switch,
   Alert,
   Linking,
-} from 'react-native';
-import Slider from '@react-native-community/slider';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
-import { supabase } from '../integrations/supabase/client';
-import { useAuth } from '../hooks/useAuth';
-import { useSettings } from '../contexts/SettingsContext';
-import { clearStoredSettings } from '../utils/settingsStorage';
-import { useSubscription } from '../hooks/useSubscription';
-import engagementNotificationService from '../services/engagementNotificationService';
+} from "react-native";
+import Slider from "@react-native-community/slider";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { theme } from "../styles/theme";
+import { supabase } from "../integrations/supabase/client";
+import { useAuth } from "../hooks/useAuth";
+import { useSettings } from "../contexts/SettingsContext";
+import { clearStoredSettings } from "../utils/settingsStorage";
+import { useSubscription } from "../hooks/useSubscription";
+import engagementNotificationService from "../services/engagementNotificationService";
 
 const SettingsScreen = ({ navigation }) => {
   const { user } = useAuth();
-  const { settings, updateLocationEnabled, updateVisibility, updateKeepScreenOn, updateFilters } = useSettings();
+  const {
+    settings,
+    updateLocationEnabled,
+    startManualCheckIn,
+    endManualCheckIn,
+    updateKeepScreenOn,
+    updateFilters,
+  } = useSettings();
   const { isInvisibleMode, isPremium } = useSubscription();
 
   const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState<{ name: string; photos: string[] } | null>(null);
+  const [profile, setProfile] = useState<{
+    name: string;
+    photos: string[];
+  } | null>(null);
 
   // Notification toggles
   const [notifMessages, setNotifMessages] = useState(true);
@@ -35,11 +45,14 @@ const SettingsScreen = ({ navigation }) => {
   const [notifActivity, setNotifActivity] = useState(false);
 
   // Extract from settings context
-  const { isLocationEnabled, isVisible, activeFilters } = settings;
+  const { isLocationEnabled, isVisible, visibleUntil, activeFilters } =
+    settings;
   const [distance, setDistance] = useState(activeFilters.distance ?? 10);
   const [minAge, setMinAge] = useState(activeFilters.ageRange?.[0] ?? 18);
   const [maxAge, setMaxAge] = useState(activeFilters.ageRange?.[1] ?? 35);
-  const [gender, setGender] = useState<'all' | 'male' | 'female'>(activeFilters.gender ?? 'all');
+  const [gender, setGender] = useState<"all" | "male" | "female">(
+    activeFilters.gender ?? "all",
+  );
 
   useEffect(() => {
     loadProfile();
@@ -49,11 +62,11 @@ const SettingsScreen = ({ navigation }) => {
   const loadProfile = async () => {
     if (!user) return;
     const { data, error } = await supabase
-      .from('profiles')
-      .select('name, photos')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("name, photos")
+      .eq("id", user.id)
       .single();
-    if (error) console.error('Error loading profile:', error);
+    if (error) console.error("Error loading profile:", error);
     if (data) setProfile(data);
   };
 
@@ -62,11 +75,16 @@ const SettingsScreen = ({ navigation }) => {
       const s = await engagementNotificationService.getSettings();
       setNotifActivity(s.enabled);
     } catch (e) {
-      console.error('Error loading notification settings:', e);
+      console.error("Error loading notification settings:", e);
     }
   };
 
-  const saveFilters = async (newFilters: { distance?: number; minAge?: number; maxAge?: number; gender?: string }) => {
+  const saveFilters = async (newFilters: {
+    distance?: number;
+    minAge?: number;
+    maxAge?: number;
+    gender?: string;
+  }) => {
     try {
       await updateFilters({
         genderPreference: newFilters.gender ?? gender,
@@ -75,26 +93,34 @@ const SettingsScreen = ({ navigation }) => {
         maxAge: newFilters.maxAge ?? maxAge,
       });
     } catch (e) {
-      console.error('Error saving filters:', e);
+      console.error("Error saving filters:", e);
     }
   };
 
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
       {
-        text: 'Logout',
-        style: 'destructive',
+        text: "Logout",
+        style: "destructive",
         onPress: async () => {
           try {
-            const { data: { user: u } } = await supabase.auth.getUser();
+            const {
+              data: { user: u },
+            } = await supabase.auth.getUser();
             if (u) {
-              await supabase.from('profiles').update({ is_online: false, last_seen: new Date().toISOString() }).eq('id', u.id);
+              await supabase
+                .from("profiles")
+                .update({
+                  is_online: false,
+                  last_seen: new Date().toISOString(),
+                })
+                .eq("id", u.id);
             }
             await clearStoredSettings();
             await supabase.auth.signOut();
           } catch (e) {
-            console.error('Error during logout:', e);
+            console.error("Error during logout:", e);
             await clearStoredSettings();
             await supabase.auth.signOut();
           }
@@ -104,61 +130,87 @@ const SettingsScreen = ({ navigation }) => {
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert('Delete Account', 'Are you sure you want to delete your account?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete Account',
-        style: 'destructive',
-        onPress: () => {
-          Alert.alert('Final Confirmation', 'This will permanently delete your account and all associated data.', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Confirm Delete',
-              style: 'destructive',
-              onPress: async () => {
-                try {
-                  setLoading(true);
-                  const { data: { user: u } } = await supabase.auth.getUser();
-                  if (!u) { Alert.alert('Error', 'User not found'); return; }
-                  const { error } = await supabase.functions.invoke('delete-account', { body: { userId: u.id } });
-                  if (error) {
-                    Alert.alert('Account Deletion', 'Please contact support@lovemapapp.com to complete deletion.', [
-                      { text: 'Email Support', onPress: () => Linking.openURL(`mailto:support@lovemapapp.com?subject=Account%20Deletion%20Request`) },
-                      { text: 'OK' },
-                    ]);
-                    return;
-                  }
-                  await clearStoredSettings();
-                  await supabase.auth.signOut();
-                } catch (e) {
-                  Alert.alert('Error', 'Failed to delete account. Please contact support@lovemapapp.com');
-                } finally {
-                  setLoading(false);
-                }
-              },
-            },
-          ]);
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to delete your account?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Account",
+          style: "destructive",
+          onPress: () => {
+            Alert.alert(
+              "Final Confirmation",
+              "This will permanently delete your account and all associated data.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Confirm Delete",
+                  style: "destructive",
+                  onPress: async () => {
+                    try {
+                      setLoading(true);
+                      const {
+                        data: { user: u },
+                      } = await supabase.auth.getUser();
+                      if (!u) {
+                        Alert.alert("Error", "User not found");
+                        return;
+                      }
+                      const { error } = await supabase.functions.invoke(
+                        "delete-account",
+                        { body: { userId: u.id } },
+                      );
+                      if (error) {
+                        Alert.alert(
+                          "Deletion Failed",
+                          "We could not delete your account right now. Please try again shortly.",
+                        );
+                        return;
+                      }
+                      await clearStoredSettings();
+                      await supabase.auth.signOut();
+                    } catch (e) {
+                      Alert.alert(
+                        "Error",
+                        "Failed to delete account. Please contact support@lovemapapp.com",
+                      );
+                    } finally {
+                      setLoading(false);
+                    }
+                  },
+                },
+              ],
+            );
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const avatarUri = profile?.photos?.[0];
-  const genderLabel = gender === 'all' ? 'Everyone' : gender === 'male' ? 'Men' : 'Women';
+  const genderLabel =
+    gender === "all" ? "Everyone" : gender === "male" ? "Men" : "Women";
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-          <Image source={require('../../assets/favicon.png')} style={styles.headerLogo} resizeMode="contain" />
+        <TouchableOpacity onPress={() => navigation.navigate("Home")}>
+          <Image
+            source={require("../../assets/favicon.png")}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Profile Card */}
         <View style={styles.card}>
           <View style={styles.profileRow}>
@@ -172,8 +224,8 @@ const SettingsScreen = ({ navigation }) => {
               )}
             </View>
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{profile?.name ?? ''}</Text>
-              <Text style={styles.profileEmail}>{user?.email ?? ''}</Text>
+              <Text style={styles.profileName}>{profile?.name ?? ""}</Text>
+              <Text style={styles.profileEmail}>{user?.email ?? ""}</Text>
               {isPremium && (
                 <View style={styles.premiumBadge}>
                   <View style={styles.premiumDot} />
@@ -181,7 +233,7 @@ const SettingsScreen = ({ navigation }) => {
                 </View>
               )}
             </View>
-            <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+            <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
               <Text style={styles.editButton}>Edit</Text>
             </TouchableOpacity>
           </View>
@@ -197,41 +249,116 @@ const SettingsScreen = ({ navigation }) => {
           <View style={styles.toggleRow}>
             <View style={styles.toggleInfo}>
               <Text style={styles.toggleTitle}>Enable Location</Text>
-              <Text style={styles.toggleSubtitle}>Allow app to access your location</Text>
+              <Text style={styles.toggleSubtitle}>
+                Allow app to access your location
+              </Text>
             </View>
             <Switch
               value={isLocationEnabled}
               onValueChange={async (v) => {
-                try { setLoading(true); await updateLocationEnabled(v); } catch (e) {} finally { setLoading(false); }
+                try {
+                  setLoading(true);
+                  await updateLocationEnabled(v);
+                } catch (e) {
+                } finally {
+                  setLoading(false);
+                }
               }}
-              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              trackColor={{ false: "#E0E0E0", true: "#4CAF50" }}
               thumbColor="#fff"
             />
           </View>
           <View style={styles.divider} />
-          <View style={styles.toggleRow}>
+          {/* <View style={styles.toggleRow}>
             <View style={styles.toggleInfo}>
               <Text style={styles.toggleTitle}>Show on Map</Text>
-              <Text style={styles.toggleSubtitle}>Make yourself visible to others</Text>
+              <Text style={styles.toggleSubtitle}>
+                Make yourself visible to others
+              </Text>
             </View>
             <Switch
               value={isVisible}
               onValueChange={async (v) => {
                 try {
                   if (!v && !isInvisibleMode) {
-                    Alert.alert('Premium Feature', 'Invisible mode requires Premium.', [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'View Plans', onPress: () => navigation.navigate('Subscription') },
-                    ]);
+                    Alert.alert(
+                      "Premium Feature",
+                      "Invisible mode requires Premium.",
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "View Plans",
+                          onPress: () => navigation.navigate("Subscription"),
+                        },
+                      ],
+                    );
                     return;
                   }
                   setLoading(true);
                   await updateVisibility(v);
-                } catch (e) {} finally { setLoading(false); }
+                } catch (e) {
+                } finally {
+                  setLoading(false);
+                }
               }}
-              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              trackColor={{ false: "#E0E0E0", true: "#4CAF50" }}
               thumbColor="#fff"
             />
+          </View> */}
+
+          <View style={styles.divider} />
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleInfo}>
+              <Text style={styles.toggleTitle}>Map Check-In</Text>
+              <Text style={styles.toggleSubtitle}>
+                {isVisible && visibleUntil
+                  ? `Visible until ${new Date(visibleUntil).toLocaleTimeString(
+                      [],
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      },
+                    )}`
+                  : "Manually check in to appear on the map"}
+              </Text>
+            </View>
+
+            {isVisible ? (
+              <TouchableOpacity
+                style={styles.checkInEndButton}
+                onPress={async () => {
+                  try {
+                    setLoading(true);
+                    await endManualCheckIn();
+                  } catch (e) {
+                    Alert.alert("Error", "Failed to end check-in.");
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+              >
+                <Text style={styles.checkInEndButtonText}>End</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.checkInStartButton}
+                onPress={async () => {
+                  try {
+                    setLoading(true);
+                    await startManualCheckIn(60);
+                  } catch (e: any) {
+                    Alert.alert(
+                      "Error",
+                      e?.message || "Failed to start check-in.",
+                    );
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+              >
+                <Text style={styles.checkInStartButtonText}>Check In</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -255,7 +382,9 @@ const SettingsScreen = ({ navigation }) => {
               maximumValue={25}
               value={distance}
               onValueChange={setDistance}
-              onSlidingComplete={(v) => saveFilters({ distance: Math.round(v) })}
+              onSlidingComplete={(v) =>
+                saveFilters({ distance: Math.round(v) })
+              }
               minimumTrackTintColor="#FF1744"
               maximumTrackTintColor="#E0E0E0"
               thumbTintColor="#2979FF"
@@ -272,7 +401,9 @@ const SettingsScreen = ({ navigation }) => {
           <View style={styles.sliderSection}>
             <View style={styles.sliderLabelRow}>
               <Text style={styles.sliderLabel}>Age Range</Text>
-              <Text style={styles.sliderValue}>{Math.round(minAge)}-{Math.round(maxAge)}</Text>
+              <Text style={styles.sliderValue}>
+                {Math.round(minAge)}-{Math.round(maxAge)}
+              </Text>
             </View>
             <Slider
               style={styles.slider}
@@ -297,16 +428,27 @@ const SettingsScreen = ({ navigation }) => {
           <View style={styles.sliderSection}>
             <Text style={styles.sliderLabel}>Gender Preference</Text>
             <View style={styles.genderButtons}>
-              {(['all', 'male', 'female'] as const).map((g) => {
-                const label = g === 'all' ? 'Everyone' : g === 'male' ? 'Men' : 'Women';
+              {(["all", "male", "female"] as const).map((g) => {
+                const label =
+                  g === "all" ? "Everyone" : g === "male" ? "Men" : "Women";
                 const active = gender === g;
                 return (
                   <TouchableOpacity
                     key={g}
                     style={[styles.genderBtn, active && styles.genderBtnActive]}
-                    onPress={() => { setGender(g); saveFilters({ gender: label }); }}
+                    onPress={() => {
+                      setGender(g);
+                      saveFilters({ gender: label });
+                    }}
                   >
-                    <Text style={[styles.genderBtnText, active && styles.genderBtnTextActive]}>{label}</Text>
+                    <Text
+                      style={[
+                        styles.genderBtnText,
+                        active && styles.genderBtnTextActive,
+                      ]}
+                    >
+                      {label}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
@@ -324,12 +466,14 @@ const SettingsScreen = ({ navigation }) => {
           <View style={styles.toggleRow}>
             <View style={styles.toggleInfo}>
               <Text style={styles.toggleTitle}>New Messages</Text>
-              <Text style={styles.toggleSubtitle}>Get notified of new chat messages</Text>
+              <Text style={styles.toggleSubtitle}>
+                Get notified of new chat messages
+              </Text>
             </View>
             <Switch
               value={notifMessages}
               onValueChange={setNotifMessages}
-              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              trackColor={{ false: "#E0E0E0", true: "#4CAF50" }}
               thumbColor="#fff"
             />
           </View>
@@ -337,12 +481,14 @@ const SettingsScreen = ({ navigation }) => {
           <View style={styles.toggleRow}>
             <View style={styles.toggleInfo}>
               <Text style={styles.toggleTitle}>Connection Requests</Text>
-              <Text style={styles.toggleSubtitle}>When someone wants to connect</Text>
+              <Text style={styles.toggleSubtitle}>
+                When someone wants to connect
+              </Text>
             </View>
             <Switch
               value={notifConnections}
               onValueChange={setNotifConnections}
-              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              trackColor={{ false: "#E0E0E0", true: "#4CAF50" }}
               thumbColor="#fff"
             />
           </View>
@@ -350,17 +496,21 @@ const SettingsScreen = ({ navigation }) => {
           <View style={styles.toggleRow}>
             <View style={styles.toggleInfo}>
               <Text style={styles.toggleTitle}>Activity Updates</Text>
-              <Text style={styles.toggleSubtitle}>New activities and events nearby</Text>
+              <Text style={styles.toggleSubtitle}>
+                New activities and events nearby
+              </Text>
             </View>
             <Switch
               value={notifActivity}
               onValueChange={async (v) => {
                 try {
-                  await engagementNotificationService.updateSettings({ enabled: v });
+                  await engagementNotificationService.updateSettings({
+                    enabled: v,
+                  });
                   setNotifActivity(v);
                 } catch (e) {}
               }}
-              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              trackColor={{ false: "#E0E0E0", true: "#4CAF50" }}
               thumbColor="#fff"
             />
           </View>
@@ -373,26 +523,47 @@ const SettingsScreen = ({ navigation }) => {
             <Text style={styles.sectionTitle}>Privacy & Safety</Text>
           </View>
           <View style={styles.divider} />
-          <TouchableOpacity style={styles.menuRow} onPress={() => navigation.navigate('BlockedUsers')}>
+          <TouchableOpacity
+            style={styles.menuRow}
+            onPress={() => navigation.navigate("BlockedUsers")}
+          >
             <View style={styles.menuRowLeft}>
-              <Ionicons name="people-outline" size={20} color={theme.colors.textSecondary} />
+              <Ionicons
+                name="people-outline"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
               <Text style={styles.menuRowText}>Blocked Users</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.gray[400]} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.colors.gray[400]}
+            />
           </TouchableOpacity>
           <View style={styles.divider} />
           <TouchableOpacity
             style={styles.menuRow}
             onPress={() => {
-              const url = 'https://www.lovemap.biz/privacy';
-              Linking.openURL(url).catch(() => Alert.alert('Error', 'Unable to open link'));
+              const url = "https://www.lovemap.biz/privacy";
+              Linking.openURL(url).catch(() =>
+                Alert.alert("Error", "Unable to open link"),
+              );
             }}
           >
             <View style={styles.menuRowLeft}>
-              <Ionicons name="document-text-outline" size={20} color={theme.colors.textSecondary} />
+              <Ionicons
+                name="document-text-outline"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
               <Text style={styles.menuRowText}>Privacy Policy</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.gray[400]} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.colors.gray[400]}
+            />
           </TouchableOpacity>
         </View>
 
@@ -400,9 +571,14 @@ const SettingsScreen = ({ navigation }) => {
         <View style={styles.premiumBanner}>
           <View style={styles.premiumBannerContent}>
             <Text style={styles.premiumBannerTitle}>Premium Features</Text>
-            <Text style={styles.premiumBannerSubtitle}>Unlock unlimited connections & more</Text>
+            <Text style={styles.premiumBannerSubtitle}>
+              Unlock unlimited connections & more
+            </Text>
           </View>
-          <TouchableOpacity style={styles.upgradeBtn} onPress={() => navigation.navigate('Subscription')}>
+          <TouchableOpacity
+            style={styles.upgradeBtn}
+            onPress={() => navigation.navigate("Subscription")}
+          >
             <Text style={styles.upgradeBtnText}>Upgrade</Text>
           </TouchableOpacity>
         </View>
@@ -410,34 +586,73 @@ const SettingsScreen = ({ navigation }) => {
         {/* Account */}
         <View style={styles.card}>
           <Text style={styles.accountHeader}>Account</Text>
-          <TouchableOpacity style={styles.menuRow} onPress={() => navigation.navigate('ChangePassword')}>
+          <TouchableOpacity
+            style={styles.menuRow}
+            onPress={() => navigation.navigate("ChangePassword")}
+          >
             <View style={styles.menuRowLeft}>
-              <Ionicons name="key-outline" size={20} color={theme.colors.textSecondary} />
+              <Ionicons
+                name="key-outline"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
               <Text style={styles.menuRowText}>Change Password</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.gray[400]} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.colors.gray[400]}
+            />
           </TouchableOpacity>
           <View style={styles.divider} />
-          <TouchableOpacity style={styles.menuRow} onPress={() => navigation.navigate('ChangeEmail')}>
+          <TouchableOpacity
+            style={styles.menuRow}
+            onPress={() => navigation.navigate("ChangeEmail")}
+          >
             <View style={styles.menuRowLeft}>
-              <Ionicons name="mail-outline" size={20} color={theme.colors.textSecondary} />
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
               <Text style={styles.menuRowText}>Change Email</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.gray[400]} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.colors.gray[400]}
+            />
           </TouchableOpacity>
           <View style={styles.divider} />
-          <TouchableOpacity style={styles.menuRow} onPress={handleDeleteAccount}>
+          <TouchableOpacity
+            style={styles.menuRow}
+            onPress={handleDeleteAccount}
+          >
             <View style={styles.menuRowLeft}>
-              <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
-              <Text style={[styles.menuRowText, { color: theme.colors.error }]}>Delete Account</Text>
+              <Ionicons
+                name="trash-outline"
+                size={20}
+                color={theme.colors.error}
+              />
+              <Text style={[styles.menuRowText, { color: theme.colors.error }]}>
+                Delete Account
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.gray[400]} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.colors.gray[400]}
+            />
           </TouchableOpacity>
         </View>
 
         {/* Log Out */}
         <TouchableOpacity style={styles.logoutRow} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={22} color={theme.colors.textSecondary} />
+          <Ionicons
+            name="log-out-outline"
+            size={22}
+            color={theme.colors.textSecondary}
+          />
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
 
@@ -450,16 +665,16 @@ const SettingsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 4,
     paddingRight: 16,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -467,14 +682,14 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   headerTitle: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: theme.colors.text,
-    pointerEvents: 'none',
+    pointerEvents: "none",
   },
   headerLogo: {
     width: 150,
@@ -486,11 +701,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 3,
@@ -498,12 +713,12 @@ const styles = StyleSheet.create({
   },
   // Profile
   profileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   avatarContainer: {
-    position: 'relative',
+    position: "relative",
   },
   avatar: {
     width: 60,
@@ -511,9 +726,9 @@ const styles = StyleSheet.create({
     borderRadius: 30,
   },
   avatarPlaceholder: {
-    backgroundColor: '#F0F0F0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F0F0F0",
+    justifyContent: "center",
+    alignItems: "center",
   },
   profileInfo: {
     flex: 1,
@@ -521,7 +736,7 @@ const styles = StyleSheet.create({
   },
   profileName: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: "700",
     color: theme.colors.text,
   },
   profileEmail: {
@@ -529,8 +744,8 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   premiumBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 5,
     marginTop: 3,
   },
@@ -538,40 +753,40 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
   },
   premiumText: {
     fontSize: 12,
-    color: '#4CAF50',
-    fontWeight: '600',
+    color: "#4CAF50",
+    fontWeight: "600",
   },
   editButton: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#FF1744',
+    fontWeight: "600",
+    color: "#FF1744",
   },
   // Section header
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     marginBottom: 4,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     color: theme.colors.text,
   },
   divider: {
     height: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: "#F0F0F0",
     marginVertical: 2,
   },
   // Toggle rows
   toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 10,
   },
   toggleInfo: {
@@ -580,7 +795,7 @@ const styles = StyleSheet.create({
   },
   toggleTitle: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: "500",
     color: theme.colors.text,
   },
   toggleSubtitle: {
@@ -593,28 +808,28 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   sliderLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 4,
   },
   sliderLabel: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: "500",
     color: theme.colors.text,
   },
   sliderValue: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#FF1744',
+    fontWeight: "700",
+    color: "#FF1744",
   },
   slider: {
-    width: '100%',
+    width: "100%",
     height: 36,
   },
   sliderRange: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: -4,
   },
   sliderRangeText: {
@@ -623,7 +838,7 @@ const styles = StyleSheet.create({
   },
   // Gender buttons
   genderButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
     marginTop: 10,
   },
@@ -632,32 +847,32 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    alignItems: 'center',
-    backgroundColor: '#FAFAFA',
+    borderColor: "#E0E0E0",
+    alignItems: "center",
+    backgroundColor: "#FAFAFA",
   },
   genderBtnActive: {
-    borderColor: '#2979FF',
-    backgroundColor: '#2979FF',
+    borderColor: "#2979FF",
+    backgroundColor: "#2979FF",
   },
   genderBtnText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     color: theme.colors.textSecondary,
   },
   genderBtnTextActive: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   // Menu rows
   menuRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 12,
   },
   menuRowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     flex: 1,
   },
@@ -670,54 +885,54 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 18,
     paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#C44BFF',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#C44BFF",
   },
   premiumBannerContent: {
     flex: 1,
   },
   premiumBannerTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   premiumBannerSubtitle: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.85)',
+    color: "rgba(255,255,255,0.85)",
     marginTop: 3,
   },
   upgradeBtn: {
     borderWidth: 1.5,
-    borderColor: '#FFFFFF',
+    borderColor: "#FFFFFF",
     paddingHorizontal: 16,
     paddingVertical: 7,
     borderRadius: 20,
     marginLeft: 12,
   },
   upgradeBtnText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   // Account
   accountHeader: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     color: theme.colors.text,
     marginBottom: 4,
   },
   // Logout
   logoutRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     gap: 8,
     paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 3,
@@ -725,8 +940,32 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: theme.colors.textSecondary,
+  },
+  checkInStartButton: {
+    backgroundColor: "#FF1744",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  checkInStartButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  checkInEndButton: {
+    backgroundColor: "#F5F5F5",
+    borderColor: "#FF1744",
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  checkInEndButtonText: {
+    color: "#FF1744",
+    fontWeight: "700",
+    fontSize: 13,
   },
 });
 

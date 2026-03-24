@@ -12,13 +12,17 @@
       "distribution": "internal"
     },
     "production": {
-       "android": {
-        "buildType": "app-bundle"  // Creates AAB for Play Store
-      },
-      "autoIncrement": true
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6753698621"
+      }
+    }
   }
 }
