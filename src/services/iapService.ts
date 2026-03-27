@@ -262,7 +262,7 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
   };
 
   // Purchase any product
-  const purchaseProduct = async (productId: string, callBack: () => void) => {
+  const purchaseProduct = async (productId: string) => {
     if (!connected) {
       showError("Store Error", "Store not connected. Please try again.");
       return;
@@ -292,9 +292,7 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
             },
           },
           type: "subs",
-        }).then(() => {
-          callBack();
-        });
+        })
       } else {
         await requestPurchase({
           request: {
@@ -302,8 +300,6 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
             android: { skus: [productId] },
           },
           type: isSubscription ? "subs" : "inapp",
-        }).then(() => {
-          callBack();
         });
       }
     } catch (error) {

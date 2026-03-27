@@ -38,6 +38,7 @@ import SkillMatchingScreen from './src/screens/SkillMatchingScreen';
 import BlockedUsersScreen from './src/screens/BlockedUsersScreen';
 import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
 import ChangeEmailScreen from './src/screens/ChangeEmailScreen';
+import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -79,13 +80,22 @@ function getTabIcon(routeName: string, focused: boolean): keyof typeof Ionicons.
     case 'Messages':
       return focused ? 'chatbubbles' : 'chatbubbles-outline';
     case 'Home':
-      return 'home';
+      return focused ? 'map' : 'map-outline';
     case 'Connections':
       return focused ? 'people' : 'people-outline';
     case 'Settings':
       return focused ? 'settings' : 'settings-outline';
     default:
       return 'help-outline';
+  }
+}
+
+function getTabLabel(routeName: string) {
+  switch (routeName) {
+    case 'Home':
+      return 'Map';
+      default:
+      return routeName;
   }
 }
 
@@ -130,7 +140,7 @@ function CustomTabBar({ state, navigation }: any) {
             >
               <View style={tabBarStyles.centerButtonOuter}>
                 <View style={[tabBarStyles.centerButton, focused && tabBarStyles.centerButtonActive]}>
-                  <Ionicons name="home" size={28} color="#FFF" />
+                  <Ionicons name="map" size={28} color="#FFF" />
                 </View>
               </View>
             </TouchableOpacity>
@@ -163,7 +173,7 @@ function CustomTabBar({ state, navigation }: any) {
               tabBarStyles.label,
               { color: focused ? '#FF1744' : '#999' }
             ]}>
-              {route.name}
+              {getTabLabel(route.name)}
             </Text>
           </TouchableOpacity>
         );
@@ -175,7 +185,7 @@ function CustomTabBar({ state, navigation }: any) {
 function MainTabs() {
   return (
     <Tab.Navigator
-      initialRouteName="Home"
+      initialRouteName="Activities"
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
@@ -251,7 +261,7 @@ function UserProfileTabBar({ navigation: tabNav, parentNavigation }: any) {
               )}
             </View>
             <Text style={[tabBarStyles.label, { color: '#999' }]}>
-              {name}
+              {getTabLabel(name)}
             </Text>
           </TouchableOpacity>
         );

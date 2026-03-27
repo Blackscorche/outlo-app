@@ -250,7 +250,7 @@ const SettingsScreen = ({ navigation }) => {
             <View style={styles.toggleInfo}>
               <Text style={styles.toggleTitle}>Enable Location</Text>
               <Text style={styles.toggleSubtitle}>
-                Allow app to access your location
+                Allow location access to discover nearby users and activities
               </Text>
             </View>
             <Switch
@@ -545,7 +545,8 @@ const SettingsScreen = ({ navigation }) => {
           <TouchableOpacity
             style={styles.menuRow}
             onPress={() => {
-              const url = "https://www.lovemap.biz/privacy";
+              const url =
+                "https://youthful-bath-564.notion.site/LoveMap-Privacy-Policy-32f2528e6c4180028ae7d72d7cc9a2b7";
               Linking.openURL(url).catch(() =>
                 Alert.alert("Error", "Unable to open link"),
               );
@@ -558,6 +559,53 @@ const SettingsScreen = ({ navigation }) => {
                 color={theme.colors.textSecondary}
               />
               <Text style={styles.menuRowText}>Privacy Policy</Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.colors.gray[400]}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.menuRow}
+            onPress={() => {
+              const url =
+                "https://youthful-bath-564.notion.site/LoveMap-Terms-of-Service-32f2528e6c418020b72de5f727b05da2";
+              Linking.openURL(url).catch(() =>
+                Alert.alert("Error", "Unable to open link"),
+              );
+            }}
+          >
+            <View style={styles.menuRowLeft}>
+              <Ionicons
+                name="document-text-outline"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
+              <Text style={styles.menuRowText}>Terms of Service</Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.colors.gray[400]}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.menuRow}
+            onPress={() => {
+              const email = "support@lovemapapp.com";
+              Linking.openURL(`mailto:${email}`).catch(() =>
+                Alert.alert("Error", "Unable to open email app"),
+              );
+            }}
+          >
+            <View style={styles.menuRowLeft}>
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
+              <Text style={styles.menuRowText}>Contact Support</Text>
             </View>
             <Ionicons
               name="chevron-forward"

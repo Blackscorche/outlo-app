@@ -1128,7 +1128,7 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
                 <Text style={styles.emptyCardText}>No activities yet</Text>
                 {isOwnProfile && (
                   <TouchableOpacity style={styles.emptyCardBtn} onPress={() => navigation.navigate('Activities')}>
-                    <Text style={styles.emptyCardBtnText}>Create Activity</Text>
+                    <Text style={styles.emptyCardBtnText}>Create Session</Text>
                   </TouchableOpacity>
                 )}
               </View>

@@ -28,13 +28,26 @@ import {
 } from "../components/PurchaseModals";
 import { useLoveMapIAP } from "../services/iapService";
 
+const PRIVACY_URL =
+  "https://youthful-bath-564.notion.site/LoveMap-Privacy-Policy-32f2528e6c4180028ae7d72d7cc9a2b7";
+
+const TERMS_URL =
+  "https://youthful-bath-564.notion.site/LoveMap-Terms-of-Service-32f2528e6c418020b72de5f727b05da2";
+
+const openExternalLink = async (url: string) => {
+  try {
+    await Linking.openURL(url);
+  } catch {
+    Alert.alert("Error", "Unable to open link");
+  }
+};
+
 const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(false);
   const [hideActiveSubscription, setHideActiveSubscription] = useState(false);
-  const { subscription, quotas, refreshSubscription } =
-    useSubscription();
+  const { subscription, quotas, refreshSubscription } = useSubscription();
   // Purchase modal management
   const {
     modalState,
@@ -52,7 +65,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
     showInfo,
     hideModals,
   });
-  console.log('...',iap.products,iap.subscriptions)
+  console.log("...", iap.products, iap.subscriptions);
 
   useEffect(() => {
     loadSubscriptionData();
@@ -62,16 +75,16 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
     });
 
     // Listen for app state changes (when user returns from device settings)
-    const handleAppStateChange = async(nextAppState: any) => {
+    const handleAppStateChange = async (nextAppState: any) => {
       if (nextAppState === "active") {
-       await loadSubscriptionData(true); // Force refresh when returning to app
-       await iap.getAvailablePurchases();
+        await loadSubscriptionData(true); // Force refresh when returning to app
+        await iap.getAvailablePurchases();
       }
     };
 
     const appStateSubscription = AppState.addEventListener(
       "change",
-      handleAppStateChange
+      handleAppStateChange,
     );
 
     return () => {
@@ -95,25 +108,26 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
   }, [iap.connected]);
 
   // Create a stable dependency that tracks actual purchase changes (no memo needed)
-  const purchaseIds = !iap.availablePurchases 
-    ? '' 
+  const purchaseIds = !iap.availablePurchases
+    ? ""
     : iap.availablePurchases
-        .map(purchase => purchase.productId)
+        .map((purchase) => purchase.productId)
         .sort()
-        .join(',');
+        .join(",");
 
   // Create subscription product tracker (no memo needed)
-  const hasActiveIAPSubscription = !iap.availablePurchases 
-    ? false 
-    : iap.availablePurchases.some(purchase => 
-        ['lovemap_premium_monthly', 'lovemap_premium_yearly'].includes(purchase.productId)
+  const hasActiveIAPSubscription = !iap.availablePurchases
+    ? false
+    : iap.availablePurchases.some((purchase) =>
+        ["lovemap_premium_monthly", "lovemap_premium_yearly"].includes(
+          purchase.productId,
+        ),
       );
-
 
   useEffect(() => {
     async function handleSubscriptionState() {
       if (initialLoading) return;
-      
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -130,19 +144,16 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
 
       const expiryDate = new Date(subscription.current_period_end);
       const now = new Date();
-      
+
       // Validate dates
       if (isNaN(expiryDate.getTime())) {
         console.log("❌ Invalid expiry date:", subscription.current_period_end);
         return;
       }
 
-
-
       const timeSinceExpiry = now.getTime() - expiryDate.getTime();
       const oneDayInMs = 24 * 60 * 60 * 1000;
       const isWithinGracePeriod = timeSinceExpiry <= oneDayInMs;
-
 
       // Skip logic if availablePurchases is still loading (initial empty array)
       if (!iap.connected || initialLoading) {
@@ -160,13 +171,13 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
       ) {
         // Mark as cancelled but keep premium benefits until expiry
         const { error } = await supabase
-          .from('user_subscriptions' as any)
+          .from("user_subscriptions" as any)
           .update({
-            status: 'cancelled',
+            status: "cancelled",
             updated_at: new Date().toISOString(),
           })
-          .eq('user_id', user.id);
-          
+          .eq("user_id", user.id);
+
         if (error) {
           console.error("❌ Error updating subscription status:", error);
         }
@@ -178,7 +189,8 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
       // Only downgrade if subscription is expired AND past grace period
       if (
         subscription?.tier === "premium" &&
-        (subscription?.status === "active" || subscription?.status === "cancelled") &&
+        (subscription?.status === "active" ||
+          subscription?.status === "cancelled") &&
         !hasActiveIAPSubscription &&
         now > expiryDate &&
         !isWithinGracePeriod
@@ -195,21 +207,33 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
         (subscription?.tier !== "premium" || subscription?.status !== "active")
       ) {
         // Find the actual purchase to process
-        const activeSubscriptionPurchase = iap.availablePurchases.find(purchase => 
-          ['lovemap_premium_monthly', 'lovemap_premium_yearly'].includes(purchase.productId)
+        const activeSubscriptionPurchase = iap.availablePurchases.find(
+          (purchase) =>
+            ["lovemap_premium_monthly", "lovemap_premium_yearly"].includes(
+              purchase.productId,
+            ),
         );
-        
+
         if (activeSubscriptionPurchase) {
-          await subscriptionService.processIAPPurchase(user.id, activeSubscriptionPurchase);
+          await subscriptionService.processIAPPurchase(
+            user.id,
+            activeSubscriptionPurchase,
+          );
           await loadSubscriptionData();
         }
         return;
       }
-
     }
-    
+
     handleSubscriptionState();
-  }, [purchaseIds, initialLoading, subscription?.tier, subscription?.status, subscription?.current_period_end, hasActiveIAPSubscription]);
+  }, [
+    purchaseIds,
+    initialLoading,
+    subscription?.tier,
+    subscription?.status,
+    subscription?.current_period_end,
+    hasActiveIAPSubscription,
+  ]);
 
   const loadSubscriptionData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -225,12 +249,19 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
   };
 
   const handleSubscribe = async (productId: string) => {
+    if (productId.includes("premium") && iap.subscriptions.length === 0) {
+  showError(
+    "Subscriptions Unavailable",
+    "Subscription products are not available right now. Please try again later."
+  );
+  return;
+}
     try {
       if (!iap.connected) {
         console.log("❌ IAP not connected");
         showError(
           "Store Error",
-          "Store connection not available. Please try again."
+          "Store connection not available. Please try again.",
         );
         return;
       }
@@ -249,16 +280,19 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
       const productPrice = iap.getFormattedPrice(productId);
 
       // Check if user is switching subscriptions
-      const isSwitch = isPremium && (
-        (productId.includes("monthly") && subscription?.billing_period === "yearly") ||
-        (productId.includes("yearly") && subscription?.billing_period === "monthly")
-      );
+      const isSwitch =
+        isPremium &&
+        ((productId.includes("monthly") &&
+          subscription?.billing_period === "yearly") ||
+          (productId.includes("yearly") &&
+            subscription?.billing_period === "monthly"));
 
       if (isSwitch) {
         // Show subscription switch confirmation
-        const currentPlan = subscription?.billing_period === "yearly" ? "Yearly" : "Monthly";
+        const currentPlan =
+          subscription?.billing_period === "yearly" ? "Yearly" : "Monthly";
         const newPlan = productId.includes("monthly") ? "Monthly" : "Yearly";
-        
+
         showInfo(
           "Switch Subscription Plan",
           `You're currently on Premium ${currentPlan}. Switching to Premium ${newPlan} will:\n\n${productId.includes("yearly") ? "• You'll be charged immediately for the yearly plan\n• You'll get a prorated refund for unused time on your monthly plan\n• Your new yearly subscription starts right away\n• Benefits still renew monthly (10 requests, 3 impressions each month)" : "• Your monthly subscription will start at your next renewal date\n• You'll continue with your current yearly plan until then\n• No immediate charge - billing happens at renewal"}\n\nProceed with switching to ${productName}?`,
@@ -267,39 +301,37 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
             try {
               hideModals();
               // Show enhanced loading modal
-              showLoading("Switching your subscription...", productPrice, productName);
+              showLoading(
+                "Switching your subscription...",
+                productPrice,
+                productName,
+              );
 
-              await iap.purchaseSubscription(productId, async () => {
-                console.log("✅ Subscription switch success callback triggered");
-                // Purchase callback - reload data
-                await loadSubscriptionData(true);
-                await iap.getAvailablePurchases();
-              });
+              await iap.purchaseSubscription(productId)
             } catch (error: any) {
               console.error("❌ Purchase error in subscription switch:", error);
               showError(
                 "Switch Failed",
-                error?.message || "Failed to switch subscription."
+                error?.message || "Failed to switch subscription.",
               );
             }
-          }
+          },
         );
       } else {
         // Regular subscription purchase
-        showLoading("Processing your subscription...", productPrice, productName);
+        showLoading(
+          "Processing your subscription...",
+          productPrice,
+          productName,
+        );
 
-        await iap.purchaseSubscription(productId, async () => {
-          console.log("✅ Purchase success callback triggered");
-          // Purchase callback - reload data
-          await loadSubscriptionData(true);
-          await iap.getAvailablePurchases();
-        });
+        await iap.purchaseSubscription(productId)
       }
     } catch (error: any) {
       console.error("❌ Purchase error in handleSubscribe:", error);
       showError(
         "Purchase Failed",
-        error?.message || "Failed to process subscription."
+        error?.message || "Failed to process subscription.",
       );
     }
   };
@@ -309,7 +341,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
       if (!iap.connected) {
         showError(
           "Store Error",
-          "Store connection not available. Please try again."
+          "Store connection not available. Please try again.",
         );
         return;
       }
@@ -324,13 +356,12 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
       const productName = productId.includes("connection")
         ? "Partner Request"
         : productId.includes("impression")
-        ? "First Impression"
-        : productId.includes("invisible")
-        ? "Invisible Mode (30 days)"
-        : "Product";
+          ? "First Impression"
+          : productId.includes("invisible")
+            ? "Invisible Mode (30 days)"
+            : "Product";
 
       const productPrice = iap.getFormattedPrice(productId);
-
 
       showInfo(
         `Purchase ${productName}`,
@@ -350,28 +381,24 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
             showLoading(
               "Processing your purchase...",
               modalPrice,
-              modalProductName
+              modalProductName,
             );
 
-            await iap.purchaseConsumable(productId, async () => {
-              // Purchase callback - reload data
-              await loadSubscriptionData(true);
-              await iap.getAvailablePurchases();
-            });
+            await iap.purchaseConsumable(productId)
           } catch (error: any) {
             console.error("❌ Purchase execution error:", error);
             showError(
               "Purchase Failed",
-              error?.message || "Failed to complete purchase."
+              error?.message || "Failed to complete purchase.",
             );
           }
-        }
+        },
       );
     } catch (error: any) {
       console.error("❌ Purchase preparation error:", error);
       showError(
         "Purchase Error",
-        "Failed to prepare purchase. Please try again."
+        "Failed to prepare purchase. Please try again.",
       );
     }
   };
@@ -390,7 +417,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
           if (!user) return;
 
           hideModals();
-          
+
           // Second: Show instructions modal with callback to open settings
           showInfo(
             "Cancel Subscription (Sandbox)",
@@ -406,7 +433,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                 try {
                   // For Sandbox: Try multiple URL schemes in order
                   let urlOpened = false;
-                  
+
                   if (Platform.OS === "ios") {
                     const urlSchemes = [
                       // Preferred: App Store subscriptions
@@ -433,7 +460,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                   } else {
                     // Android
                     await Linking.openURL(
-                      "https://play.google.com/store/account/subscriptions"
+                      "https://play.google.com/store/account/subscriptions",
                     );
                   }
 
@@ -442,16 +469,19 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                     hideModals();
                   }, 1500);
                 } catch (linkingError) {
-                  console.error("❌ Error opening subscription page:", linkingError);
+                  console.error(
+                    "❌ Error opening subscription page:",
+                    linkingError,
+                  );
                   hideModals();
-                  
+
                   // Fallback: Show manual instructions with Sandbox-specific details
                   showInfo(
                     "Manual Cancellation (Sandbox)",
                     Platform.OS === "ios"
                       ? "Since you're using Sandbox:\n\n1. Go to Settings app\n2. Scroll down to bottom\n3. Tap 'LoveMap' (or find it in app settings)\n4. Look for 'Subscriptions' or 'Account' section\n5. Find your Sandbox subscription\n6. Tap 'Cancel Subscription'\n\nNote: Sandbox subscriptions appear in a different location than production ones."
                       : "Please open Google Play Store > Subscriptions > LoveMap > Cancel",
-                    "warning"
+                    "warning",
                   );
                 }
               } catch (error) {
@@ -459,20 +489,20 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                 hideModals();
                 showError(
                   "Cancellation Error",
-                  "Failed to open subscription management. Please try again."
+                  "Failed to open subscription management. Please try again.",
                 );
               }
-            }
+            },
           );
         } catch (error) {
           console.error("❌ Cancel error:", error);
           hideModals();
           showError(
             "Cancellation Error",
-            "Failed to process cancellation request. Please try again."
+            "Failed to process cancellation request. Please try again.",
           );
         }
-      }
+      },
     );
   };
 
@@ -489,14 +519,14 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
     const name = productId.includes("monthly")
       ? "Premium Monthly"
       : productId.includes("yearly")
-      ? "Premium Yearly"
-      : productId.includes("connection")
-      ? "Partner Request"
-      : productId.includes("impression")
-      ? "First Impression"
-      : productId.includes("invisible")
-      ? "Invisible Mode"
-      : "Product";
+        ? "Premium Yearly"
+        : productId.includes("connection")
+          ? "Partner Request"
+          : productId.includes("impression")
+            ? "First Impression"
+            : productId.includes("invisible")
+              ? "Invisible Mode"
+              : "Product";
 
     return { name, price, product };
   };
@@ -516,20 +546,22 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
   // 2. Cancelled but still within active period (grace period)
   const isPremium = (() => {
     if (subscription?.tier !== "premium") return false;
-    
+
     // If they have active IAP, they're definitely premium
     if (hasActiveIAPSubscription) return true;
-    
+
     // If cancelled but still within active period, still premium
-    if (subscription?.status === "cancelled" && subscription?.current_period_end) {
+    if (
+      subscription?.status === "cancelled" &&
+      subscription?.current_period_end
+    ) {
       const expiryDate = new Date(subscription.current_period_end);
       const now = new Date();
       return now <= expiryDate; // Still in active period
     }
-    
+
     return false;
   })();
-
 
   // Show cancel button only if subscription is truly active (not cancelled)
   const isActiveSubscription = isPremium && subscription?.status === "active";
@@ -548,7 +580,10 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
           <Text style={commonStyles.title}>Subscription</Text>
           <TouchableOpacity
             style={{ width: 25 }}
-            onPress={async () => { await loadSubscriptionData(true);await iap.getAvailablePurchases()}}
+            onPress={async () => {
+              await loadSubscriptionData(true);
+              await iap.getAvailablePurchases();
+            }}
             disabled={refreshing}
           >
             {refreshing ? (
@@ -581,7 +616,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                   ? subscription.billing_period === "yearly"
                     ? `${iap.getFormattedPrice("lovemap_premium_yearly")}/year`
                     : `${iap.getFormattedPrice(
-                        "lovemap_premium_monthly"
+                        "lovemap_premium_monthly",
                       )}/month`
                   : "Free"}
               </Text>
@@ -590,7 +625,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                   <Text style={styles.expiryText}>
                     Active until{" "}
                     {new Date(
-                      subscription.current_period_end
+                      subscription.current_period_end,
                     ).toLocaleDateString()}
                   </Text>
                 )}
@@ -653,10 +688,10 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                 {isPremium
                   ? "Active"
                   : isInvisibleModeActive
-                  ? `Until ${new Date(
-                      quotas.invisible_mode_expires_at
-                    ).toLocaleDateString()}`
-                  : "Not Active"}
+                    ? `Until ${new Date(
+                        quotas.invisible_mode_expires_at,
+                      ).toLocaleDateString()}`
+                    : "Not Active"}
               </Text>
             </View>
           </View>
@@ -668,158 +703,192 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
             {isPremium ? "Switch Subscription" : "Upgrade to Premium"}
           </Text>
 
-            {/* Monthly Plan */}
-            {(() => {
-              const monthlyData = getProductData("lovemap_premium_monthly");
-              const isCurrentPlan = isPremium && subscription?.billing_period === "monthly";
-              const isCancelledButActive = isCurrentPlan && subscription?.status === "cancelled";
-              
-              return (
-                <TouchableOpacity
-                  style={[
-                    styles.planOption, 
-                    isCurrentPlan && styles.currentPlan,
-                  ]}
-                  onPress={() => {
-                    if (isCurrentPlan && !isCancelledButActive) {
-                      // Already subscribed to this plan and it's active
-                      return;
-                    }
-                    handleSubscribe("lovemap_premium_monthly");
-                  }}
-                  disabled={!iap.connected || loading || (isCurrentPlan && !isCancelledButActive)}
-                >
-                  {isCurrentPlan && (
-                    <View style={isCancelledButActive ? styles.activeUntilBadge : styles.currentPlanBadge}>
-                      <Text style={isCancelledButActive ? styles.activeUntilText : styles.currentPlanText}>
-                        {isCancelledButActive ? "ACTIVE UNTIL" : "CURRENT"}
-                      </Text>
-                      {isCancelledButActive && (
-                        <Text style={styles.activeUntilDate}>
-                          {new Date(subscription?.current_period_end || '').toLocaleDateString()}
-                        </Text>
-                      )}
-                    </View>
-                  )}
-                  <View style={styles.planDetails}>
-                    <Text style={styles.planOptionName}>
-                      {monthlyData.name}
-                    </Text>
-                    <Text style={styles.planOptionPrice}>
-                      {monthlyData.price}/month
-                    </Text>
-                    <Text style={styles.planDuration}>
-                      Length: 1 month • Auto-renews monthly
-                    </Text>
-                    <View style={styles.planFeatures}>
-                      <Text style={styles.featureItem}>
-                        • 10 partner requests/month
-                      </Text>
-                      <Text style={styles.featureItem}>
-                        • 3 first impressions/month
-                      </Text>
-                      <Text style={styles.featureItem}>• Invisible mode</Text>
-                    </View>
-                  </View>
-                  {isCurrentPlan && !isCancelledButActive ? (
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={24}
-                      color={theme.colors.success}
-                    />
-                  ) : (
-                    <Ionicons
-                      name="chevron-forward"
-                      size={24}
-                      color={theme.colors.primary}
-                    />
-                  )}
-                </TouchableOpacity>
-              );
-            })()}
+          {/* Monthly Plan */}
+          {(() => {
+            const monthlyData = getProductData("lovemap_premium_monthly");
+            const isCurrentPlan =
+              isPremium && subscription?.billing_period === "monthly";
+            const isCancelledButActive =
+              isCurrentPlan && subscription?.status === "cancelled";
 
-            {/* Yearly Plan */}
-            {(() => {
-              const yearlyData = getProductData("lovemap_premium_yearly");
-              const isCurrentPlan = isPremium && subscription?.billing_period === "yearly";
-              const isCancelledButActive = isCurrentPlan && subscription?.status === "cancelled";
-              const monthlyUser = isPremium && subscription?.billing_period === "monthly";
-              
-              return (
-                <TouchableOpacity
-                  style={[
-                    styles.planOption, 
-                    !isCurrentPlan && styles.recommendedPlan,
-                    isCurrentPlan && styles.currentPlan,
-                  ]}
-                  onPress={() => {
-                    if (isCurrentPlan && !isCancelledButActive) {
-                      // Already subscribed to this plan and it's active
-                      return;
+            return (
+              <TouchableOpacity
+                style={[styles.planOption, isCurrentPlan && styles.currentPlan]}
+                onPress={() => {
+                  if (isCurrentPlan && !isCancelledButActive) {
+                    // Already subscribed to this plan and it's active
+                    return;
+                  }
+                  handleSubscribe("lovemap_premium_monthly");
+                }}
+                disabled={
+                  !iap.connected ||
+                  loading ||
+                  (isCurrentPlan && !isCancelledButActive)
+                }
+              >
+                {isCurrentPlan && (
+                  <View
+                    style={
+                      isCancelledButActive
+                        ? styles.activeUntilBadge
+                        : styles.currentPlanBadge
                     }
-                    handleSubscribe("lovemap_premium_yearly");
-                  }}
-                  disabled={!iap.connected || loading || (isCurrentPlan && !isCancelledButActive)}
-                >
-                  {isCurrentPlan ? (
-                    <View style={isCancelledButActive ? styles.activeUntilBadge : styles.currentPlanBadge}>
-                      <Text style={isCancelledButActive ? styles.activeUntilText : styles.currentPlanText}>
-                        {isCancelledButActive ? "ACTIVE UNTIL" : "CURRENT"}
-                      </Text>
-                      {isCancelledButActive && (
-                        <Text style={styles.activeUntilDate}>
-                          {new Date(subscription?.current_period_end || '').toLocaleDateString()}
-                        </Text>
-                      )}
-                    </View>
-                  ) : monthlyUser ? (
-                    <View style={styles.recommendedBadge}>
-                      <Text style={styles.recommendedText}>SWITCH & SAVE</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.recommendedBadge}>
-                      <Text style={styles.recommendedText}>SAVE 20%</Text>
-                    </View>
-                  )}
-                  <View style={styles.planDetails}>
-                    <Text style={styles.planOptionName}>
-                      {yearlyData.name}
+                  >
+                    <Text
+                      style={
+                        isCancelledButActive
+                          ? styles.activeUntilText
+                          : styles.currentPlanText
+                      }
+                    >
+                      {isCancelledButActive ? "ACTIVE UNTIL" : "CURRENT"}
                     </Text>
-                    <Text style={styles.planOptionPrice}>
-                      {yearlyData.price}/year
-                    </Text>
-                    <Text style={styles.planDuration}>
-                      Length: 12 months • Auto-renews yearly
-                    </Text>
-                    <View style={styles.planFeatures}>
-                      <Text style={styles.featureItem}>
-                        • All Premium features
+                    {isCancelledButActive && (
+                      <Text style={styles.activeUntilDate}>
+                        {new Date(
+                          subscription?.current_period_end || "",
+                        ).toLocaleDateString()}
                       </Text>
-                      <Text style={styles.featureItem}>
-                        • Benefits renewed every month
-                      </Text>
-                      <Text style={styles.featureItem}>
-                        • Save money with yearly billing
-                      </Text>
-                    </View>
+                    )}
                   </View>
-                  {isCurrentPlan && !isCancelledButActive ? (
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={24}
-                      color={theme.colors.success}
-                    />
-                  ) : (
-                    <Ionicons
-                      name="chevron-forward"
-                      size={24}
-                      color={theme.colors.primary}
-                    />
-                  )}
-                </TouchableOpacity>
-              );
-            })()}
-          </View>
+                )}
+                <View style={styles.planDetails}>
+                  <Text style={styles.planOptionName}>{monthlyData.name}</Text>
+                  <Text style={styles.planOptionPrice}>
+                    {monthlyData.price}/month
+                  </Text>
+                  <Text style={styles.planDuration}>
+                    Length: 1 month • Auto-renews monthly
+                  </Text>
+                  <View style={styles.planFeatures}>
+                    <Text style={styles.featureItem}>
+                      • 10 partner requests/month
+                    </Text>
+                    <Text style={styles.featureItem}>
+                      • 3 first impressions/month
+                    </Text>
+                    <Text style={styles.featureItem}>• Invisible mode</Text>
+                  </View>
+                </View>
+                {isCurrentPlan && !isCancelledButActive ? (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={24}
+                    color={theme.colors.success}
+                  />
+                ) : (
+                  <Ionicons
+                    name="chevron-forward"
+                    size={24}
+                    color={theme.colors.primary}
+                  />
+                )}
+              </TouchableOpacity>
+            );
+          })()}
+
+          {/* Yearly Plan */}
+          {(() => {
+            const yearlyData = getProductData("lovemap_premium_yearly");
+            const isCurrentPlan =
+              isPremium && subscription?.billing_period === "yearly";
+            const isCancelledButActive =
+              isCurrentPlan && subscription?.status === "cancelled";
+            const monthlyUser =
+              isPremium && subscription?.billing_period === "monthly";
+
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.planOption,
+                  !isCurrentPlan && styles.recommendedPlan,
+                  isCurrentPlan && styles.currentPlan,
+                ]}
+                onPress={() => {
+                  if (isCurrentPlan && !isCancelledButActive) {
+                    // Already subscribed to this plan and it's active
+                    return;
+                  }
+                  handleSubscribe("lovemap_premium_yearly");
+                }}
+                disabled={
+                  !iap.connected ||
+                  loading ||
+                  (isCurrentPlan && !isCancelledButActive)
+                }
+              >
+                {isCurrentPlan ? (
+                  <View
+                    style={
+                      isCancelledButActive
+                        ? styles.activeUntilBadge
+                        : styles.currentPlanBadge
+                    }
+                  >
+                    <Text
+                      style={
+                        isCancelledButActive
+                          ? styles.activeUntilText
+                          : styles.currentPlanText
+                      }
+                    >
+                      {isCancelledButActive ? "ACTIVE UNTIL" : "CURRENT"}
+                    </Text>
+                    {isCancelledButActive && (
+                      <Text style={styles.activeUntilDate}>
+                        {new Date(
+                          subscription?.current_period_end || "",
+                        ).toLocaleDateString()}
+                      </Text>
+                    )}
+                  </View>
+                ) : monthlyUser ? (
+                  <View style={styles.recommendedBadge}>
+                    <Text style={styles.recommendedText}>SWITCH & SAVE</Text>
+                  </View>
+                ) : (
+                  <View style={styles.recommendedBadge}>
+                    <Text style={styles.recommendedText}>SAVE 20%</Text>
+                  </View>
+                )}
+                <View style={styles.planDetails}>
+                  <Text style={styles.planOptionName}>{yearlyData.name}</Text>
+                  <Text style={styles.planOptionPrice}>
+                    {yearlyData.price}/year
+                  </Text>
+                  <Text style={styles.planDuration}>
+                    Length: 12 months • Auto-renews yearly
+                  </Text>
+                  <View style={styles.planFeatures}>
+                    <Text style={styles.featureItem}>
+                      • All Premium features
+                    </Text>
+                    <Text style={styles.featureItem}>
+                      • Benefits renewed every month
+                    </Text>
+                    <Text style={styles.featureItem}>
+                      • Save money with yearly billing
+                    </Text>
+                  </View>
+                </View>
+                {isCurrentPlan && !isCancelledButActive ? (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={24}
+                    color={theme.colors.success}
+                  />
+                ) : (
+                  <Ionicons
+                    name="chevron-forward"
+                    size={24}
+                    color={theme.colors.primary}
+                  />
+                )}
+              </TouchableOpacity>
+            );
+          })()}
+        </View>
 
         {/* Buy Extras */}
         <View style={styles.section}>
@@ -947,68 +1016,150 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
 
         {/* Apple Required: Subscription Details Box - Moved to bottom */}
         <View style={styles.subscriptionInfoBox}>
-          <Text style={styles.subscriptionInfoTitle}>📋 Auto-Renewable Subscription Details</Text>
-          
+          <Text style={styles.subscriptionInfoTitle}>
+            📋 Auto-Renewable Subscription Details
+          </Text>
+
           <View style={styles.subscriptionInfoDivider} />
-          
+
           {/* Monthly Subscription Details */}
           <View style={styles.subscriptionDetailBlock}>
-            <Text style={styles.subscriptionDetailTitle}>Premium Monthly Subscription</Text>
+            <Text style={styles.subscriptionDetailTitle}>
+              Premium Monthly Subscription
+            </Text>
             <View style={styles.subscriptionInfoItem}>
-              <Ionicons name="time-outline" size={14} color={theme.colors.primary} />
+              <Ionicons
+                name="time-outline"
+                size={14}
+                color={theme.colors.primary}
+              />
               <Text style={styles.subscriptionInfoText}>
-                <Text style={styles.subscriptionBold}>Duration:</Text> 1 month (30 days)
+                <Text style={styles.subscriptionBold}>Duration:</Text> 1 month
+                (30 days)
               </Text>
             </View>
             <View style={styles.subscriptionInfoItem}>
-              <Ionicons name="pricetag-outline" size={14} color={theme.colors.primary} />
+              <Ionicons
+                name="pricetag-outline"
+                size={14}
+                color={theme.colors.primary}
+              />
               <Text style={styles.subscriptionInfoText}>
-                <Text style={styles.subscriptionBold}>Price:</Text> {iap.getFormattedPrice("lovemap_premium_monthly")} per month
+                <Text style={styles.subscriptionBold}>Price:</Text>{" "}
+                {iap.getFormattedPrice("lovemap_premium_monthly")} per month
               </Text>
             </View>
             <View style={styles.subscriptionInfoItem}>
-              <Ionicons name="star-outline" size={14} color={theme.colors.primary} />
+              <Ionicons
+                name="star-outline"
+                size={14}
+                color={theme.colors.primary}
+              />
               <Text style={styles.subscriptionInfoText}>
-                <Text style={styles.subscriptionBold}>Content/Services:</Text> 10 partner requests + 3 first impressions monthly + unlimited invisible mode access
+                <Text style={styles.subscriptionBold}>Content/Services:</Text>{" "}
+                10 partner requests + 3 first impressions monthly + unlimited
+                invisible mode access
               </Text>
             </View>
             <View style={styles.subscriptionInfoItem}>
-              <Ionicons name="sync-outline" size={14} color={theme.colors.primary} />
+              <Ionicons
+                name="sync-outline"
+                size={14}
+                color={theme.colors.primary}
+              />
               <Text style={styles.subscriptionInfoText}>
-                <Text style={styles.subscriptionBold}>Renewal:</Text> Automatically renews every month unless cancelled 24 hours before period ends
+                <Text style={styles.subscriptionBold}>Renewal:</Text>{" "}
+                Automatically renews every month unless cancelled 24 hours
+                before period ends
               </Text>
             </View>
           </View>
 
           <View style={styles.subscriptionInfoDivider} />
-          
+
           {/* Yearly Subscription Details */}
           <View style={styles.subscriptionDetailBlock}>
-            <Text style={styles.subscriptionDetailTitle}>Premium Yearly Subscription</Text>
+            <Text style={styles.subscriptionDetailTitle}>
+              Premium Yearly Subscription
+            </Text>
             <View style={styles.subscriptionInfoItem}>
-              <Ionicons name="time-outline" size={14} color={theme.colors.primary} />
+              <Ionicons
+                name="time-outline"
+                size={14}
+                color={theme.colors.primary}
+              />
               <Text style={styles.subscriptionInfoText}>
-                <Text style={styles.subscriptionBold}>Duration:</Text> 12 months (365 days)
+                <Text style={styles.subscriptionBold}>Duration:</Text> 12 months
+                (365 days)
               </Text>
             </View>
             <View style={styles.subscriptionInfoItem}>
-              <Ionicons name="pricetag-outline" size={14} color={theme.colors.primary} />
+              <Ionicons
+                name="pricetag-outline"
+                size={14}
+                color={theme.colors.primary}
+              />
               <Text style={styles.subscriptionInfoText}>
-                <Text style={styles.subscriptionBold}>Price:</Text> {iap.getFormattedPrice("lovemap_premium_yearly")} per year (save 20%)
+                <Text style={styles.subscriptionBold}>Price:</Text>{" "}
+                {iap.getFormattedPrice("lovemap_premium_yearly")} per year (save
+                20%)
               </Text>
             </View>
             <View style={styles.subscriptionInfoItem}>
-              <Ionicons name="star-outline" size={14} color={theme.colors.primary} />
+              <Ionicons
+                name="star-outline"
+                size={14}
+                color={theme.colors.primary}
+              />
               <Text style={styles.subscriptionInfoText}>
-                <Text style={styles.subscriptionBold}>Content/Services:</Text> 10 partner requests + 3 first impressions monthly + unlimited invisible mode access
+                <Text style={styles.subscriptionBold}>Content/Services:</Text>{" "}
+                10 partner requests + 3 first impressions monthly + unlimited
+                invisible mode access
               </Text>
             </View>
             <View style={styles.subscriptionInfoItem}>
-              <Ionicons name="sync-outline" size={14} color={theme.colors.primary} />
+              <Ionicons
+                name="sync-outline"
+                size={14}
+                color={theme.colors.primary}
+              />
               <Text style={styles.subscriptionInfoText}>
-                <Text style={styles.subscriptionBold}>Renewal:</Text> Automatically renews every year unless cancelled 24 hours before period ends
+                <Text style={styles.subscriptionBold}>Renewal:</Text>{" "}
+                Automatically renews every year unless cancelled 24 hours before
+                period ends
               </Text>
             </View>
+          </View>
+        </View>
+
+        <View style={styles.legalSection}>
+          <Text style={styles.legalText}>
+            Payment will be charged to your Apple ID account at confirmation of
+            purchase.
+          </Text>
+          <Text style={styles.legalText}>
+            Subscription automatically renews unless auto-renew is turned off at
+            least 24 hours before the end of the current period.
+          </Text>
+          <Text style={styles.legalText}>
+            Your account will be charged for renewal within 24 hours prior to
+            the end of the current period.
+          </Text>
+          <Text style={styles.legalText}>
+            You can manage and cancel your subscription in your App Store
+            account settings.
+          </Text>
+
+          <View style={styles.legalLinksRow}>
+            <TouchableOpacity onPress={() => openExternalLink(PRIVACY_URL)}>
+              <Text style={styles.legalLink}>Privacy Policy</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.legalSeparator}>•</Text>
+
+            <TouchableOpacity onPress={() => openExternalLink(TERMS_URL)}>
+              <Text style={styles.legalLink}>Terms of Use</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -1029,14 +1180,14 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                   showLoading(
                     "Testing enhanced loading modal...",
                     "$9.99",
-                    "Premium Monthly"
+                    "Premium Monthly",
                   );
                   setTimeout(() => {
                     showSuccess(
                       "Test Success! 🎉",
                       "Enhanced modal system is working perfectly!",
                       "$9.99",
-                      "Premium Monthly"
+                      "Premium Monthly",
                     );
                   }, 2000);
                 }}
@@ -1057,9 +1208,9 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                     () => {
                       showSuccess(
                         "Confirmed!",
-                        "You confirmed the test modal."
+                        "You confirmed the test modal.",
                       );
-                    }
+                    },
                   );
                 }}
               >
@@ -1077,7 +1228,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                     "This is a test error message with retry option.",
                     () => {
                       showSuccess("Retried!", "You clicked the retry button.");
-                    }
+                    },
                   );
                 }}
               >
@@ -1275,7 +1426,7 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSize.xs,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.sm,
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
   planFeatures: {
     gap: 4,
@@ -1479,21 +1630,21 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   subscriptionInfoBox: {
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: theme.colors.primary + "15",
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.lg,
-    marginHorizontal:theme.spacing.md
+    marginHorizontal: theme.spacing.md,
   },
   subscriptionInfoTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
   },
   subscriptionInfoDivider: {
     height: 1,
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: theme.colors.primary + "20",
     marginVertical: theme.spacing.sm,
   },
   subscriptionDetailBlock: {
@@ -1501,17 +1652,17 @@ const styles = StyleSheet.create({
   },
   subscriptionDetailTitle: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     color: theme.colors.primary,
     marginBottom: 6,
   },
   subscriptionBold: {
-    fontWeight: '600',
+    fontWeight: "600",
     color: theme.colors.text,
   },
   subscriptionInfoItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginVertical: 4,
     gap: 6,
   },
@@ -1520,6 +1671,34 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: theme.colors.text,
     lineHeight: 16,
+  },
+  legalSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  legalText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#6B7280",
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  legalLinksRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  legalLink: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.primary,
+  },
+  legalSeparator: {
+    marginHorizontal: 8,
+    color: "#9CA3AF",
   },
 });
 

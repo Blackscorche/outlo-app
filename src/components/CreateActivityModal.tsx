@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,16 +10,17 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import Slider from '@react-native-community/slider';
-import * as Location from 'expo-location';
-import { theme } from '../styles/theme';
-import AppLoading from './AppLoading';
-import { ACTIVITY_TYPES } from '../constants/activityTypes';
-import { useActivities } from '../hooks/useActivities';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import Slider from "@react-native-community/slider";
+import * as Location from "expo-location";
+import { theme } from "../styles/theme";
+import AppLoading from "./AppLoading";
+import { ACTIVITY_TYPES } from "../constants/activityTypes";
+import { useActivities } from "../hooks/useActivities";
+import { validateSafeText } from "../utils/contentModeration";
 
 interface CreateActivityModalProps {
   visible: boolean;
@@ -35,9 +36,9 @@ export default function CreateActivityModal({
   const { createActivity } = useActivities();
 
   const [activityType, setActivityType] = useState<string | null>(null);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [locationName, setLocationName] = useState('');
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [locationName, setLocationName] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [scheduledDate, setScheduledDate] = useState(new Date());
@@ -48,7 +49,7 @@ export default function CreateActivityModal({
   // Date/Time picker state
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+  const [pickerMode, setPickerMode] = useState<"date" | "time">("date");
 
   useEffect(() => {
     if (visible) {
@@ -62,9 +63,9 @@ export default function CreateActivityModal({
 
   const resetForm = () => {
     setActivityType(null);
-    setTitle('');
-    setDescription('');
-    setLocationName('');
+    setTitle("");
+    setDescription("");
+    setLocationName("");
     setLatitude(null);
     setLongitude(null);
     setMaxParticipants(5);
@@ -82,8 +83,8 @@ export default function CreateActivityModal({
     try {
       setGettingLocation(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location permission is required');
+      if (status !== "granted") {
+        Alert.alert("Permission Denied", "Location permission is required");
         return;
       }
 
@@ -102,34 +103,34 @@ export default function CreateActivityModal({
         if (address.name) parts.push(address.name);
         if (address.street) parts.push(address.street);
         if (address.city) parts.push(address.city);
-        setLocationName(parts.join(', ') || 'Current Location');
+        setLocationName(parts.join(", ") || "Current Location");
       }
     } catch (error) {
-      console.error('Error getting location:', error);
-      Alert.alert('Error', 'Failed to get your location');
+      console.error("Error getting location:", error);
+      Alert.alert("Error", "Failed to get your location");
     } finally {
       setGettingLocation(false);
     }
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       setShowDatePicker(false);
       setShowTimePicker(false);
     }
 
     if (selectedDate) {
-      if (pickerMode === 'date') {
+      if (pickerMode === "date") {
         const newDate = new Date(scheduledDate);
         newDate.setFullYear(selectedDate.getFullYear());
         newDate.setMonth(selectedDate.getMonth());
         newDate.setDate(selectedDate.getDate());
         setScheduledDate(newDate);
 
-        if (Platform.OS === 'android') {
+        if (Platform.OS === "android") {
           // Show time picker after date selection on Android
           setTimeout(() => {
-            setPickerMode('time');
+            setPickerMode("time");
             setShowTimePicker(true);
           }, 100);
         }
@@ -143,8 +144,8 @@ export default function CreateActivityModal({
   };
 
   const showDateTimePicker = () => {
-    setPickerMode('date');
-    if (Platform.OS === 'ios') {
+    setPickerMode("date");
+    if (Platform.OS === "ios") {
       setShowDatePicker(true);
     } else {
       setShowDatePicker(true);
@@ -153,25 +154,31 @@ export default function CreateActivityModal({
 
   const validateForm = (): boolean => {
     if (!activityType) {
-      Alert.alert('Error', 'Please select an activity type');
+      Alert.alert("Error", "Please select an activity type");
       return false;
     }
     if (!title.trim()) {
-      Alert.alert('Error', 'Please enter a title');
+      Alert.alert("Error", "Please enter a title");
       return false;
     }
     if (!locationName.trim() || latitude === null || longitude === null) {
-      Alert.alert('Error', 'Please set a location');
+      Alert.alert("Error", "Please set a location");
       return false;
     }
     if (scheduledDate <= new Date()) {
-      Alert.alert('Error', 'Please select a future date and time');
+      Alert.alert("Error", "Please select a future date and time");
       return false;
     }
     return true;
   };
 
   const handleCreate = async () => {
+    const contentCheck = validateSafeText(textValue, "comment");
+    if (!contentCheck.valid) {
+      Alert.alert("Not Allowed", contentCheck.message);
+      return;
+    }
+
     if (!validateForm()) return;
 
     setLoading(true);
@@ -188,13 +195,13 @@ export default function CreateActivityModal({
       });
 
       if (success) {
-        Alert.alert('Success', 'Activity created successfully!');
+        Alert.alert("Success", "Activity created successfully!");
         resetForm();
         onCreated();
       }
     } catch (error) {
-      console.error('Error creating activity:', error);
-      Alert.alert('Error', 'Failed to create activity');
+      console.error("Error creating activity:", error);
+      Alert.alert("Error", "Failed to create activity");
     } finally {
       setLoading(false);
     }
@@ -202,11 +209,11 @@ export default function CreateActivityModal({
 
   const formatDateTime = (date: Date) => {
     return date.toLocaleDateString([], {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -223,18 +230,15 @@ export default function CreateActivityModal({
           <TouchableOpacity onPress={handleClose}>
             <Ionicons name="close" size={24} color={theme.colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Create Activity</Text>
-          <TouchableOpacity
-            onPress={handleCreate}
-            disabled={loading}
-          >
+          <Text style={styles.headerTitle}>Create Session</Text>
+          <TouchableOpacity onPress={handleCreate} disabled={loading}>
             <Text
               style={[
                 styles.createButtonText,
                 loading && styles.createButtonTextDisabled,
               ]}
             >
-              {loading ? 'Creating...' : 'Create'}
+              {loading ? "Creating..." : "Create"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -249,14 +253,17 @@ export default function CreateActivityModal({
                 style={[
                   styles.activityTypeChip,
                   { borderColor: type.color },
-                  activityType === type.id && { backgroundColor: type.color, borderColor: type.color },
+                  activityType === type.id && {
+                    backgroundColor: type.color,
+                    borderColor: type.color,
+                  },
                 ]}
                 onPress={() => setActivityType(type.id)}
               >
                 <Ionicons
                   name={type.icon}
                   size={18}
-                  color={activityType === type.id ? 'white' : type.color}
+                  color={activityType === type.id ? "white" : type.color}
                 />
                 <Text
                   style={[
@@ -281,6 +288,9 @@ export default function CreateActivityModal({
             onChangeText={setTitle}
             maxLength={200}
           />
+          <Text style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
+            Offensive, abusive, or explicit content is not allowed.
+          </Text>
 
           {/* Description */}
           <Text style={styles.sectionLabel}>Description (Optional)</Text>
@@ -305,16 +315,26 @@ export default function CreateActivityModal({
               {gettingLocation ? (
                 <ActivityIndicator size="small" color={theme.colors.primary} />
               ) : (
-                <Ionicons name="locate" size={20} color={theme.colors.primary} />
+                <Ionicons
+                  name="locate"
+                  size={20}
+                  color={theme.colors.primary}
+                />
               )}
               <Text style={styles.locationButtonText}>
-                {gettingLocation ? 'Getting location...' : 'Use Current Location'}
+                {gettingLocation
+                  ? "Getting location..."
+                  : "Use Current Location"}
               </Text>
             </TouchableOpacity>
 
             {latitude && longitude && (
               <View style={styles.locationInfo}>
-                <Ionicons name="location" size={16} color={theme.colors.success} />
+                <Ionicons
+                  name="location"
+                  size={16}
+                  color={theme.colors.success}
+                />
                 <Text style={styles.locationInfoText}>Location set</Text>
               </View>
             )}
@@ -338,7 +358,11 @@ export default function CreateActivityModal({
             <Text style={styles.dateTimeText}>
               {formatDateTime(scheduledDate)}
             </Text>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.colors.textSecondary}
+            />
           </TouchableOpacity>
 
           {/* Date/Time Picker */}
@@ -347,18 +371,18 @@ export default function CreateActivityModal({
               value={scheduledDate}
               mode={pickerMode}
               is24Hour={true}
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              display={Platform.OS === "ios" ? "spinner" : "default"}
               onChange={handleDateChange}
               minimumDate={new Date()}
             />
           )}
 
-          {Platform.OS === 'ios' && showDatePicker && (
+          {Platform.OS === "ios" && showDatePicker && (
             <View style={styles.iosPickerButtons}>
               <TouchableOpacity
                 onPress={() => {
-                  if (pickerMode === 'date') {
-                    setPickerMode('time');
+                  if (pickerMode === "date") {
+                    setPickerMode("time");
                   } else {
                     setShowDatePicker(false);
                   }
@@ -366,7 +390,7 @@ export default function CreateActivityModal({
                 style={styles.iosPickerButton}
               >
                 <Text style={styles.iosPickerButtonText}>
-                  {pickerMode === 'date' ? 'Next: Select Time' : 'Done'}
+                  {pickerMode === "date" ? "Next: Select Time" : "Done"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -393,7 +417,11 @@ export default function CreateActivityModal({
 
           {/* Info Note */}
           <View style={styles.infoNote}>
-            <Ionicons name="information-circle" size={20} color={theme.colors.info} />
+            <Ionicons
+              name="information-circle"
+              size={20}
+              color={theme.colors.info}
+            />
             <Text style={styles.infoNoteText}>
               You will be automatically added as the first participant.
             </Text>
@@ -419,9 +447,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
     borderBottomWidth: 1,
@@ -430,12 +458,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: theme.colors.text,
   },
   createButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: theme.colors.primary,
   },
   createButtonTextDisabled: {
@@ -447,25 +475,25 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
     marginTop: theme.spacing.md,
   },
   activityTypesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: theme.spacing.sm,
   },
   activityTypeChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: theme.colors.primary,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     gap: 6,
   },
   activityTypeChipSelected: {
@@ -475,10 +503,10 @@ const styles = StyleSheet.create({
   activityTypeText: {
     fontSize: 13,
     color: theme.colors.primary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   activityTypeTextSelected: {
-    color: 'white',
+    color: "white",
   },
   input: {
     borderWidth: 1,
@@ -491,18 +519,18 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 80,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: theme.spacing.sm,
     gap: theme.spacing.md,
   },
   locationButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.primary + '15',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.primary + "15",
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     borderRadius: theme.borderRadius.md,
@@ -511,21 +539,21 @@ const styles = StyleSheet.create({
   locationButtonText: {
     fontSize: 14,
     color: theme.colors.primary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   locationInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   locationInfoText: {
     fontSize: 14,
     color: theme.colors.success,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   dateTimeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderRadius: theme.borderRadius.md,
@@ -539,7 +567,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   iosPickerButtons: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: theme.spacing.sm,
   },
   iosPickerButton: {
@@ -549,16 +577,16 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.md,
   },
   iosPickerButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   slider: {
     height: 40,
   },
   sliderLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: -8,
   },
   sliderLabel: {
@@ -566,9 +594,9 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   infoNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.info + '15',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.info + "15",
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     marginTop: theme.spacing.lg,
@@ -582,8 +610,8 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255,255,255,0.8)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

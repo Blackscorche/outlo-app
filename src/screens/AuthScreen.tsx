@@ -26,6 +26,7 @@ import { theme } from "../styles/theme";
 import { commonStyles } from "../styles/common";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../integrations/supabase/client";
+import { validateSafeText } from "../utils/contentModeration";
 
 GoogleSignin.configure({
   webClientId:
@@ -62,7 +63,9 @@ const INTERESTS_OPTIONS = [
 ];
 
 const TERMS_URL =
-  "https://youthful-bath-564.notion.site/LoveMap-Community-Guidelines-1f12528e6c41806ab694d4ec2bc722be";
+  "https://youthful-bath-564.notion.site/LoveMap-Terms-of-Service-32f2528e6c418020b72de5f727b05da2";
+const PRIVACY_POLICY_URL =
+  "https://youthful-bath-564.notion.site/LoveMap-Privacy-Policy-32f2528e6c4180028ae7d72d7cc9a2b7";
 const COMMUNITY_GUIDELINES_URL =
   "https://youthful-bath-564.notion.site/LoveMap-Community-Guidelines-1f12528e6c41806ab694d4ec2bc722be";
 
@@ -178,6 +181,12 @@ const AuthScreen = ({ navigation }) => {
   };
 
   const validateSignUpData = () => {
+    const bioCheck = validateSafeText(profileData.bio, "bio");
+    if (!bioCheck.valid) {
+      Alert.alert("Not Allowed", bioCheck.message);
+      return false;
+    }
+
     if (!profileData.fullName.trim()) {
       Alert.alert("Error", "Please enter your full name");
       return false;
@@ -427,7 +436,7 @@ const AuthScreen = ({ navigation }) => {
               interests: profileData.interests,
               photos: [uploadedAvatar],
               is_online: true,
-              is_visible: true,
+              is_visible: false,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             });
@@ -1183,6 +1192,13 @@ const AuthScreen = ({ navigation }) => {
                             onPress={() => openExternalLink(TERMS_URL)}
                           >
                             Terms of Use
+                          </Text>
+                          ,{" "}
+                          <Text
+                            style={styles.termsLink}
+                            onPress={() => openExternalLink(PRIVACY_POLICY_URL)}
+                          >
+                            Privacy Policy
                           </Text>{" "}
                           and{" "}
                           <Text

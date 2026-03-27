@@ -222,7 +222,7 @@ export default function HomeScreen({ navigation, route }: any) {
   );
   const [showCheckInDetail, setShowCheckInDetail] = useState(false);
   const [selectedCheckIn, setSelectedCheckIn] = useState<any>(null);
-  const [showActivitiesOnMap, setShowActivitiesOnMap] = useState(false);
+  const [showActivitiesOnMap, setShowActivitiesOnMap] = useState(true);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(
     null,
   );
@@ -1021,6 +1021,7 @@ export default function HomeScreen({ navigation, route }: any) {
           style={styles.headerLogo}
           resizeMode="contain"
         />
+        <Text style={styles.headerTitle}>Explore Map</Text>
         <View style={styles.headerActions}>
           {location && isLocationEnabled && (
             <>
@@ -1136,6 +1137,7 @@ export default function HomeScreen({ navigation, route }: any) {
           {!showCheckInsOnly &&
             !showActivitiesOnMap &&
             !showPlacesOnMap &&
+            false &&
             getMarkersWithOffsets(
               nearbyUsers.filter((user) => {
                 if (
@@ -1181,11 +1183,11 @@ export default function HomeScreen({ navigation, route }: any) {
                       : `Age: ${user.age || "Unknown"}`
                   }
                   tracksViewChanges={true}
-                  onPress={() => {
-                    if (!user.isCurrentUser) {
-                      navigation.navigate("UserProfile", { userId: user.id });
-                    }
-                  }}
+                  // onPress={() => {
+                  //   if (!user.isCurrentUser) {
+                  //     navigation.navigate("UserProfile", { userId: user.id });
+                  //   }
+                  // }}
                   zIndex={100 + (user.offsetIndex || 0)}
                 >
                   <View
@@ -1445,7 +1447,8 @@ export default function HomeScreen({ navigation, route }: any) {
               <Ionicons name="location-outline" size={48} color="#FF1744" />
               <Text style={styles.locationPromptTitle}>Enable Location</Text>
               <Text style={styles.locationPromptText}>
-                Turn on your location to see who is online nearby
+                Turn on your location to explore nearby sessions, places, and
+                check-ins.
               </Text>
               <View style={styles.locationPromptButtons}>
                 <TouchableOpacity
@@ -1558,9 +1561,18 @@ export default function HomeScreen({ navigation, route }: any) {
             <Text
               style={[styles.toggleCardText, !isVisible && { color: "#999" }]}
             >
-              {isVisible ? "Checked In" : "Check In"}
+              {isVisible ? "Checked In" : "Start Check-In"}
             </Text>
           </TouchableOpacity>
+          {isVisible && visibleUntil ? (
+            <Text style={styles.checkInExpiryText}>
+              Until{" "}
+              {new Date(visibleUntil).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+          ) : null}
         </View>
 
         {/* Bottom bar: Nearby + Locate */}
@@ -1575,7 +1587,13 @@ export default function HomeScreen({ navigation, route }: any) {
                 !isLocationEnabled && { backgroundColor: "#999" },
               ]}
             />
-            <Text style={styles.nearbyText}>{nearbyUsers.length} nearby</Text>
+            <Text style={styles.nearbyText}>
+              {showActivitiesOnMap
+                ? `${activities.filter((a) => a.status === "open").length} sessions`
+                : showPlacesOnMap
+                  ? `${places.length} places`
+                  : `${checkIns.length} check-ins`}
+            </Text>
             <Ionicons name="chevron-up" size={16} color="#666" />
           </TouchableOpacity>
           {location && isLocationEnabled && (
@@ -1907,6 +1925,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#333",
   },
+  checkInExpiryText: {
+  fontSize: 10,
+  color: "#666",
+  marginTop: 2,
+},
   toggleCard: {
     position: "absolute",
     bottom: 60,
@@ -2239,6 +2262,16 @@ const styles = StyleSheet.create({
     width: 150,
     height: 50,
     marginLeft: -25,
+  },
+  headerTitle: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    fontSize: 22,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    pointerEvents: "none",
   },
   headerActions: {
     flexDirection: "row",
