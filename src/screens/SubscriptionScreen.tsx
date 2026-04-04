@@ -250,12 +250,12 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
 
   const handleSubscribe = async (productId: string) => {
     if (productId.includes("premium") && iap.subscriptions.length === 0) {
-  showError(
-    "Subscriptions Unavailable",
-    "Subscription products are not available right now. Please try again later."
-  );
-  return;
-}
+      showError(
+        "Subscriptions Unavailable",
+        "Subscription products are not available right now. Please try again later.",
+      );
+      return;
+    }
     try {
       if (!iap.connected) {
         console.log("❌ IAP not connected");
@@ -307,7 +307,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                 productName,
               );
 
-              await iap.purchaseSubscription(productId)
+              await iap.purchaseSubscription(productId);
             } catch (error: any) {
               console.error("❌ Purchase error in subscription switch:", error);
               showError(
@@ -325,7 +325,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
           productName,
         );
 
-        await iap.purchaseSubscription(productId)
+        await iap.purchaseSubscription(productId);
       }
     } catch (error: any) {
       console.error("❌ Purchase error in handleSubscribe:", error);
@@ -384,7 +384,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
               modalProductName,
             );
 
-            await iap.purchaseConsumable(productId)
+            await iap.purchaseConsumable(productId);
           } catch (error: any) {
             console.error("❌ Purchase execution error:", error);
             showError(
@@ -504,6 +504,57 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
         }
       },
     );
+  };
+
+  const handleRestorePurchases = async () => {
+    try {
+      if (!iap.connected) {
+        showError(
+          "Store Error",
+          "Store connection not available. Please try again.",
+        );
+        return;
+      }
+
+      showLoading("Restoring your purchases...");
+
+      const purchases = await iap.getAvailablePurchases();
+      await refreshSubscription();
+      hideModals();
+
+      const restoredItems = Array.isArray(purchases) ? purchases : [];
+
+      const hasRestorablePurchase = restoredItems.some((purchase) =>
+        [
+          "lovemap_premium_monthly",
+          "lovemap_premium_yearly",
+          "lovemap_connection_request",
+          "lovemap_first_impression",
+          "lovemap_invisible_mode",
+        ].includes(purchase.productId),
+      );
+
+      if (hasRestorablePurchase) {
+        showSuccess(
+          "Purchases Restored",
+          "Your previous purchases have been restored successfully.",
+        );
+      } else {
+        showInfo(
+          "No Purchases Found",
+          "We couldn't find any previous purchases to restore.",
+          "info",
+        );
+      }
+    } catch (error: any) {
+      console.error("❌ Restore purchases error:", error);
+      hideModals();
+      showError(
+        "Restore Failed",
+        error?.message ||
+          "We couldn't restore purchases right now. Please try again.",
+      );
+    }
   };
 
   // Get IAP product data
@@ -1149,6 +1200,13 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
             You can manage and cancel your subscription in your App Store
             account settings.
           </Text>
+
+          <TouchableOpacity
+            style={styles.restoreButton}
+            onPress={handleRestorePurchases}
+          >
+            <Text style={styles.restoreButtonText}>Restore Purchases</Text>
+          </TouchableOpacity>
 
           <View style={styles.legalLinksRow}>
             <TouchableOpacity onPress={() => openExternalLink(PRIVACY_URL)}>

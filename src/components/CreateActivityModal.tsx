@@ -173,10 +173,21 @@ export default function CreateActivityModal({
   };
 
   const handleCreate = async () => {
-    const contentCheck = validateSafeText(textValue, "comment");
-    if (!contentCheck.valid) {
-      Alert.alert("Not Allowed", contentCheck.message);
+    const titleCheck = validateSafeText(title, "activity title");
+    if (!titleCheck.valid) {
+      Alert.alert("Not Allowed", titleCheck.message);
       return;
+    }
+
+    if (description.trim()) {
+      const descriptionCheck = validateSafeText(
+        description,
+        "activity description",
+      );
+      if (!descriptionCheck.valid) {
+        Alert.alert("Not Allowed", descriptionCheck.message);
+        return;
+      }
     }
 
     if (!validateForm()) return;
@@ -198,6 +209,9 @@ export default function CreateActivityModal({
         Alert.alert("Success", "Activity created successfully!");
         resetForm();
         onCreated();
+        onClose(); // important so modal closes after success
+      } else {
+        Alert.alert("Error", "Failed to create activity");
       }
     } catch (error) {
       console.error("Error creating activity:", error);
