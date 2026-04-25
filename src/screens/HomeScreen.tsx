@@ -655,9 +655,9 @@ export default function HomeScreen({ navigation, route }: any) {
         const a =
           Math.sin(dLat / 2) * Math.sin(dLat / 2) +
           Math.cos((currentLat * Math.PI) / 180) *
-            Math.cos((user.current_latitude * Math.PI) / 180) *
-            Math.sin(dLon / 2) *
-            Math.sin(dLon / 2);
+          Math.cos((user.current_latitude * Math.PI) / 180) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const distance = R * c;
         return distance <= activeFilters.distance;
@@ -908,7 +908,7 @@ export default function HomeScreen({ navigation, route }: any) {
               }
             },
           )
-          .subscribe((status) => {});
+          .subscribe((status) => { });
 
         // Refresh periodically (every 30 seconds)
         interval = setInterval(() => {
@@ -1097,15 +1097,15 @@ export default function HomeScreen({ navigation, route }: any) {
               // Only update if the change is significant enough
               const significantChange = mapRegion
                 ? Math.abs(roundedRegion.latitude - mapRegion.latitude) >
-                    0.000001 ||
-                  Math.abs(roundedRegion.longitude - mapRegion.longitude) >
-                    0.000001 ||
-                  Math.abs(
-                    roundedRegion.latitudeDelta - mapRegion.latitudeDelta,
-                  ) > 0.000001 ||
-                  Math.abs(
-                    roundedRegion.longitudeDelta - mapRegion.longitudeDelta,
-                  ) > 0.000001
+                0.000001 ||
+                Math.abs(roundedRegion.longitude - mapRegion.longitude) >
+                0.000001 ||
+                Math.abs(
+                  roundedRegion.latitudeDelta - mapRegion.latitudeDelta,
+                ) > 0.000001 ||
+                Math.abs(
+                  roundedRegion.longitudeDelta - mapRegion.longitudeDelta,
+                ) > 0.000001
                 : true;
 
               if (significantChange) {
@@ -1194,7 +1194,7 @@ export default function HomeScreen({ navigation, route }: any) {
                     style={[
                       { alignItems: "center", justifyContent: "center" },
                       highlightedUserId === user.id &&
-                        styles.highlightedMarkerContainer,
+                      styles.highlightedMarkerContainer,
                     ]}
                   >
                     {user.photos && user.photos.length > 0 ? (
@@ -1338,22 +1338,46 @@ export default function HomeScreen({ navigation, route }: any) {
                   >
                     <View
                       style={{
-                        backgroundColor: "#4CAF50",
-                        width: 33,
-                        height: 33,
-                        borderRadius: 16.5,
+                        backgroundColor: activity.is_boosted ? "#16A34A" : "#4CAF50",
+                        width: activity.is_boosted ? 38 : 33,
+                        height: activity.is_boosted ? 38 : 33,
+                        borderRadius: activity.is_boosted ? 19 : 16.5,
                         alignItems: "center",
                         justifyContent: "center",
-                        borderWidth: 2,
-                        borderColor: "white",
+                        borderWidth: activity.is_boosted ? 3 : 2,
+                        borderColor: activity.is_boosted ? "#F59E0B" : "white",
+                        shadowColor: activity.is_boosted ? "#F59E0B" : "#000",
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: activity.is_boosted ? 0.5 : 0.2,
+                        shadowRadius: activity.is_boosted ? 6 : 3,
+                        elevation: activity.is_boosted ? 8 : 3,
                       }}
                     >
                       <Ionicons
                         name={markerIcon.replace("-outline", "") as any}
-                        size={16}
+                        size={activity.is_boosted ? 18 : 16}
                         color="white"
                       />
                     </View>
+                    {activity.is_boosted && (
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: -6,
+                          left: -6,
+                          backgroundColor: "#F59E0B",
+                          width: 18,
+                          height: 18,
+                          borderRadius: 9,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderWidth: 1.5,
+                          borderColor: "white",
+                        }}
+                      >
+                        <Ionicons name="star" size={10} color="white" />
+                      </View>
+                    )}
                     {/* Badge showing spots left */}
                     {spotsLeft > 0 && (
                       <View
@@ -1926,10 +1950,10 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   checkInExpiryText: {
-  fontSize: 10,
-  color: "#666",
-  marginTop: 2,
-},
+    fontSize: 10,
+    color: "#666",
+    marginTop: 2,
+  },
   toggleCard: {
     position: "absolute",
     bottom: 60,

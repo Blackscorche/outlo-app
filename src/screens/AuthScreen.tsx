@@ -274,14 +274,14 @@ const AuthScreen = ({ navigation }) => {
                 Alert.alert(
                   "Storage Permission Error",
                   `Please run the following SQL in your Supabase dashboard:\n\n` +
-                    "1. Go to SQL Editor\n" +
-                    "2. Create bucket if not exists:\n" +
-                    `INSERT INTO storage.buckets (id, name, public) VALUES ('${bucket}', '${bucket}', true) ON CONFLICT DO NOTHING;\n\n` +
-                    "3. Set RLS policies:\n" +
-                    `CREATE POLICY "Anyone can upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = '${bucket}');\n` +
-                    `CREATE POLICY "Anyone can view" ON storage.objects FOR SELECT USING (bucket_id = '${bucket}');\n` +
-                    `CREATE POLICY "Users can update own" ON storage.objects FOR UPDATE USING (bucket_id = '${bucket}' AND auth.uid()::text = owner);\n` +
-                    `CREATE POLICY "Users can delete own" ON storage.objects FOR DELETE USING (bucket_id = '${bucket}' AND auth.uid()::text = owner);`,
+                  "1. Go to SQL Editor\n" +
+                  "2. Create bucket if not exists:\n" +
+                  `INSERT INTO storage.buckets (id, name, public) VALUES ('${bucket}', '${bucket}', true) ON CONFLICT DO NOTHING;\n\n` +
+                  "3. Set RLS policies:\n" +
+                  `CREATE POLICY "Anyone can upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = '${bucket}');\n` +
+                  `CREATE POLICY "Anyone can view" ON storage.objects FOR SELECT USING (bucket_id = '${bucket}');\n` +
+                  `CREATE POLICY "Users can update own" ON storage.objects FOR UPDATE USING (bucket_id = '${bucket}' AND auth.uid()::text = owner);\n` +
+                  `CREATE POLICY "Users can delete own" ON storage.objects FOR DELETE USING (bucket_id = '${bucket}' AND auth.uid()::text = owner);`,
                 );
               } else if (
                 error.message?.includes("bucket") ||
@@ -616,7 +616,7 @@ const AuthScreen = ({ navigation }) => {
               {/* Logo Header */}
               <View style={styles.logoContainer}>
                 <Image
-                  source={require("../../assets/adaptive-icon.png")}
+                  source={require("../../assets/logos/lightmode_logo.jpeg")}
                   style={styles.logo}
                   resizeMode="contain"
                 />
@@ -993,7 +993,7 @@ const AuthScreen = ({ navigation }) => {
                             style={[
                               styles.modernOptionCard,
                               profileData.gender === gender.value &&
-                                styles.modernOptionCardSelected,
+                              styles.modernOptionCardSelected,
                             ]}
                             onPress={() =>
                               updateProfileData("gender", gender.value)
@@ -1012,7 +1012,7 @@ const AuthScreen = ({ navigation }) => {
                               style={[
                                 styles.modernOptionText,
                                 profileData.gender === gender.value &&
-                                  styles.modernOptionTextSelected,
+                                styles.modernOptionTextSelected,
                               ]}
                             >
                               {gender.display}
@@ -1036,7 +1036,7 @@ const AuthScreen = ({ navigation }) => {
                             style={[
                               styles.modernOptionCard,
                               profileData.lookingFor === option.value &&
-                                styles.modernOptionCardSelected,
+                              styles.modernOptionCardSelected,
                             ]}
                             onPress={() =>
                               updateProfileData("lookingFor", option.value)
@@ -1046,7 +1046,7 @@ const AuthScreen = ({ navigation }) => {
                               style={[
                                 styles.modernOptionText,
                                 profileData.lookingFor === option.value &&
-                                  styles.modernOptionTextSelected,
+                                styles.modernOptionTextSelected,
                               ]}
                             >
                               {option.display}
@@ -1127,7 +1127,7 @@ const AuthScreen = ({ navigation }) => {
                             style={[
                               styles.modernInterestChip,
                               profileData.interests.includes(interest.label) &&
-                                styles.modernInterestChipSelected,
+                              styles.modernInterestChipSelected,
                             ]}
                             onPress={() => toggleInterest(interest.label)}
                           >
@@ -1529,7 +1529,8 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   logo: {
-    height: 400,
+    width: 240,
+    height: 80,
     zIndex: 10,
   },
   welcomeText: {

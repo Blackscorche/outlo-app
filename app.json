@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "LoveMap",
+    "name": "Outlo",
     "slug": "lovemapmobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -93,15 +93,15 @@
           "android": {
             "kotlinVersion": "2.1.20"
           }
-
         }
       ],
       "expo-apple-authentication"
     ],
     "extra": {
       "eas": {
-        "projectId": "2119cf08-98b3-429b-9657-7f0088226dc2"
+        "projectId": "f3bd72f4-7525-4193-9945-aa77e400434a"
       }
-    }
+    },
+    "owner": "blackscorche"
   }
 }

@@ -35,13 +35,26 @@ export type ActivityComment = Tables<'activity_comments'> & {
 
 interface CreateActivityData {
   activity_type: string;
+  category?: string | null;
   title: string;
   description?: string;
+  image_url?: string | null;
   location_name: string;
   latitude: number;
   longitude: number;
   scheduled_at: string;
+  duration_minutes?: number | null;
   max_participants?: number;
+  join_type?: 'everyone' | 'beginners' | 'advanced';
+  is_paid?: boolean;
+  ticket_price_cents?: number | null;
+  currency?: string;
+  payment_required_to_join?: boolean;
+  status?: 'draft' | 'published' | 'open';
+}
+
+export interface UpdateActivityData extends Partial<CreateActivityData> {
+  id: string;
 }
 
 export function useActivities() {
@@ -114,14 +127,14 @@ export function useActivities() {
       // Allow activities scheduled within the last 2 hours (so ongoing activities still show)
       const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
 
-      // 1. Fetch open activities for "All" tab (with time filter)
+      // 1. Fetch open/published activities for "All" tab (with time filter)
       const { data: publicActivitiesData, error: publicError } = await supabase
         .from('activities')
         .select(`
           *,
           creator:profiles!creator_id(id, name, photos)
         `)
-        .eq('status', 'open')
+        .in('status', ['open', 'published'])
         .gte('scheduled_at', twoHoursAgo)
         .order('scheduled_at', { ascending: true });
 
@@ -175,7 +188,7 @@ export function useActivities() {
       const allMyAndPublic = [...(myActivitiesData || []), ...(publicActivitiesData || [])];
       const pastOpenActivities = allMyAndPublic.filter(
         a => a.status === 'open' && a.creator_id === user.id &&
-             new Date(a.scheduled_at).getTime() < Date.now() - 2 * 60 * 60 * 1000
+          new Date(a.scheduled_at).getTime() < Date.now() - 2 * 60 * 60 * 1000
       );
       if (pastOpenActivities.length > 0) {
         const uniqueIds = [...new Set(pastOpenActivities.map(a => a.id))];
@@ -223,8 +236,8 @@ export function useActivities() {
         }));
 
       console.log('📅 Activities fetched - Public:', publicActivitiesData?.length || 0,
-                  'Mine:', myActivitiesData?.length || 0,
-                  'Joined:', joinedActivitiesData.length);
+        'Mine:', myActivitiesData?.length || 0,
+        'Joined:', joinedActivitiesData.length);
 
       if (mountedRef.current) {
         // "All" tab: public activities with time filter
@@ -251,56 +264,112 @@ export function useActivities() {
     await fetchActivities();
   }, [fetchActivities]);
 
-  const createActivity = useCallback(async (data: CreateActivityData): Promise<boolean> => {
+  /**
+   * Create a new activity. Returns the created activity ID on success, null on failure.
+   * For paid activities, the creator is NOT auto-added as participant (no need; creator is host).
+   * For free activities, creator is auto-joined.
+   */
+  const createActivity = useCallback(async (data: CreateActivityData): Promise<string | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         Alert.alert('Error', 'You must be logged in to create an activity');
-        return false;
+        return null;
       }
 
-      const { error } = await supabase
+      const isPaid = !!data.is_paid;
+      const initialStatus = data.status ?? (isPaid ? 'published' : 'open');
+
+      const { data: created, error } = await supabase
         .from('activities')
         .insert({
           creator_id: user.id,
           activity_type: data.activity_type,
+          category: data.category ?? null,
           title: data.title,
           description: data.description || null,
+          image_url: data.image_url ?? null,
           location_name: data.location_name,
           latitude: data.latitude,
           longitude: data.longitude,
           scheduled_at: data.scheduled_at,
-          max_participants: data.max_participants || 10,
-          current_participants: 1, // Creator counts as participant
-          status: 'open',
-        });
-
-      if (error) throw error;
-
-      // Also add creator as first participant
-      const { data: activity } = await supabase
-        .from('activities')
+          duration_minutes: data.duration_minutes ?? null,
+          max_participants: data.max_participants ?? 10,
+          current_participants: isPaid ? 0 : 1, // free → host counts; paid → only buyers count
+          join_type: data.join_type ?? 'everyone',
+          is_paid: isPaid,
+          ticket_price_cents: isPaid ? (data.ticket_price_cents ?? 0) : 0,
+          currency: data.currency ?? 'EUR',
+          payment_required_to_join: data.payment_required_to_join ?? isPaid,
+          status: initialStatus,
+        })
         .select('id')
-        .eq('creator_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
         .single();
 
-      if (activity) {
+      if (error) throw error;
+      if (!created) throw new Error('No activity returned');
+
+      // For free activities, auto-join the creator. Skipped for paid (host is not a paying attendee).
+      if (!isPaid) {
         await supabase
           .from('activity_participants')
           .insert({
-            activity_id: activity.id,
+            activity_id: created.id,
             user_id: user.id,
             status: 'joined',
           });
       }
 
       await fetchActivities();
-      return true;
+      return created.id;
     } catch (error) {
       console.error('Error creating activity:', error);
       Alert.alert('Error', 'Failed to create activity');
+      return null;
+    }
+  }, [fetchActivities]);
+
+  /**
+   * Update an existing activity. Only the creator may update.
+   * For paid activities with sold tickets, restrict price/spot reductions upstream.
+   */
+  const updateActivity = useCallback(async (data: UpdateActivityData): Promise<boolean> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert('Error', 'You must be logged in');
+        return false;
+      }
+
+      const { id, ...patch } = data;
+      const { error } = await supabase
+        .from('activities')
+        .update({ ...patch, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('creator_id', user.id);
+
+      if (error) throw error;
+      await fetchActivities();
+      return true;
+    } catch (error) {
+      console.error('Error updating activity:', error);
+      Alert.alert('Error', 'Failed to update activity');
+      return false;
+    }
+  }, [fetchActivities]);
+
+  /** Move a draft activity to published. */
+  const publishActivity = useCallback(async (activityId: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('activities')
+        .update({ status: 'published', updated_at: new Date().toISOString() })
+        .eq('id', activityId);
+      if (error) throw error;
+      await fetchActivities();
+      return true;
+    } catch (error) {
+      console.error('Error publishing activity:', error);
       return false;
     }
   }, [fetchActivities]);
@@ -595,6 +664,8 @@ export function useActivities() {
     fetchActivities,
     refreshActivities,
     createActivity,
+    updateActivity,
+    publishActivity,
     joinActivity,
     leaveActivity,
     completeActivity,

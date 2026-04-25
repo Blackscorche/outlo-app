@@ -10,6 +10,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import { Activity } from '../hooks/useActivities';
 import { getActivityType, getActivityIcon } from '../constants/activityTypes';
+import PriceBadge from './PriceBadge';
+import BoostBadge from './BoostBadge';
 
 interface ActivityCardProps {
   activity: Activity;
@@ -142,6 +144,19 @@ export default function ActivityCard({
           </View>
           <View style={styles.headerInfo}>
             <Text style={styles.title} numberOfLines={1}>{activity.title}</Text>
+            {(activity.is_paid || activity.is_boosted) && (
+              <View style={{ flexDirection: 'row', gap: 6, marginTop: 4, marginBottom: 2 }}>
+                {activity.is_boosted && <BoostBadge size="sm" />}
+                {activity.is_paid && (
+                  <PriceBadge
+                    isPaid
+                    priceCents={activity.ticket_price_cents}
+                    currency={activity.currency || 'EUR'}
+                    size="sm"
+                  />
+                )}
+              </View>
+            )}
             <View style={styles.locationRow}>
               <Ionicons name="location" size={13} color={theme.colors.textSecondary} />
               <Text style={styles.locationText} numberOfLines={1}>

@@ -111,18 +111,18 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
   const purchaseIds = !iap.availablePurchases
     ? ""
     : iap.availablePurchases
-        .map((purchase) => purchase.productId)
-        .sort()
-        .join(",");
+      .map((purchase) => purchase.productId)
+      .sort()
+      .join(",");
 
   // Create subscription product tracker (no memo needed)
   const hasActiveIAPSubscription = !iap.availablePurchases
     ? false
     : iap.availablePurchases.some((purchase) =>
-        ["lovemap_premium_monthly", "lovemap_premium_yearly"].includes(
-          purchase.productId,
-        ),
-      );
+      ["lovemap_premium_monthly", "lovemap_premium_yearly"].includes(
+        purchase.productId,
+      ),
+    );
 
   useEffect(() => {
     async function handleSubscriptionState() {
@@ -417,73 +417,25 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
           if (!user) return;
 
           hideModals();
-
           // Second: Show instructions modal with callback to open settings
           showInfo(
             "Cancel Subscription (Sandbox)",
             Platform.OS === "ios"
-              ? "To cancel your Sandbox subscription:\n\n1. Open Settings\n2. Scroll to the bottom\n3. Tap on 'LoveMap' app\n4. Sign in with your Sandbox test account (if prompted)\n5. Tap 'Subscriptions'\n6. Select your subscription\n7. Tap 'Cancel Subscription'\n\nOR go to App Store app > Account > Subscriptions > LoveMap > Cancel"
-              : "To cancel your subscription, go to Google Play Store > Menu > Subscriptions, select LoveMap, then tap Cancel.",
+              ? "To cancel your Sandbox subscription:\n\n1. Open Settings\n2. Scroll to the bottom\n3. Tap on 'Outlo' app\n4. Sign in with your Sandbox test account (if prompted)\n5. Tap 'Subscriptions'\n6. Select your subscription\n7. Tap 'Cancel Subscription'\n\nOR go to App Store app > Account > Subscriptions > Outlo > Cancel"
+              : "To cancel your subscription, go to Google Play Store > Menu > Subscriptions, select Outlo, then tap Cancel.",
             "warning",
             async () => {
               try {
                 hideModals();
-                showLoading("Opening subscription management...");
 
-                try {
-                  // For Sandbox: Try multiple URL schemes in order
-                  let urlOpened = false;
-
-                  if (Platform.OS === "ios") {
-                    const urlSchemes = [
-                      // Preferred: App Store subscriptions
-                      "itms-apps://apps.apple.com/account/subscriptions",
-                      // Fallback: Settings
-                      "App-Prefs:APPLE_ID&path=SUBSCRIPTIONS",
-                    ];
-
-                    for (const url of urlSchemes) {
-                      try {
-                        await Linking.openURL(url);
-                        urlOpened = true;
-                        console.log("✅ Successfully opened:", url);
-                        break;
-                      } catch (error) {
-                        console.log("⚠️ Failed to open URL:", url, error);
-                        continue;
-                      }
-                    }
-
-                    if (!urlOpened) {
-                      throw new Error("No URL scheme worked");
-                    }
-                  } else {
-                    // Android
-                    await Linking.openURL(
-                      "https://play.google.com/store/account/subscriptions",
-                    );
-                  }
-
-                  // Give user 2 seconds to open settings, then hide loading
-                  setTimeout(() => {
-                    hideModals();
-                  }, 1500);
-                } catch (linkingError) {
-                  console.error(
-                    "❌ Error opening subscription page:",
-                    linkingError,
-                  );
-                  hideModals();
-
-                  // Fallback: Show manual instructions with Sandbox-specific details
-                  showInfo(
-                    "Manual Cancellation (Sandbox)",
-                    Platform.OS === "ios"
-                      ? "Since you're using Sandbox:\n\n1. Go to Settings app\n2. Scroll down to bottom\n3. Tap 'LoveMap' (or find it in app settings)\n4. Look for 'Subscriptions' or 'Account' section\n5. Find your Sandbox subscription\n6. Tap 'Cancel Subscription'\n\nNote: Sandbox subscriptions appear in a different location than production ones."
-                      : "Please open Google Play Store > Subscriptions > LoveMap > Cancel",
-                    "warning",
-                  );
-                }
+                // Fallback: Show manual instructions with Sandbox-specific details
+                showInfo(
+                  "Manual Cancellation (Sandbox)",
+                  Platform.OS === "ios"
+                    ? "Since you're using Sandbox:\n\n1. Go to Settings app\n2. Scroll down to bottom\n3. Tap 'Outlo' (or find it in app settings)\n4. Look for 'Subscriptions' or 'Account' section\n5. Find your Sandbox subscription\n6. Tap 'Cancel Subscription'\n\nNote: Sandbox subscriptions appear in a different location than production ones."
+                    : "Please open Google Play Store > Subscriptions > Outlo > Cancel",
+                  "warning",
+                );
               } catch (error) {
                 console.error("❌ Cancel error:", error);
                 hideModals();
@@ -552,7 +504,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
       showError(
         "Restore Failed",
         error?.message ||
-          "We couldn't restore purchases right now. Please try again.",
+        "We couldn't restore purchases right now. Please try again.",
       );
     }
   };
@@ -667,8 +619,8 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                   ? subscription.billing_period === "yearly"
                     ? `${iap.getFormattedPrice("lovemap_premium_yearly")}/year`
                     : `${iap.getFormattedPrice(
-                        "lovemap_premium_monthly",
-                      )}/month`
+                      "lovemap_premium_monthly",
+                    )}/month`
                   : "Free"}
               </Text>
               {subscription?.status === "cancelled" &&
@@ -740,8 +692,8 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                   ? "Active"
                   : isInvisibleModeActive
                     ? `Until ${new Date(
-                        quotas.invisible_mode_expires_at,
-                      ).toLocaleDateString()}`
+                      quotas.invisible_mode_expires_at,
+                    ).toLocaleDateString()}`
                     : "Not Active"}
               </Text>
             </View>

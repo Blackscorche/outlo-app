@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { theme } from '../styles/theme';
 import { Activity, ActivityComment } from '../hooks/useActivities';
 import { getActivityType } from '../constants/activityTypes';
@@ -48,6 +49,7 @@ export default function ActivityDetailModal({
   addComment,
   deleteComment,
 }: ActivityDetailModalProps) {
+  const navigation = useNavigation<any>();
   const [comments, setComments] = useState<ActivityComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [newComment, setNewComment] = useState('');
@@ -482,20 +484,72 @@ export default function ActivityDetailModal({
               <Text style={styles.cancelledBannerText}>Activity Cancelled</Text>
             </View>
           ) : isCreator ? (
-            <View style={styles.creatorActions}>
-              <TouchableOpacity style={styles.completeButton} onPress={handleComplete}>
-                <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                <Text style={styles.completeButtonText}>Complete</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-                <Ionicons name="close-circle" size={20} color={theme.colors.error} />
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+            <View style={{ gap: 10 }}>
+              {!activity.is_boosted && (
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    backgroundColor: '#F59E0B',
+                    paddingVertical: 14,
+                    borderRadius: 12,
+                  }}
+                  onPress={() => {
+                    onClose();
+                    (navigation as any)?.navigate?.('ActivityPublished', {
+                      activityId: activity.id,
+                      isPaid: activity.is_paid,
+                    });
+                  }}
+                >
+                  <Ionicons name="rocket" size={20} color="#fff" />
+                  <Text style={{ color: '#fff', fontWeight: '800' }}>Promote on Map</Text>
+                </TouchableOpacity>
+              )}
+              <View style={styles.creatorActions}>
+                <TouchableOpacity style={styles.completeButton} onPress={handleComplete}>
+                  <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                  <Text style={styles.completeButtonText}>Complete</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+                  <Ionicons name="close-circle" size={20} color={theme.colors.error} />
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ) : isParticipant ? (
-            <TouchableOpacity style={styles.leaveButton} onPress={onJoin}>
-              <Ionicons name="exit" size={20} color={theme.colors.error} />
-              <Text style={styles.leaveButtonText}>Leave Activity</Text>
+            activity.is_paid ? (
+              <View style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+                gap: 8, backgroundColor: '#DCFCE7', padding: 14, borderRadius: 12,
+              }}>
+                <Ionicons name="ticket" size={20} color="#16A34A" />
+                <Text style={{ color: '#15803D', fontWeight: '700' }}>Ticket confirmed</Text>
+              </View>
+            ) : (
+              <TouchableOpacity style={styles.leaveButton} onPress={onJoin}>
+                <Ionicons name="exit" size={20} color={theme.colors.error} />
+                <Text style={styles.leaveButtonText}>Leave Activity</Text>
+              </TouchableOpacity>
+            )
+          ) : activity.is_paid ? (
+            <TouchableOpacity
+              style={[styles.joinButton, isFull && styles.joinButtonDisabled,
+              { backgroundColor: '#16A34A' }]}
+              onPress={() => {
+                onClose();
+                (navigation as any)?.navigate?.('TicketCheckout', { activityId: activity.id });
+              }}
+              disabled={isFull}
+            >
+              <Ionicons name="ticket" size={20} color="white" />
+              <Text style={styles.joinButtonText}>
+                {isFull
+                  ? 'Sold Out'
+                  : `Buy Ticket · €${((activity.ticket_price_cents ?? 0) / 100).toFixed(2)}`}
+              </Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity

@@ -54,9 +54,9 @@ const calculateDistance = (
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
@@ -268,10 +268,10 @@ export default function ActivitiesScreen({ navigation }: any) {
       {activeTab === "all" && (
         <TouchableOpacity
           style={styles.createButtonEmpty}
-          onPress={() => setShowCreateModal(true)}
+          onPress={() => navigation.navigate("CreateActivity")}
         >
           <Ionicons name="add" size={20} color="white" />
-          <Text style={styles.createButtonEmptyText}>Create Session</Text>
+          <Text style={styles.createButtonEmptyText}>Create Activity</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -309,7 +309,7 @@ export default function ActivitiesScreen({ navigation }: any) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.createButton}
-            onPress={() => setShowCreateModal(true)}
+            onPress={() => navigation.navigate("CreateActivity")}
           >
             <Ionicons name="add" size={24} color="white" />
           </TouchableOpacity>
@@ -351,7 +351,7 @@ export default function ActivitiesScreen({ navigation }: any) {
           <Text
             style={[styles.tabText, activeTab === "my" && styles.activeTabText]}
           >
-          Hosting ({filteredMyCount})
+            Hosting ({filteredMyCount})
           </Text>
         </TouchableOpacity>
       </View>
@@ -458,7 +458,7 @@ export default function ActivitiesScreen({ navigation }: any) {
                   style={[
                     styles.filterOption,
                     distanceFilter === option.value &&
-                      styles.filterOptionActive,
+                    styles.filterOptionActive,
                   ]}
                   onPress={() => setDistanceFilter(option.value)}
                 >
@@ -466,7 +466,7 @@ export default function ActivitiesScreen({ navigation }: any) {
                     style={[
                       styles.filterOptionText,
                       distanceFilter === option.value &&
-                        styles.filterOptionTextActive,
+                      styles.filterOptionTextActive,
                     ]}
                   >
                     {option.label}
@@ -491,7 +491,7 @@ export default function ActivitiesScreen({ navigation }: any) {
                     style={[
                       styles.filterOptionText,
                       dateFilter === option.value &&
-                        styles.filterOptionTextActive,
+                      styles.filterOptionTextActive,
                     ]}
                   >
                     {option.label}

@@ -572,15 +572,27 @@ export type Database = {
           id: string
           creator_id: string
           activity_type: string
+          category: string | null
           title: string
           description: string | null
+          image_url: string | null
           location_name: string
           latitude: number
           longitude: number
           scheduled_at: string
+          duration_minutes: number | null
           max_participants: number
           current_participants: number
-          status: 'open' | 'full' | 'completed' | 'cancelled'
+          join_type: 'everyone' | 'beginners' | 'advanced' | null
+          is_paid: boolean
+          ticket_price_cents: number | null
+          currency: string
+          payment_required_to_join: boolean
+          is_boosted: boolean
+          boost_plan: '24h' | '3d' | '7d' | null
+          boost_start_at: string | null
+          boost_end_at: string | null
+          status: 'draft' | 'published' | 'open' | 'full' | 'completed' | 'cancelled'
           created_at: string
           updated_at: string
         }
@@ -588,15 +600,27 @@ export type Database = {
           id?: string
           creator_id: string
           activity_type: string
+          category?: string | null
           title: string
           description?: string | null
+          image_url?: string | null
           location_name: string
           latitude: number
           longitude: number
           scheduled_at: string
+          duration_minutes?: number | null
           max_participants?: number
           current_participants?: number
-          status?: 'open' | 'full' | 'completed' | 'cancelled'
+          join_type?: 'everyone' | 'beginners' | 'advanced' | null
+          is_paid?: boolean
+          ticket_price_cents?: number | null
+          currency?: string
+          payment_required_to_join?: boolean
+          is_boosted?: boolean
+          boost_plan?: '24h' | '3d' | '7d' | null
+          boost_start_at?: string | null
+          boost_end_at?: string | null
+          status?: 'draft' | 'published' | 'open' | 'full' | 'completed' | 'cancelled'
           created_at?: string
           updated_at?: string
         }
@@ -604,21 +628,145 @@ export type Database = {
           id?: string
           creator_id?: string
           activity_type?: string
+          category?: string | null
           title?: string
           description?: string | null
+          image_url?: string | null
           location_name?: string
           latitude?: number
           longitude?: number
           scheduled_at?: string
+          duration_minutes?: number | null
           max_participants?: number
           current_participants?: number
-          status?: 'open' | 'full' | 'completed' | 'cancelled'
+          join_type?: 'everyone' | 'beginners' | 'advanced' | null
+          is_paid?: boolean
+          ticket_price_cents?: number | null
+          currency?: string
+          payment_required_to_join?: boolean
+          is_boosted?: boolean
+          boost_plan?: '24h' | '3d' | '7d' | null
+          boost_start_at?: string | null
+          boost_end_at?: string | null
+          status?: 'draft' | 'published' | 'open' | 'full' | 'completed' | 'cancelled'
           created_at?: string
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "activities_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      activity_tickets: {
+        Row: {
+          id: string
+          activity_id: string
+          buyer_id: string
+          gross_amount_cents: number
+          service_fee_cents: number
+          platform_fee_cents: number
+          processor_fee_cents: number
+          creator_payout_cents: number
+          currency: string
+          stripe_session_id: string | null
+          stripe_payment_intent_id: string | null
+          payment_status: 'pending' | 'paid' | 'failed' | 'refunded'
+          booking_status: 'pending' | 'confirmed' | 'cancelled'
+          ticket_code: string
+          created_at: string
+          updated_at: string
+          paid_at: string | null
+          refunded_at: string | null
+        }
+        Insert: {
+          id?: string
+          activity_id: string
+          buyer_id: string
+          gross_amount_cents: number
+          service_fee_cents?: number
+          platform_fee_cents?: number
+          processor_fee_cents?: number
+          creator_payout_cents?: number
+          currency?: string
+          stripe_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          payment_status?: 'pending' | 'paid' | 'failed' | 'refunded'
+          booking_status?: 'pending' | 'confirmed' | 'cancelled'
+          ticket_code?: string
+          created_at?: string
+          updated_at?: string
+          paid_at?: string | null
+          refunded_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['activity_tickets']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "activity_tickets_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_tickets_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      activity_boosts: {
+        Row: {
+          id: string
+          activity_id: string
+          creator_id: string
+          plan_type: '24h' | '3d' | '7d'
+          amount_cents: number
+          currency: string
+          payment_status: 'pending' | 'paid' | 'failed' | 'refunded'
+          iap_platform: 'ios' | 'android' | null
+          iap_product_id: string | null
+          iap_transaction_id: string | null
+          iap_purchase_token: string | null
+          start_at: string | null
+          end_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          activity_id: string
+          creator_id: string
+          plan_type: '24h' | '3d' | '7d'
+          amount_cents: number
+          currency?: string
+          payment_status?: 'pending' | 'paid' | 'failed' | 'refunded'
+          iap_platform?: 'ios' | 'android' | null
+          iap_product_id?: string | null
+          iap_transaction_id?: string | null
+          iap_purchase_token?: string | null
+          start_at?: string | null
+          end_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['activity_boosts']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "activity_boosts_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_boosts_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1329,116 +1477,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-    ? R
-    : never
+  ? R
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
+    DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] &
+    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+  ? R
+  : never
+  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
+    Insert: infer I
+  }
+  ? I
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Insert: infer I
+  }
+  ? I
+  : never
+  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
+    Update: infer U
+  }
+  ? U
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Update: infer U
+  }
+  ? U
+  : never
+  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Enums"]
+  | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+  : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["CompositeTypes"]
+  | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+  : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
 
 export const Constants = {
   public: {

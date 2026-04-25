@@ -38,6 +38,10 @@ import SkillMatchingScreen from './src/screens/SkillMatchingScreen';
 import BlockedUsersScreen from './src/screens/BlockedUsersScreen';
 import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
 import ChangeEmailScreen from './src/screens/ChangeEmailScreen';
+import CreateActivityScreen from './src/screens/CreateActivityScreen';
+import ActivityPublishedScreen from './src/screens/ActivityPublishedScreen';
+import TicketCheckoutScreen from './src/screens/TicketCheckoutScreen';
+import TicketSuccessScreen from './src/screens/TicketSuccessScreen';
 import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
 const Stack = createNativeStackNavigator();
@@ -94,7 +98,7 @@ function getTabLabel(routeName: string) {
   switch (routeName) {
     case 'Home':
       return 'Map';
-      default:
+    default:
       return routeName;
   }
 }
@@ -302,14 +306,14 @@ const EmptyComponent = () => null;
 function AuthenticatedApp({ user, navigation }: { user: any; navigation?: any }) {
   const { markActive } = usePresence();
   useInAppNotifications();
-  
+
   // Initialize push notifications and engagement notifications
   useEffect(() => {
     if (user) {
       pushNotificationService.initialize();
       engagementNotificationService.initialize();
     }
-    
+
     return () => {
       pushNotificationService.cleanup();
       engagementNotificationService.cleanup();
@@ -331,6 +335,10 @@ function AuthenticatedApp({ user, navigation }: { user: any; navigation?: any })
         {(props) => <UserProfileWithTabs {...props} />}
       </Stack.Screen>
       <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
+      <Stack.Screen name="CreateActivity" component={CreateActivityScreen} />
+      <Stack.Screen name="ActivityPublished" component={ActivityPublishedScreen} />
+      <Stack.Screen name="TicketCheckout" component={TicketCheckoutScreen} />
+      <Stack.Screen name="TicketSuccess" component={TicketSuccessScreen} />
     </Stack.Navigator>
   );
 }
@@ -338,7 +346,7 @@ function AuthenticatedApp({ user, navigation }: { user: any; navigation?: any })
 // Component to manage keep-awake based on settings
 function KeepAwakeManager({ children }: { children: React.ReactNode }) {
   const { settings } = useSettings();
-  
+
   useEffect(() => {
     if (settings.keepScreenOn) {
       // Activate keep awake
@@ -347,13 +355,13 @@ function KeepAwakeManager({ children }: { children: React.ReactNode }) {
       // Deactivate keep awake
       KeepAwake.deactivateKeepAwake();
     }
-    
+
     // Cleanup on unmount
     return () => {
       KeepAwake.deactivateKeepAwake();
     };
   }, [settings.keepScreenOn]);
-  
+
   return <>{children}</>;
 }
 
@@ -362,9 +370,9 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   const handleAuthError = (error: any) => {
-    if (error?.message?.includes('Invalid Refresh Token') || 
-        error?.message?.includes('Refresh Token Not Found') ||
-        error?.code === 'invalid_refresh_token') {
+    if (error?.message?.includes('Invalid Refresh Token') ||
+      error?.message?.includes('Refresh Token Not Found') ||
+      error?.code === 'invalid_refresh_token') {
       console.log('Auth token error detected:', error.message);
       setUser(null);
       setTimeout(() => {
@@ -397,9 +405,9 @@ export default function App() {
         setLoading(false);
         return;
       }
-      
+
       setUser(session?.user ?? null);
-      
+
       setLoading(false);
     }).catch((error) => {
       console.error('Session check failed:', error);
@@ -411,7 +419,7 @@ export default function App() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
-      
+
       if (event === 'TOKEN_REFRESHED' && !session) {
         console.log('Token refresh failed, signing out user');
         setUser(null);
@@ -435,7 +443,7 @@ export default function App() {
         }, 500);
         return;
       }
-      
+
       if (event === 'TOKEN_REFRESHED') {
         setUser(session?.user ?? null);
         return;
@@ -466,50 +474,50 @@ export default function App() {
         <ToastProvider>
           <SubscriptionProvider>
             <IAPProvider>
-            {user ? (
-              <KeepAwakeManager>
-                <NavigationContainer
-                ref={navigationRef}
-                linking={{
-                  prefixes: ['lovemap://'],
-                  config: {
-                    screens: {
-                      AuthenticatedApp: {
-                        path: '',
+              {user ? (
+                <KeepAwakeManager>
+                  <NavigationContainer
+                    ref={navigationRef}
+                    linking={{
+                      prefixes: ['lovemap://'],
+                      config: {
                         screens: {
-                          SubscriptionSuccess: {
-                            path: 'subscription-success',
-                            parse: {
-                              session_id: (session_id: string) => session_id,
-                            },
-                          },
-                          ExtraPurchaseSuccess: {
-                            path: 'extra-purchase-success',
-                            parse: {
-                              session_id: (session_id: string) => session_id,
-                              type: (type: string) => type,
+                          AuthenticatedApp: {
+                            path: '',
+                            screens: {
+                              SubscriptionSuccess: {
+                                path: 'subscription-success',
+                                parse: {
+                                  session_id: (session_id: string) => session_id,
+                                },
+                              },
+                              ExtraPurchaseSuccess: {
+                                path: 'extra-purchase-success',
+                                parse: {
+                                  session_id: (session_id: string) => session_id,
+                                  type: (type: string) => type,
+                                },
+                              },
                             },
                           },
                         },
                       },
-                    },
-                  },
-                }}
-              >
-                <Stack.Navigator screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="AuthenticatedApp">
-                    {({ navigation }) => <AuthenticatedApp user={user} navigation={navigation} />}
-                  </Stack.Screen>
-                </Stack.Navigator>
-              </NavigationContainer>
-            </KeepAwakeManager>
-          ) : (
-            <NavigationContainer>
-              <Stack.Navigator screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="Auth" component={AuthScreen} />
-              </Stack.Navigator>
-            </NavigationContainer>
-          )}
+                    }}
+                  >
+                    <Stack.Navigator screenOptions={{ headerShown: false }}>
+                      <Stack.Screen name="AuthenticatedApp">
+                        {({ navigation }) => <AuthenticatedApp user={user} navigation={navigation} />}
+                      </Stack.Screen>
+                    </Stack.Navigator>
+                  </NavigationContainer>
+                </KeepAwakeManager>
+              ) : (
+                <NavigationContainer>
+                  <Stack.Navigator screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="Auth" component={AuthScreen} />
+                  </Stack.Navigator>
+                </NavigationContainer>
+              )}
             </IAPProvider>
           </SubscriptionProvider>
         </ToastProvider>
