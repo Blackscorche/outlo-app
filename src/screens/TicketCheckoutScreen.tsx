@@ -33,7 +33,6 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
   const [activity, setActivity] = useState<Activity | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [selectedProductId, setSelectedProductId] = useState<string>("");
 
   // Handle ticket purchase success
   const handleTicketPurchaseSuccess = useCallback(async (purchase: any) => {
@@ -50,8 +49,16 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
     setBusy(false);
   }, [activityId, navigation]);
 
+  const handleTicketPurchaseError = useCallback((error: any) => {
+    setBusy(false);
+    if (error?.code !== "E_USER_CANCELLED") {
+      Alert.alert("Purchase Failed", error?.message || "Could not complete purchase");
+    }
+  }, []);
+
   const { purchaseProduct } = useLoveMapIAP({
     onTicketPurchaseSuccess: handleTicketPurchaseSuccess,
+    onPurchaseError: handleTicketPurchaseError,
   }, activityId);
 
   useEffect(() => {
@@ -62,40 +69,29 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
     })();
   }, [activityId]);
 
-  // Set default selected product based on activity price
-  useEffect(() => {
-    if (activity?.ticket_price_cents) {
-      const price = activity.ticket_price_cents;
-      let closest = "outlo_ticket_5";
-      let minDiff = Math.abs(500 - price);
-
-      Object.entries(TICKET_PRODUCTS).forEach(([id, config]) => {
-        const diff = Math.abs(config.cents - price);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closest = id;
-        }
-      });
-
-      setSelectedProductId(closest);
-    }
-  }, [activity]);
-
   const grossCents = activity?.ticket_price_cents ?? 0;
   const platformFeeCents = Math.round((grossCents * PLATFORM_FEE_BPS) / 10000);
-  const totalCents = grossCents; // Buyer pays gross; platform fee comes from creator payout
 
-  // Get selected product config
-  const selectedProduct = selectedProductId ? TICKET_PRODUCTS[selectedProductId as keyof typeof TICKET_PRODUCTS] : null;
-  const selectedCents = selectedProduct?.cents || 0;
+  // Resolve the IAP product ID that matches the activity's ticket price (closest tier)
+  const resolvedProductId = (() => {
+    if (!activity?.ticket_price_cents) return "";
+    const price = activity.ticket_price_cents;
+    let closest = "outlo_ticket_5";
+    let minDiff = Math.abs(500 - price);
+    Object.entries(TICKET_PRODUCTS).forEach(([id, config]) => {
+      const diff = Math.abs(config.cents - price);
+      if (diff < minDiff) { minDiff = diff; closest = id; }
+    });
+    return closest;
+  })();
 
   const onPay = async () => {
-    if (!activity || !selectedProductId) return;
+    if (!activity || !resolvedProductId) return;
     try {
       setBusy(true);
 
       // Purchase via IAP
-      purchaseProduct(selectedProductId);
+      purchaseProduct(resolvedProductId);
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Could not complete purchase");
       setBusy(false);
@@ -149,39 +145,17 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
           </View>
         </View>
 
-        {/* Price Tier Selection */}
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryHeader}>Select ticket price</Text>
-          {Object.entries(TICKET_PRODUCTS).map(([id, config]) => (
-            <TouchableOpacity
-              key={id}
-              style={[
-                styles.priceOption,
-                selectedProductId === id && styles.priceOptionSelected,
-              ]}
-              onPress={() => setSelectedProductId(id)}
-            >
-              <Text style={[
-                styles.priceOptionText,
-                selectedProductId === id && styles.priceOptionTextSelected,
-              ]}>
-                {config.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
         <View style={styles.summaryCard}>
           <Text style={styles.summaryHeader}>Order summary</Text>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Ticket</Text>
-            <Text style={styles.summaryValue}>{formatPrice(selectedCents)}</Text>
+            <Text style={styles.summaryValue}>{formatPrice(grossCents)}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.summaryRow}>
             <Text style={styles.summaryTotal}>Total</Text>
             <Text style={styles.summaryTotalValue}>
-              {formatPrice(selectedCents)}
+              {formatPrice(grossCents)}
             </Text>
           </View>
           <Text style={styles.feeNote}>
@@ -203,7 +177,7 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
         <TouchableOpacity
           style={[styles.payBtn, busy && styles.payBtnDisabled]}
           onPress={onPay}
-          disabled={busy || !selectedProductId}
+          disabled={busy || !resolvedProductId}
         >
           {busy ? (
             <ActivityIndicator color="#fff" />
@@ -211,7 +185,7 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
             <>
               <Ionicons name="lock-closed" size={16} color="#fff" />
               <Text style={styles.payBtnText}>
-                Pay {formatPrice(selectedCents)}
+                Pay {formatPrice(grossCents)}
               </Text>
             </>
           )}
@@ -263,28 +237,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 10,
-  },
-  priceOption: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#333333",
-    marginBottom: 8,
-  },
-  priceOptionSelected: {
-    borderColor: "#4CAF50",
-    backgroundColor: "rgba(76, 175, 80, 0.1)",
-  },
-  priceOptionText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  priceOptionTextSelected: {
-    color: "#4CAF50",
   },
   summaryRow: {
     flexDirection: "row",

@@ -203,6 +203,11 @@ export default function ActivitiesScreen({ navigation }: any) {
   };
 
   const handleJoinActivity = async (activity: Activity) => {
+    if (activity.is_paid) {
+      navigation.navigate("TicketCheckout", { activityId: activity.id });
+      return;
+    }
+
     const isParticipant = activity.participants?.some(
       (p) => p.user_id === currentUserId && p.status === "joined",
     );

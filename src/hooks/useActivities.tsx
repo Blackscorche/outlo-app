@@ -20,6 +20,10 @@ export type Activity = Tables<'activities'> & {
       photos: string[] | null;
     };
   }[];
+  tickets?: {
+    buyer_id: string;
+    payment_status: string;
+  }[];
   comments?: ActivityComment[];
 };
 
@@ -228,11 +232,24 @@ export function useActivities() {
         participantsData = participants || [];
       }
 
-      // Helper to add participants to activities
+      // Fetch current user's paid tickets for these activities
+      let ticketsData: any[] = [];
+      if (allActivityIds.length > 0) {
+        const { data: tickets } = await supabase
+          .from('activity_tickets')
+          .select('activity_id, buyer_id, payment_status')
+          .in('activity_id', allActivityIds)
+          .eq('buyer_id', user.id)
+          .eq('payment_status', 'paid');
+        ticketsData = tickets || [];
+      }
+
+      // Helper to add participants and tickets to activities
       const addParticipants = (activities: any[]) =>
         activities.map(activity => ({
           ...activity,
           participants: participantsData.filter(p => p.activity_id === activity.id),
+          tickets: ticketsData.filter(t => t.activity_id === activity.id),
         }));
 
       console.log('📅 Activities fetched - Public:', publicActivitiesData?.length || 0,
@@ -379,6 +396,17 @@ export function useActivities() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         Alert.alert('Error', 'You must be logged in to join an activity');
+        return false;
+      }
+
+      // Safety net: block joining paid activities without ticket purchase
+      const { data: activityCheck } = await supabase
+        .from('activities')
+        .select('is_paid')
+        .eq('id', activityId)
+        .single();
+      if (activityCheck?.is_paid) {
+        Alert.alert('Ticket Required', 'This activity requires a ticket purchase.');
         return false;
       }
 

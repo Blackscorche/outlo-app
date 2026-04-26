@@ -260,7 +260,13 @@ export default function ActivityCard({
             isParticipant && styles.joinedButtonText,
             isFull && !isParticipant && styles.disabledButtonText,
           ]}>
-            {isParticipant ? 'Joined ✓' : isFull ? 'Full' : 'Join Activity'}
+            {isParticipant
+              ? 'Joined ✓'
+              : isFull
+                ? (activity.is_paid ? 'Sold Out' : 'Full')
+                : activity.is_paid
+                  ? `Buy Ticket · €${((activity.ticket_price_cents ?? 0) / 100).toFixed(2)}`
+                  : 'Join Activity'}
           </Text>
         </TouchableOpacity>
       ) : isCreator ? (

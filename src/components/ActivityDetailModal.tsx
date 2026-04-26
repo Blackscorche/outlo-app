@@ -134,6 +134,9 @@ export default function ActivityDetailModal({
   const isParticipant = activity.participants?.some(
     p => p.user_id === currentUserId && p.status === 'joined'
   );
+  const hasPaidTicket = activity.tickets?.some(
+    t => t.buyer_id === currentUserId && t.payment_status === 'paid'
+  );
   const isFull = activity.current_participants >= activity.max_participants;
 
   const formatDate = (dateString: string) => {
@@ -519,7 +522,7 @@ export default function ActivityDetailModal({
                 </TouchableOpacity>
               </View>
             </View>
-          ) : isParticipant ? (
+          ) : (activity.is_paid ? hasPaidTicket : isParticipant) ? (
             activity.is_paid ? (
               <View style={{
                 flexDirection: 'row', alignItems: 'center', justifyContent: 'center',

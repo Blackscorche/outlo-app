@@ -171,19 +171,12 @@ serve(async (req: Request) => {
       .single();
     if (act) {
       const next = (act.current_participants ?? 0) + 1;
-      const updates: Record<string, unknown> = {
-        current_participants: next,
-        updated_at: new Date().toISOString(),
-      };
-      if (
-        typeof act.max_participants === "number" &&
-        next >= act.max_participants
-      ) {
-        updates.status = "full";
-      }
       await supabaseAdmin
         .from("activities")
-        .update(updates)
+        .update({
+          current_participants: next,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", activity_id);
     }
 
