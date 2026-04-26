@@ -324,8 +324,8 @@ const ConnectionRequestsScreen = ({ navigation }) => {
   const getFilteredList = () => {
     let base =
       activeTab === 'received' ? receivedRequestsWithProfiles :
-      activeTab === 'sent' ? sentRequestsWithProfiles :
-      connectionsWithProfiles;
+        activeTab === 'sent' ? sentRequestsWithProfiles :
+          connectionsWithProfiles;
 
     // Search by name
     if (searchQuery.trim()) {
@@ -503,7 +503,7 @@ const ConnectionRequestsScreen = ({ navigation }) => {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate('Home')}>
           <Image
-            source={require('../../assets/favicon.png')}
+            source={require('../../assets/logos/darkmode_logo.png')}
             style={styles.headerLogo}
             resizeMode="contain"
           />
@@ -518,7 +518,7 @@ const ConnectionRequestsScreen = ({ navigation }) => {
             />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIconButton} onPress={() => setShowFilterModal(true)}>
-            <Ionicons name="funnel" size={20} color="#FF1744" />
+            <Ionicons name="funnel" size={20} color="#4CAF50" />
             {activeFiltersCount > 0 && (
               <View style={styles.filterBadge}>
                 <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
@@ -599,8 +599,8 @@ const ConnectionRequestsScreen = ({ navigation }) => {
           data={filteredList}
           renderItem={
             activeTab === 'received' ? renderReceivedRequest :
-            activeTab === 'sent' ? renderSentRequest :
-            renderConnection
+              activeTab === 'sent' ? renderSentRequest :
+                renderConnection
           }
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
@@ -711,13 +711,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: theme.spacing.xs,
     paddingRight: theme.spacing.md,
-    backgroundColor: '#FFFFFF',
+    paddingLeft: 12,
+    backgroundColor: '#1A1A1A',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 3,
     zIndex: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333333',
   },
   headerTitle: {
     position: 'absolute',
@@ -726,13 +729,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 24,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: '#FFFFFF',
     pointerEvents: 'none',
   },
   headerLogo: {
-    width: 150,
-    height: 50,
-    marginLeft: -25,
+    width: 120,
+    height: 40,
+    marginLeft: 0,
   },
   headerActions: {
     flexDirection: 'row',

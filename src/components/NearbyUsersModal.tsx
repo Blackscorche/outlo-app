@@ -40,14 +40,14 @@ interface NearbyUsersModalProps {
   onShowOnMap?: (users: UserLocation[]) => void;
 }
 
-export default function NearbyUsersModal({ 
-  visible, 
-  onClose, 
-  users, 
+export default function NearbyUsersModal({
+  visible,
+  onClose,
+  users,
   onUserSelect,
   onRefresh,
   navigation,
-  onShowOnMap 
+  onShowOnMap
 }: NearbyUsersModalProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [connectedUserIds, setConnectedUserIds] = useState<Set<string>>(new Set());
@@ -146,7 +146,7 @@ export default function NearbyUsersModal({
   const isUserConnected = (userId: string) => {
     return connectedUserIds.has(userId);
   };
-  
+
   // Helper function to check if user is considered online (based on last_seen within 15 minutes)
   const isUserOnline = (user: UserLocation) => {
     // Always check last_seen timestamp
@@ -156,11 +156,11 @@ export default function NearbyUsersModal({
       const diffInMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60);
       return diffInMinutes <= 15; // Online indicator shows for 15 minutes
     }
-    
+
     // If no last_seen, fall back to is_online
     return user.is_online || false;
   };
-  
+
   const onlineUsers = users.filter(user => isUserOnline(user));
 
   // Sort users by pinned status
@@ -179,7 +179,7 @@ export default function NearbyUsersModal({
 
   const handleRefresh = async () => {
     if (!onRefresh || refreshing) return;
-    
+
     try {
       setRefreshing(true);
       await onRefresh();
@@ -234,7 +234,7 @@ export default function NearbyUsersModal({
         .single();
 
       let roomId;
-      
+
       if (existingRoom) {
         // Use existing room
         console.log('Using existing chat room:', existingRoom.id);
@@ -244,7 +244,7 @@ export default function NearbyUsersModal({
         console.log('Creating new chat room between', currentUser.id, 'and', userId);
         const user1 = currentUser.id < userId ? currentUser.id : userId;
         const user2 = currentUser.id < userId ? userId : currentUser.id;
-        
+
         const { data: newRoom, error } = await supabase
           .from('chat_rooms')
           .insert({
@@ -266,7 +266,7 @@ export default function NearbyUsersModal({
               .select('*')
               .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${userId}),and(user1_id.eq.${userId},user2_id.eq.${currentUser.id})`)
               .single();
-            
+
             if (existingRoomRetry) {
               roomId = existingRoomRetry.id;
               console.log('Found existing room:', roomId);
@@ -287,25 +287,25 @@ export default function NearbyUsersModal({
       // Close the modal and navigate to the chat room
       onClose();
       console.log('Navigating to ChatRoom with:', { roomId, otherUserId: userId, otherUserName: userName });
-      navigation.navigate('ChatRoom', { 
+      navigation.navigate('ChatRoom', {
         roomId: roomId,
         otherUserId: userId,
         otherUserName: userName,
       });
-      
+
     } catch (error) {
       console.error('Error navigating to chat:', error);
       Alert.alert('Error', 'Failed to open chat');
     }
   };
-  
+
   const renderUser = ({ item }: { item: UserLocation }) => {
     const photo = item.photos?.[0];
     const displayName = item.name || 'Unknown User';
-    
+
     return (
       <View style={styles.userItem}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.userContent}
           onPress={() => {
             onUserSelect(item);
@@ -332,13 +332,13 @@ export default function NearbyUsersModal({
               </View>
             )}
           </View>
-          
+
           <View style={styles.userInfo}>
             <Text style={[styles.userName, isPinned(item.id) && styles.pinnedUserName]}>
               {displayName}
               {item.age && `, ${item.age}`}
             </Text>
-            
+
             {item.interests && item.interests.length > 0 && (
               <View style={styles.interestsContainer}>
                 {item.interests.slice(0, 3).map((interest, index) => (
@@ -352,16 +352,16 @@ export default function NearbyUsersModal({
               </View>
             )}
           </View>
-          
+
           <View style={styles.genderIndicator}>
-            <Ionicons 
-              name={item.gender === 'male' ? 'man' : 'woman'} 
-              size={24} 
-              color={item.gender === 'male' ? '#2196F3' : '#FF1744'} 
+            <Ionicons
+              name={item.gender === 'male' ? 'man' : 'woman'}
+              size={24}
+              color={item.gender === 'male' ? '#2196F3' : '#4CAF50'}
             />
           </View>
         </TouchableOpacity>
-        
+
         {/* Show on Map button - only for online users */}
         {navigation && item.current_latitude && item.current_longitude && isUserOnline(item) && (
           <TouchableOpacity
@@ -384,30 +384,30 @@ export default function NearbyUsersModal({
             <Ionicons name="location" size={20} color={theme.colors.primary} />
           </TouchableOpacity>
         )}
-        
+
         <TouchableOpacity
           style={styles.pinButton}
           onPress={() => togglePinUser(item.id)}
         >
-          <Ionicons 
+          <Ionicons
             name={isPinned(item.id) ? "bookmark" : "bookmark-outline"}
-            size={20} 
-            color={isPinned(item.id) ? "#FFD700" : "#999"} 
+            size={20}
+            color={isPinned(item.id) ? "#FFD700" : "#999"}
           />
         </TouchableOpacity>
-        
+
         {navigation && (
           <TouchableOpacity
             style={[
-              styles.chatButton, 
+              styles.chatButton,
               !isUserConnected(item.id) && styles.chatButtonDisabled
             ]}
             onPress={() => handleChatWithUser(item.id, displayName)}
           >
-            <Ionicons 
-              name={isUserConnected(item.id) ? "chatbubble-outline" : "lock-closed-outline"} 
-              size={20} 
-              color={isUserConnected(item.id) ? theme.colors.primary : theme.colors.gray[400]} 
+            <Ionicons
+              name={isUserConnected(item.id) ? "chatbubble-outline" : "lock-closed-outline"}
+              size={20}
+              color={isUserConnected(item.id) ? theme.colors.primary : theme.colors.gray[400]}
             />
           </TouchableOpacity>
         )}
@@ -428,7 +428,7 @@ export default function NearbyUsersModal({
             <Ionicons name="close" size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={styles.title}>Nearby Users</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.refreshButton}
             onPress={handleRefresh}
             disabled={refreshing}
@@ -442,7 +442,7 @@ export default function NearbyUsersModal({
         </View>
 
         <View style={styles.tabsContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.tabItem, activeTab === 'online' && styles.activeTab]}
             onPress={() => setActiveTab('online')}
           >
@@ -450,7 +450,7 @@ export default function NearbyUsersModal({
               Online Now ({onlineUsers.length})
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.tabItem, activeTab === 'all' && styles.activeTab]}
             onPress={() => setActiveTab('all')}
           >
@@ -483,7 +483,7 @@ export default function NearbyUsersModal({
             </View>
           ) : (
             <FlatList
-              data={activeTab === 'online' 
+              data={activeTab === 'online'
                 ? sortedOnlineUsers
                 : sortedAllUsers
               }

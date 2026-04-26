@@ -73,7 +73,7 @@ export default function ChatScreen({ navigation }: any) {
 
   // Ref so subscriptions/interval can always call the latest version
   // without being recreated every time connections change.
-  const loadRef = useRef<() => void>(() => {});
+  const loadRef = useRef<() => void>(() => { });
 
   // Effect 1: re-load data only when connections actually change
   useEffect(() => {
@@ -147,9 +147,9 @@ export default function ChatScreen({ navigation }: any) {
 
   const filteredUsers = searchQuery.trim()
     ? connectedUsers.filter(u =>
-        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.chatRoom?.last_message?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.chatRoom?.last_message?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : connectedUsers;
 
   const loadConnectedUsersAndChats = async () => {
@@ -167,7 +167,7 @@ export default function ChatScreen({ navigation }: any) {
             .select('id, name, photos, bio, age, is_online, last_seen')
             .eq('id', userId)
             .single();
-          
+
           return profile;
         })
       );
@@ -224,7 +224,7 @@ export default function ChatScreen({ navigation }: any) {
       // Helper function to check if user is considered online
       const isUserOnline = (profile: any) => {
         if (!profile.is_online) return false;
-        
+
         // Check if last_seen is within 15 minutes
         if (profile.last_seen) {
           const lastSeen = new Date(profile.last_seen);
@@ -232,7 +232,7 @@ export default function ChatScreen({ navigation }: any) {
           const diffInMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60);
           return diffInMinutes <= 15;
         }
-        
+
         return profile.is_online;
       };
 
@@ -242,13 +242,13 @@ export default function ChatScreen({ navigation }: any) {
         .map(profile => {
           const chatRoom = chatRoomsByUser.get(profile.id);
           const lastMessage = lastMessages.get(profile.id);
-          
+
           // Add last message info to chat room if it exists
           if (chatRoom && lastMessage) {
             chatRoom.last_message = lastMessage.content;
             chatRoom.last_message_time = lastMessage.created_at;
           }
-          
+
           return {
             id: profile.id,
             name: profile.name || 'Unknown',
@@ -269,7 +269,7 @@ export default function ChatScreen({ navigation }: any) {
           const bIsPinned = isPinned(b.id);
           if (aIsPinned && !bIsPinned) return -1;
           if (!aIsPinned && bIsPinned) return 1;
-          
+
           // Users with unread messages come first (within pinned/unpinned groups)
           if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
           if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
@@ -301,15 +301,15 @@ export default function ChatScreen({ navigation }: any) {
   const handleProfileUpdate = (payload: any) => {
     const updatedProfile = payload.new;
     console.log('Profile updated:', updatedProfile.id, 'online:', updatedProfile.is_online);
-    
+
     // Update the specific user's online status in real-time
-    setConnectedUsers(prevUsers => 
+    setConnectedUsers(prevUsers =>
       prevUsers.map(user => {
         if (user.id === updatedProfile.id) {
           // Helper function to check if user is considered online
           const isUserOnline = () => {
             if (!updatedProfile.is_online) return false;
-            
+
             // Check if last_seen is within 15 minutes
             if (updatedProfile.last_seen) {
               const lastSeen = new Date(updatedProfile.last_seen);
@@ -317,7 +317,7 @@ export default function ChatScreen({ navigation }: any) {
               const diffInMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60);
               return diffInMinutes <= 15;
             }
-            
+
             return updatedProfile.is_online;
           };
 
@@ -338,7 +338,7 @@ export default function ChatScreen({ navigation }: any) {
       if (!currentUser) return;
 
       let roomId = user.chatRoom?.id;
-      
+
       // If no chat room exists in our state, check the database first
       if (!roomId) {
         // Check if a chat room already exists between these users
@@ -354,7 +354,7 @@ export default function ChatScreen({ navigation }: any) {
           // Create new chat room only if it doesn't exist
           const user1 = currentUser.id < user.id ? currentUser.id : user.id;
           const user2 = currentUser.id < user.id ? user.id : currentUser.id;
-          
+
           const { data: newRoom, error } = await supabase
             .from('chat_rooms')
             .insert({
@@ -375,7 +375,7 @@ export default function ChatScreen({ navigation }: any) {
                 .select('*')
                 .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${user.id}),and(user1_id.eq.${user.id},user2_id.eq.${currentUser.id})`)
                 .single();
-              
+
               if (existingRoomRetry) {
                 roomId = existingRoomRetry.id;
               } else {
@@ -392,12 +392,12 @@ export default function ChatScreen({ navigation }: any) {
         }
       }
 
-      navigation.navigate('ChatRoom', { 
+      navigation.navigate('ChatRoom', {
         roomId: roomId,
         otherUserId: user.id,
         otherUserName: user.name,
       });
-      
+
       // Refresh the list to update chat room info
       loadConnectedUsersAndChats();
     } catch (error) {
@@ -483,7 +483,7 @@ export default function ChatScreen({ navigation }: any) {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate('Home')}>
           <Image
-            source={require('../../assets/favicon.png')}
+            source={require('../../assets/logos/darkmode_logo.png')}
             style={styles.headerLogo}
             resizeMode="contain"
           />
@@ -520,7 +520,7 @@ export default function ChatScreen({ navigation }: any) {
           )}
         </Animated.View>
       )}
-      
+
       {connectionsLoading || loading || !initialLoadComplete ? (
         <View style={styles.loadingContainer}>
           <AppLoading />
@@ -559,7 +559,7 @@ export default function ChatScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#0A0A0A',
   },
   header: {
     flexDirection: 'row',
@@ -567,13 +567,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: theme.spacing.xs,
     paddingRight: theme.spacing.md,
-    backgroundColor: '#FFFFFF',
+    paddingLeft: 12,
+    backgroundColor: '#1A1A1A',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 3,
     zIndex: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333333',
   },
   headerTitle: {
     position: 'absolute',
@@ -582,13 +585,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 24,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: '#FFFFFF',
     pointerEvents: 'none',
   },
   headerLogo: {
-    width: 150,
-    height: 50,
-    marginLeft: -25,
+    width: 120,
+    height: 40,
+    marginLeft: 0,
   },
   headerActions: {
     flexDirection: 'row',
@@ -598,7 +601,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#2A2A2A',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -610,28 +613,25 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#2A2A2A',
     marginHorizontal: 16,
     marginVertical: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#333333',
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#1A1A1A',
+    color: '#FFFFFF',
     padding: 0,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
   },
   emptyContainer: {
     flex: 1,
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#666',
+    color: '#FFFFFF',
     marginTop: 16,
   },
   emptySubtext: {
@@ -656,7 +656,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1A1A',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333333',
   },
   avatarContainer: {
     position: 'relative',
@@ -668,9 +670,11 @@ const styles = StyleSheet.create({
     borderRadius: 28,
   },
   avatarPlaceholder: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#2A2A2A',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333333',
   },
   onlineIndicator: {
     position: 'absolute',
@@ -681,7 +685,7 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: '#4CAF50',
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: '#1A1A1A',
   },
   chatInfo: {
     flex: 1,
@@ -695,7 +699,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: '#FFFFFF',
     flex: 1,
   },
   timestamp: {
@@ -714,11 +718,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   lastMessageUnread: {
-    color: '#333',
+    color: '#FFFFFF',
     fontWeight: '500',
   },
   unreadBadge: {
-    backgroundColor: '#FF1744',
+    backgroundColor: '#4CAF50',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -734,7 +738,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#333333',
     marginLeft: 84,
   },
   pinnedIndicator: {

@@ -223,11 +223,11 @@ export default function CreateActivityScreen({ navigation }: any) {
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={back} style={styles.headerBtn}>
-          <Ionicons name="arrow-back" size={22} color="#111827" />
+          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Create Activity</Text>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
-          <Ionicons name="close" size={22} color="#111827" />
+          <Ionicons name="close" size={22} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
@@ -379,9 +379,9 @@ function Step2({ form, update, gettingLocation, useCurrentLocation }: any) {
         disabled={gettingLocation}
       >
         {gettingLocation ? (
-          <ActivityIndicator color="#16A34A" />
+          <ActivityIndicator color="#4CAF50" />
         ) : (
-          <Ionicons name="locate" size={18} color="#16A34A" />
+          <Ionicons name="locate" size={18} color="#4CAF50" />
         )}
         <Text style={styles.locationBtnText}>
           {gettingLocation ? "Getting location..." : "Use my current location"}
@@ -390,7 +390,7 @@ function Step2({ form, update, gettingLocation, useCurrentLocation }: any) {
 
       {form.latitude !== null && form.longitude !== null && (
         <View style={styles.coordsCard}>
-          <Ionicons name="pin" size={16} color="#16A34A" />
+          <Ionicons name="pin" size={16} color="#4CAF50" />
           <Text style={styles.coordsText}>
             {form.latitude.toFixed(4)}, {form.longitude.toFixed(4)}
           </Text>
@@ -442,7 +442,7 @@ function Step3({
       <Text style={styles.stepSub}>Pick the date, time and (optional) duration.</Text>
 
       <TouchableOpacity style={styles.tile} onPress={() => setShowDatePicker(true)}>
-        <Ionicons name="calendar" size={20} color="#16A34A" />
+        <Ionicons name="calendar" size={20} color="#4CAF50" />
         <View style={{ flex: 1 }}>
           <Text style={styles.tileLabel}>Date</Text>
           <Text style={styles.tileValue}>{dateLabel}</Text>
@@ -451,7 +451,7 @@ function Step3({
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.tile} onPress={() => setShowTimePicker(true)}>
-        <Ionicons name="time" size={20} color="#16A34A" />
+        <Ionicons name="time" size={20} color="#4CAF50" />
         <View style={{ flex: 1 }}>
           <Text style={styles.tileLabel}>Start time</Text>
           <Text style={styles.tileValue}>{timeLabel}</Text>
@@ -524,7 +524,7 @@ function Step4({ form, update }: any) {
             update("maxParticipants", Math.max(2, form.maxParticipants - 1))
           }
         >
-          <Ionicons name="remove" size={20} color="#16A34A" />
+          <Ionicons name="remove" size={20} color="#4CAF50" />
         </TouchableOpacity>
         <Text style={styles.stepperValue}>{form.maxParticipants}</Text>
         <TouchableOpacity
@@ -533,7 +533,7 @@ function Step4({ form, update }: any) {
             update("maxParticipants", Math.min(100, form.maxParticipants + 1))
           }
         >
-          <Ionicons name="add" size={20} color="#16A34A" />
+          <Ionicons name="add" size={20} color="#4CAF50" />
         </TouchableOpacity>
       </View>
 
@@ -550,7 +550,7 @@ function Step4({ form, update }: any) {
               <View
                 style={[
                   styles.radio,
-                  active && { borderColor: "#16A34A", backgroundColor: "#16A34A" },
+                  active && { borderColor: "#4CAF50", backgroundColor: "#4CAF50" },
                 ]}
               >
                 {active && <Ionicons name="checkmark" size={12} color="#fff" />}
@@ -584,16 +584,16 @@ function Step5({ form, update }: any) {
           style={[styles.toggleCard, !form.isPaid && styles.toggleActive]}
           onPress={() => update("isPaid", false)}
         >
-          <Ionicons name="people" size={20} color={!form.isPaid ? "#16A34A" : "#6B7280"} />
-          <Text style={[styles.toggleTitle, !form.isPaid && { color: "#16A34A" }]}>Free</Text>
+          <Ionicons name="people" size={20} color={!form.isPaid ? "#4CAF50" : "#6B7280"} />
+          <Text style={[styles.toggleTitle, !form.isPaid && { color: "#4CAF50" }]}>Free</Text>
           <Text style={styles.toggleSub}>Anyone can join</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.toggleCard, form.isPaid && styles.toggleActive]}
           onPress={() => update("isPaid", true)}
         >
-          <Ionicons name="ticket" size={20} color={form.isPaid ? "#16A34A" : "#6B7280"} />
-          <Text style={[styles.toggleTitle, form.isPaid && { color: "#16A34A" }]}>Paid</Text>
+          <Ionicons name="ticket" size={20} color={form.isPaid ? "#4CAF50" : "#6B7280"} />
+          <Text style={[styles.toggleTitle, form.isPaid && { color: "#4CAF50" }]}>Paid</Text>
           <Text style={styles.toggleSub}>Sell tickets</Text>
         </TouchableOpacity>
       </View>
@@ -645,7 +645,7 @@ function Step5({ form, update }: any) {
               value={form.paymentRequiredToJoin}
               onValueChange={(v) => update("paymentRequiredToJoin", v)}
               trackColor={{ false: "#D1D5DB", true: "#86EFAC" }}
-              thumbColor={form.paymentRequiredToJoin ? "#16A34A" : "#fff"}
+              thumbColor={form.paymentRequiredToJoin ? "#4CAF50" : "#fff"}
             />
           </View>
         </View>
@@ -668,7 +668,7 @@ function Step6({ form, pickImage, update }: any) {
           <Image source={{ uri: form.imageUri }} style={styles.imagePreview} />
         ) : (
           <View style={styles.imagePlaceholder}>
-            <Ionicons name="image" size={36} color="#16A34A" />
+            <Ionicons name="image" size={36} color="#4CAF50" />
             <Text style={styles.imagePickerText}>Tap to upload</Text>
           </View>
         )}
@@ -805,7 +805,7 @@ async function uploadActivityImage(uri: string): Promise<string | null> {
 // ====================================================================
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#fff" },
+  safe: { flex: 1, backgroundColor: "#0A0A0A" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -813,30 +813,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "#333333",
   },
   headerBtn: {
     padding: 8,
   },
-  headerTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  headerTitle: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
 
   scrollContent: { padding: 16, paddingBottom: 120 },
 
-  stepHeading: { fontSize: 22, fontWeight: "800", color: "#111827", marginBottom: 4 },
-  stepSub: { fontSize: 14, color: "#6B7280", marginBottom: 18 },
+  stepHeading: { fontSize: 22, fontWeight: "800", color: "#FFFFFF", marginBottom: 4 },
+  stepSub: { fontSize: 14, color: "#B3B3B3", marginBottom: 18 },
 
-  label: { fontSize: 13, fontWeight: "700", color: "#374151", marginTop: 14, marginBottom: 8 },
-  helper: { fontSize: 11, color: "#9CA3AF", marginTop: 4 },
+  label: { fontSize: 13, fontWeight: "700", color: "#FFFFFF", marginTop: 14, marginBottom: 8 },
+  helper: { fontSize: 11, color: "#888", marginTop: 4 },
 
   input: {
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#333333",
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: "#111827",
-    backgroundColor: "#F9FAFB",
+    color: "#FFFFFF",
+    backgroundColor: "#2A2A2A",
   },
   textarea: { minHeight: 110, textAlignVertical: "top" },
 
@@ -850,11 +850,11 @@ const styles = StyleSheet.create({
   categoryCard: {
     width: "31%",
     borderWidth: 2,
-    borderColor: "#E5E7EB",
+    borderColor: "#333333",
     borderRadius: 14,
     paddingVertical: 12,
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#1A1A1A",
   },
   categoryIcon: {
     width: 40,
@@ -864,7 +864,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 6,
   },
-  categoryLabel: { fontSize: 12, color: "#374151", fontWeight: "600" },
+  categoryLabel: { fontSize: 12, color: "#FFFFFF", fontWeight: "600" },
 
   // Location
   locationBtn: {
@@ -875,11 +875,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginTop: 14,
     borderRadius: 12,
-    backgroundColor: "#F0FDF4",
+    backgroundColor: "#2A2A2A",
     borderWidth: 1,
-    borderColor: "#BBF7D0",
+    borderColor: "#4CAF50",
   },
-  locationBtnText: { color: "#16A34A", fontWeight: "700" },
+  locationBtnText: { color: "#4CAF50", fontWeight: "700" },
   coordsCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -887,9 +887,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
     padding: 10,
     borderRadius: 8,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#2A2A2A",
   },
-  coordsText: { color: "#374151", fontSize: 13 },
+  coordsText: { color: "#FFFFFF", fontSize: 13 },
 
   // Date/Time tiles
   tile: {
@@ -900,12 +900,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#fff",
+    borderColor: "#333333",
+    backgroundColor: "#1A1A1A",
     marginBottom: 10,
   },
-  tileLabel: { fontSize: 12, color: "#6B7280", fontWeight: "600" },
-  tileValue: { fontSize: 15, color: "#111827", fontWeight: "600" },
+  tileLabel: { fontSize: 12, color: "#B3B3B3", fontWeight: "600" },
+  tileValue: { fontSize: 15, color: "#FFFFFF", fontWeight: "600" },
 
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
@@ -913,12 +913,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#fff",
+    borderColor: "#333333",
+    backgroundColor: "#1A1A1A",
   },
-  chipActive: { borderColor: "#16A34A", backgroundColor: "#F0FDF4" },
-  chipText: { color: "#374151", fontWeight: "600", fontSize: 13 },
-  chipTextActive: { color: "#16A34A" },
+  chipActive: { borderColor: "#4CAF50", backgroundColor: "#2A2A2A" },
+  chipText: { color: "#FFFFFF", fontWeight: "600", fontSize: 13 },
+  chipTextActive: { color: "#4CAF50" },
 
   // Stepper
   stepperRow: {
@@ -931,13 +931,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#F0FDF4",
+    backgroundColor: "#2A2A2A",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#BBF7D0",
+    borderColor: "#4CAF50",
   },
-  stepperValue: { fontSize: 22, fontWeight: "800", color: "#111827", minWidth: 40, textAlign: "center" },
+  stepperValue: { fontSize: 22, fontWeight: "800", color: "#FFFFFF", minWidth: 40, textAlign: "center" },
 
   // Options
   optionRow: {
@@ -948,62 +948,62 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#fff",
+    borderColor: "#333333",
+    backgroundColor: "#1A1A1A",
   },
-  optionRowActive: { borderColor: "#16A34A", backgroundColor: "#F0FDF4" },
+  optionRowActive: { borderColor: "#4CAF50", backgroundColor: "#2A2A2A" },
   radio: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: "#D1D5DB",
+    borderColor: "#555",
     alignItems: "center",
     justifyContent: "center",
   },
-  optionLabel: { fontSize: 14, fontWeight: "700", color: "#111827" },
-  optionSub: { fontSize: 12, color: "#6B7280" },
+  optionLabel: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
+  optionSub: { fontSize: 12, color: "#B3B3B3" },
 
   // Pricing
   toggleRow: { flexDirection: "row", gap: 10, marginBottom: 10 },
   toggleCard: {
     flex: 1,
     borderWidth: 2,
-    borderColor: "#E5E7EB",
+    borderColor: "#333333",
     borderRadius: 14,
     padding: 14,
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#1A1A1A",
   },
-  toggleActive: { borderColor: "#16A34A", backgroundColor: "#F0FDF4" },
-  toggleTitle: { fontSize: 16, fontWeight: "800", color: "#111827", marginTop: 6 },
-  toggleSub: { fontSize: 12, color: "#6B7280" },
+  toggleActive: { borderColor: "#4CAF50", backgroundColor: "#2A2A2A" },
+  toggleTitle: { fontSize: 16, fontWeight: "800", color: "#FFFFFF", marginTop: 6 },
+  toggleSub: { fontSize: 12, color: "#B3B3B3" },
 
   priceInputWrap: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#333333",
     borderRadius: 12,
     paddingHorizontal: 14,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#2A2A2A",
   },
-  priceCurrency: { fontSize: 18, fontWeight: "700", color: "#111827", marginRight: 6 },
-  priceInput: { flex: 1, fontSize: 18, paddingVertical: 12, color: "#111827" },
+  priceCurrency: { fontSize: 18, fontWeight: "700", color: "#FFFFFF", marginRight: 6 },
+  priceInput: { flex: 1, fontSize: 18, paddingVertical: 12, color: "#FFFFFF" },
 
   feeBreakdown: {
     marginTop: 10,
     padding: 12,
     borderRadius: 10,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#2A2A2A",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#333333",
   },
   feeRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 },
-  feeLabel: { fontSize: 13, fontWeight: "700", color: "#111827" },
-  feeValue: { fontSize: 13, fontWeight: "800", color: "#16A34A" },
-  feeLabelMuted: { fontSize: 12, color: "#6B7280" },
-  feeValueMuted: { fontSize: 12, color: "#6B7280" },
+  feeLabel: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
+  feeValue: { fontSize: 13, fontWeight: "800", color: "#4CAF50" },
+  feeLabelMuted: { fontSize: 12, color: "#888" },
+  feeValueMuted: { fontSize: 12, color: "#888" },
 
   toggleSwitchRow: {
     flexDirection: "row",
@@ -1016,9 +1016,9 @@ const styles = StyleSheet.create({
   imagePicker: {
     height: 180,
     borderRadius: 14,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#2A2A2A",
     borderWidth: 2,
-    borderColor: "#E5E7EB",
+    borderColor: "#333333",
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
@@ -1026,7 +1026,7 @@ const styles = StyleSheet.create({
   },
   imagePreview: { width: "100%", height: "100%" },
   imagePlaceholder: { alignItems: "center", gap: 6 },
-  imagePickerText: { color: "#16A34A", fontWeight: "700" },
+  imagePickerText: { color: "#4CAF50", fontWeight: "700" },
   removeImageBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1044,20 +1044,20 @@ const styles = StyleSheet.create({
     marginTop: 12,
     padding: 10,
     borderRadius: 10,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#2A2A2A",
   },
   fallbackImg: { width: 44, height: 44, borderRadius: 8 },
-  fallbackText: { color: "#6B7280", fontSize: 12, flex: 1 },
+  fallbackText: { color: "#B3B3B3", fontSize: 12, flex: 1 },
 
   // Preview
   previewCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#1A1A1A",
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#333333",
   },
-  previewImg: { width: "100%", height: 160, backgroundColor: "#F3F4F6" },
+  previewImg: { width: "100%", height: 160, backgroundColor: "#2A2A2A" },
   previewBadgeRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
   catChip: {
     flexDirection: "row",
@@ -1071,12 +1071,12 @@ const styles = StyleSheet.create({
   previewTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#111827",
+    color: "#FFFFFF",
     marginBottom: 10,
   },
   previewRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 },
-  previewRowText: { fontSize: 13, color: "#374151" },
-  previewDesc: { fontSize: 13, color: "#374151", marginTop: 8, lineHeight: 18 },
+  previewRowText: { fontSize: 13, color: "#B3B3B3" },
+  previewDesc: { fontSize: 13, color: "#B3B3B3", marginTop: 8, lineHeight: 18 },
 
   // Footer
   footer: {
@@ -1084,13 +1084,13 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 12,
     paddingBottom: Platform.OS === "ios" ? 24 : 12,
-    backgroundColor: "#fff",
+    backgroundColor: "#1A1A1A",
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#E5E7EB",
+    borderTopColor: "#333333",
   },
   primaryBtn: {
     flex: 2,
-    backgroundColor: "#16A34A",
+    backgroundColor: "#4CAF50",
     borderRadius: 12,
     paddingVertical: 14,
     flexDirection: "row",
@@ -1105,8 +1105,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#2A2A2A",
   },
-  secondaryBtnText: { color: "#374151", fontWeight: "700" },
+  secondaryBtnText: { color: "#FFFFFF", fontWeight: "700" },
   btnDisabled: { opacity: 0.4 },
 });

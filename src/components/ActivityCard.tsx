@@ -274,7 +274,7 @@ export default function ActivityCard({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#2A2A2A',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: '#FFFFFF',
     marginBottom: 2,
   },
   locationRow: {
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   spotsBadge: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#2A2A2A',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     color: '#E53935',
   },
   pastBadge: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#2A2A2A',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   completedBadge: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#2A2A2A',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
   },
   liveBadge: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#2A2A2A',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   // Description
   description: {
     fontSize: 14,
-    color: '#555',
+    color: '#B3B3B3',
     lineHeight: 20,
     marginBottom: 12,
   },
@@ -419,26 +419,26 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: '#1A1A1A',
   },
   avatarMore: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#2A2A2A',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: '#1A1A1A',
   },
   avatarMoreText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#666',
+    color: '#FFFFFF',
   },
   participantNames: {
     fontSize: 13,
-    color: '#666',
+    color: '#B3B3B3',
     flex: 1,
   },
   // Buttons
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   joinedButton: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#2A2A2A',
     borderWidth: 1.5,
     borderColor: '#4CAF50',
   },
@@ -462,13 +462,13 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
   },
   disabledButton: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#2A2A2A',
   },
   disabledButtonText: {
     color: '#999',
   },
   creatorButton: {
-    backgroundColor: '#FFF3E0',
+    backgroundColor: '#2A2A2A',
     paddingVertical: 12,
     borderRadius: 24,
     alignItems: 'center',
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   completedButton: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#2A2A2A',
     paddingVertical: 12,
     borderRadius: 24,
     alignItems: 'center',

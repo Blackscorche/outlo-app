@@ -993,7 +993,7 @@ export default function HomeScreen({ navigation, route }: any) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Ionicons name="location-outline" size={64} color="#FF1744" />
+          <Ionicons name="location-outline" size={64} color="#4CAF50" />
           <Text style={styles.errorTitle}>Location Error</Text>
           <Text style={styles.errorText}>{locationError}</Text>
           <TouchableOpacity
@@ -1017,7 +1017,7 @@ export default function HomeScreen({ navigation, route }: any) {
       {/* Header */}
       <View style={styles.header}>
         <Image
-          source={require("../../assets/favicon.png")}
+          source={require('../../assets/logos/darkmode_logo.png')}
           style={styles.headerLogo}
           resizeMode="contain"
         />
@@ -1029,7 +1029,7 @@ export default function HomeScreen({ navigation, route }: any) {
                 style={styles.headerIconButton}
                 onPress={() => setShowFilters(true)}
               >
-                <Ionicons name="funnel" size={20} color="#FF1744" />
+                <Ionicons name="funnel" size={20} color="#4CAF50" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.headerIconButton}
@@ -1063,7 +1063,7 @@ export default function HomeScreen({ navigation, route }: any) {
                   }
                 }}
               >
-                <Ionicons name="sync" size={22} color="#FF1744" />
+                <Ionicons name="sync" size={22} color="#4CAF50" />
               </TouchableOpacity>
             </>
           )}
@@ -1210,7 +1210,7 @@ export default function HomeScreen({ navigation, route }: any) {
                               ? "#FFD700"
                               : user.gender === "male"
                                 ? "#2196F3"
-                                : "#FF1744",
+                                : "#4CAF50",
                         }}
                       />
                     ) : (
@@ -1220,7 +1220,7 @@ export default function HomeScreen({ navigation, route }: any) {
                           height: 33,
                           borderRadius: 16.5,
                           backgroundColor:
-                            user.gender === "male" ? "#2196F3" : "#FF1744",
+                            user.gender === "male" ? "#2196F3" : "#4CAF50",
                           alignItems: "center",
                           justifyContent: "center",
                           borderWidth: highlightedUserId === user.id ? 4 : 0,
@@ -1282,7 +1282,7 @@ export default function HomeScreen({ navigation, route }: any) {
                   >
                     <View
                       style={{
-                        backgroundColor: "#FF1744",
+                        backgroundColor: "#4CAF50",
                         width: 33,
                         height: 33,
                         borderRadius: 16.5,
@@ -1468,7 +1468,7 @@ export default function HomeScreen({ navigation, route }: any) {
         {showLocationPrompt && (
           <View style={styles.locationDisabledOverlay}>
             <View style={styles.locationPrompt}>
-              <Ionicons name="location-outline" size={48} color="#FF1744" />
+              <Ionicons name="location-outline" size={48} color="#4CAF50" />
               <Text style={styles.locationPromptTitle}>Enable Location</Text>
               <Text style={styles.locationPromptText}>
                 Turn on your location to explore nearby sessions, places, and
@@ -1547,7 +1547,7 @@ export default function HomeScreen({ navigation, route }: any) {
             <Ionicons
               name={isLocationEnabled ? "location" : "location-outline"}
               size={20}
-              color={isLocationEnabled ? "#FF1744" : "#999"}
+              color={isLocationEnabled ? "#4CAF50" : "#999"}
             />
             <Text
               style={[
@@ -1580,7 +1580,7 @@ export default function HomeScreen({ navigation, route }: any) {
             <Ionicons
               name={isVisible ? "radio-button-on" : "radio-button-off"}
               size={20}
-              color={isVisible ? "#FF1744" : "#999"}
+              color={isVisible ? "#4CAF50" : "#999"}
             />
             <Text
               style={[styles.toggleCardText, !isVisible && { color: "#999" }]}
@@ -1637,7 +1637,7 @@ export default function HomeScreen({ navigation, route }: any) {
                 }
               }}
             >
-              <Ionicons name="locate" size={20} color="#FF1744" />
+              <Ionicons name="locate" size={20} color="#4CAF50" />
             </TouchableOpacity>
           )}
         </View>
@@ -1661,7 +1661,7 @@ export default function HomeScreen({ navigation, route }: any) {
               <Ionicons
                 name={showCheckInsOnly ? "location" : "location-outline"}
                 size={22}
-                color="#FF1744"
+                color="#4CAF50"
               />
             </TouchableOpacity>
 
@@ -1684,7 +1684,7 @@ export default function HomeScreen({ navigation, route }: any) {
               <Ionicons
                 name={showActivitiesOnMap ? "calendar" : "calendar-outline"}
                 size={22}
-                color="#FF1744"
+                color="#4CAF50"
               />
             </TouchableOpacity>
 
@@ -1707,7 +1707,7 @@ export default function HomeScreen({ navigation, route }: any) {
               <Ionicons
                 name={showPlacesOnMap ? "business" : "business-outline"}
                 size={22}
-                color="#FF1744"
+                color="#4CAF50"
               />
             </TouchableOpacity>
           </>
@@ -1904,7 +1904,7 @@ export default function HomeScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#0A0A0A",
   },
   mapContainer: {
     flex: 1,
@@ -1927,7 +1927,7 @@ const styles = StyleSheet.create({
   nearbyPill: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#1A1A1A",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 24,
@@ -1937,6 +1937,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     gap: 8,
+    borderWidth: 1,
+    borderColor: "#333333",
   },
   nearbyDot: {
     width: 8,
@@ -1947,7 +1949,7 @@ const styles = StyleSheet.create({
   nearbyText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#333",
+    color: "#FFFFFF",
   },
   checkInExpiryText: {
     fontSize: 10,
@@ -2038,7 +2040,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#FF1744",
+    color: "#4CAF50",
     marginTop: 16,
     marginBottom: 8,
   },
@@ -2049,7 +2051,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   button: {
-    backgroundColor: "#FF1744",
+    backgroundColor: "#4CAF50",
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 10,
@@ -2090,7 +2092,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -8,
     right: -8,
-    backgroundColor: "#FF1744",
+    backgroundColor: "#4CAF50",
     borderRadius: 12,
     minWidth: 24,
     height: 24,
@@ -2213,7 +2215,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   enableLocationButton: {
-    backgroundColor: "#FF1744",
+    backgroundColor: "#4CAF50",
     paddingHorizontal: 30,
     paddingVertical: 12,
     borderRadius: 25,
@@ -2234,10 +2236,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 25,
     borderWidth: 1,
-    borderColor: "#FF1744",
+    borderColor: "#4CAF50",
   },
   declineLocationButtonText: {
-    color: "#FF1744",
+    color: "#4CAF50",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -2247,7 +2249,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   checkInMarker: {
-    backgroundColor: "#FF1744",
+    backgroundColor: "#4CAF50",
     width: 22,
     height: 22,
     borderRadius: 11,
@@ -2274,18 +2276,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: theme.spacing.xs,
     paddingRight: theme.spacing.md,
-    backgroundColor: "#FFFFFF",
+    paddingLeft: 12,
+    backgroundColor: "#1A1A1A",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 3,
     zIndex: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333333",
   },
   headerLogo: {
-    width: 150,
-    height: 50,
-    marginLeft: -25,
+    width: 120,
+    height: 40,
+    marginLeft: 0,
   },
   headerTitle: {
     position: "absolute",
@@ -2294,7 +2299,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 22,
     fontWeight: "bold",
-    color: theme.colors.text,
+    color: "#FFFFFF",
     pointerEvents: "none",
   },
   headerActions: {

@@ -469,63 +469,63 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
   };
 
   const uploadAvatarFromUri = async (imageUri: string) => {
+    try {
+      setUploadingCover(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const fileName = `avatar_${Date.now()}.jpg`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+
+      const reader = new FileReader();
+      reader.onloadend = async () => {
         try {
-          setUploadingCover(true);
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) throw new Error('User not authenticated');
+          const base64String = reader.result as string;
+          const base64Data = base64String.split(',')[1];
+          const decode = atob(base64Data);
+          const arrayBuffer = new Uint8Array(decode.length);
+          for (let i = 0; i < decode.length; i++) {
+            arrayBuffer[i] = decode.charCodeAt(i);
+          }
 
-          const fileName = `avatar_${Date.now()}.jpg`;
-          const filePath = `${user.id}/${fileName}`;
+          const { error: uploadError } = await supabase.storage
+            .from('user-photos')
+            .upload(filePath, arrayBuffer.buffer, {
+              contentType: 'image/jpeg',
+              cacheControl: '3600',
+            });
+          if (uploadError) throw uploadError;
 
-          const response = await fetch(imageUri);
-          const blob = await response.blob();
+          const { data: { publicUrl } } = supabase.storage
+            .from('user-photos')
+            .getPublicUrl(filePath);
 
-          const reader = new FileReader();
-          reader.onloadend = async () => {
-            try {
-              const base64String = reader.result as string;
-              const base64Data = base64String.split(',')[1];
-              const decode = atob(base64Data);
-              const arrayBuffer = new Uint8Array(decode.length);
-              for (let i = 0; i < decode.length; i++) {
-                arrayBuffer[i] = decode.charCodeAt(i);
-              }
+          const newPhotos = [...(profile.photos || [])];
+          newPhotos[0] = publicUrl;
 
-              const { error: uploadError } = await supabase.storage
-                .from('user-photos')
-                .upload(filePath, arrayBuffer.buffer, {
-                  contentType: 'image/jpeg',
-                  cacheControl: '3600',
-                });
-              if (uploadError) throw uploadError;
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ photos: newPhotos })
+            .eq('id', user.id);
+          if (updateError) throw updateError;
 
-              const { data: { publicUrl } } = supabase.storage
-                .from('user-photos')
-                .getPublicUrl(filePath);
-
-              const newPhotos = [...(profile.photos || [])];
-              newPhotos[0] = publicUrl;
-
-              const { error: updateError } = await supabase
-                .from('profiles')
-                .update({ photos: newPhotos })
-                .eq('id', user.id);
-              if (updateError) throw updateError;
-
-              setProfile(prev => ({ ...prev, photos: newPhotos }));
-            } catch (error) {
-              console.error('Error uploading avatar:', error);
-              Alert.alert('Error', 'Failed to upload avatar');
-            } finally {
-              setUploadingCover(false);
-            }
-          };
-          reader.readAsDataURL(blob);
+          setProfile(prev => ({ ...prev, photos: newPhotos }));
         } catch (error) {
-          console.error('Error changing avatar:', error);
-          Alert.alert('Error', 'Failed to change avatar');
+          console.error('Error uploading avatar:', error);
+          Alert.alert('Error', 'Failed to upload avatar');
+        } finally {
           setUploadingCover(false);
         }
+      };
+      reader.readAsDataURL(blob);
+    } catch (error) {
+      console.error('Error changing avatar:', error);
+      Alert.alert('Error', 'Failed to change avatar');
+      setUploadingCover(false);
+    }
   };
 
   const handleAvatarFromLibrary = async () => {
@@ -655,7 +655,7 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
         {isOwnProfile ? (
           <TouchableOpacity onPress={() => navigation.navigate('Home')}>
             <Image
-              source={require('../../assets/favicon.png')}
+              source={require('../../assets/logos/darkmode_logo.png')}
               style={styles.headerLogo}
               resizeMode="contain"
             />
@@ -1310,18 +1310,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: theme.spacing.xs,
     paddingRight: theme.spacing.md,
-    backgroundColor: '#FFFFFF',
+    paddingLeft: 12,
+    backgroundColor: '#1A1A1A',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 3,
     zIndex: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333333',
   },
   headerLogo: {
-    width: 150,
-    height: 50,
-    marginLeft: -25,
+    width: 120,
+    height: 40,
+    marginLeft: 0,
   },
   navHeaderTitle: {
     position: 'absolute',

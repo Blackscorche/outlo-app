@@ -22,6 +22,16 @@ export const IAP_PRODUCTS = {
   ],
 };
 
+// Ticket product tiers - fixed prices
+export const TICKET_PRODUCTS = {
+  "outlo_ticket_5": { cents: 500, label: "€5" },
+  "outlo_ticket_10": { cents: 1000, label: "€10" },
+  "outlo_ticket_15": { cents: 1500, label: "€15" },
+  "outlo_ticket_20": { cents: 2000, label: "€20" },
+  "outlo_ticket_25": { cents: 2500, label: "€25" },
+  "outlo_ticket_50": { cents: 5000, label: "€50" },
+};
+
 // Types for modal callbacks
 interface ModalCallbacks {
   showLoading?: (message?: string) => void;
@@ -34,9 +44,10 @@ interface ModalCallbacks {
     onConfirm?: () => void
   ) => void;
   hideModals?: () => void;
+  onTicketPurchaseSuccess?: (purchase: Purchase, activityId: string) => void;
 }
 
-export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
+export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks, activityId?: string) => {
   const { refreshSubscription } = useSubscription();
 
   // Fallback to console.log if no modal callbacks provided
@@ -54,7 +65,7 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
   const showInfo =
     modalCallbacks?.showInfo ||
     ((title: string, message: string) => console.log("Info:", title, message));
-  const hideModals = modalCallbacks?.hideModals || (() => {});
+  const hideModals = modalCallbacks?.hideModals || (() => { });
 
   const {
     connected,
@@ -78,6 +89,19 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
         } = await supabase.auth.getUser();
         if (!user) {
           console.error("❌ No authenticated user for purchase");
+          return;
+        }
+
+        // Check if this is a ticket purchase
+        if (purchase.productId.startsWith("outlo_ticket_")) {
+          if (modalCallbacks?.onTicketPurchaseSuccess && activityId) {
+            await modalCallbacks.onTicketPurchaseSuccess(purchase, activityId);
+          }
+          // Acknowledge ticket purchase
+          await finishTransaction({
+            purchase,
+            isConsumable: true,
+          });
           return;
         }
 
@@ -143,13 +167,13 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
     try {
       console.log("📦 Loading products for platform:", Platform.OS);
       console.log("📦 Product IDs to load:", IAP_PRODUCTS);
-      
+
       // iOS-specific: Check if we're in sandbox mode
       if (Platform.OS === 'ios') {
         console.log("🍎 iOS - Make sure you're signed in with a Sandbox Test Account");
         console.log("🍎 iOS - Products must be 'Ready for Sale' in App Store Connect");
       }
-      
+
       // Load consumables first and wait for them
       try {
         const consumableProducts = await fetchProducts({
@@ -170,7 +194,7 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
         });
         console.log("✅ Loaded subscriptions count:", subscriptions.length);
         console.log("✅ Subscription IDs:", subscriptions.map(s => s.id));
-        
+
         // Check if subscriptions are empty (common iOS issue)
         if (subscriptions.length === 0) {
           console.error("⚠️ WARNING: No subscriptions loaded!");
@@ -273,7 +297,7 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
 
     try {
       const isSubscription = isSubscriptionProduct(productId);
- 
+
 
       if (isSubscription && Platform.OS === "android") {
         const subscription = subscriptions.find((s) => s.id === productId);
@@ -330,7 +354,7 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
     try {
 
       // This fetches all purchases (including acknowledged ones on iOS)
-      await getAvailablePurchases().then(()=>callBack())
+      await getAvailablePurchases().then(() => callBack())
 
       return availablePurchases;
     } catch (error) {
@@ -444,7 +468,7 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
 
           // Only consider downgrading if more than 1 day has passed since period end
           if (timeSincePeriodEnd > oneDayInMs) {
-          
+
             return {
               hasActiveSubscription: false,
               shouldUpdate: true,
@@ -514,7 +538,7 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks) => {
       const hasActive =
         subscription.tier === "premium" && subscription.status === "active";
 
-    
+
       return { hasActiveSubscription: hasActive };
     } catch (error) {
       console.error("❌ Error checking status:", error);

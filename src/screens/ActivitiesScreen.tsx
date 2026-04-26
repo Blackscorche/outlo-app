@@ -289,7 +289,7 @@ export default function ActivitiesScreen({ navigation }: any) {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate("Home")}>
           <Image
-            source={require("../../assets/favicon.png")}
+            source={require('../../assets/logos/darkmode_logo.png')}
             style={styles.headerLogo}
             resizeMode="contain"
           />
@@ -300,7 +300,7 @@ export default function ActivitiesScreen({ navigation }: any) {
             style={styles.headerIconButton}
             onPress={() => setShowFilterModal(true)}
           >
-            <Ionicons name="funnel" size={20} color="#FF1744" />
+            <Ionicons name="funnel" size={20} color="#4CAF50" />
             {activeFiltersCount > 0 && (
               <View style={styles.filterBadge}>
                 <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
@@ -575,7 +575,7 @@ export default function ActivitiesScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: "#0A0A0A",
   },
   header: {
     flexDirection: "row",
@@ -583,13 +583,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: theme.spacing.xs,
     paddingRight: theme.spacing.md,
-    backgroundColor: "#FFFFFF",
+    paddingLeft: 12,
+    backgroundColor: "#1A1A1A",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 3,
     zIndex: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333333",
   },
   headerTitle: {
     position: "absolute",
@@ -598,13 +601,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 24,
     fontWeight: "bold",
-    color: theme.colors.text,
+    color: "#FFFFFF",
     pointerEvents: "none",
   },
   headerLogo: {
-    width: 150,
-    height: 50,
-    marginLeft: -25,
+    width: 120,
+    height: 40,
+    marginLeft: 0,
   },
   headerActions: {
     flexDirection: "row",
@@ -631,7 +634,7 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: "#FF1744",
+    backgroundColor: "#4CAF50",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -650,9 +653,9 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     flexDirection: "row",
-    backgroundColor: theme.colors.surface,
+    backgroundColor: "#1A1A1A",
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: "#333333",
   },
   tab: {
     flex: 1,
@@ -662,20 +665,22 @@ const styles = StyleSheet.create({
     borderBottomColor: "transparent",
   },
   activeTab: {
-    borderBottomColor: theme.colors.primary,
+    borderBottomColor: "#4CAF50",
   },
   tabText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: "#B3B3B3",
     fontWeight: "500",
   },
   activeTabText: {
-    color: theme.colors.primary,
+    color: "#4CAF50",
     fontWeight: "600",
   },
   filterRow: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: "#1A1A1A",
     paddingVertical: theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333333",
   },
   filterList: {
     paddingHorizontal: theme.spacing.lg,
@@ -688,18 +693,18 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: theme.colors.primary,
+    borderColor: "#4CAF50",
     backgroundColor: "transparent",
     marginRight: theme.spacing.sm,
     gap: 4,
   },
   filterChipActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: "#4CAF50",
+    borderColor: "#4CAF50",
   },
   filterChipText: {
     fontSize: 12,
-    color: theme.colors.primary,
+    color: "#4CAF50",
     fontWeight: "500",
   },
   filterChipTextActive: {
@@ -709,9 +714,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.sm,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: "#1A1A1A",
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: "#333333",
     gap: theme.spacing.sm,
     flexWrap: "wrap",
   },
@@ -721,15 +726,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: theme.colors.gray[100],
+    backgroundColor: "#2A2A2A",
+    borderWidth: 1,
+    borderColor: "#333333",
     gap: 4,
   },
   filterButtonActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: "#4CAF50",
+    borderColor: "#4CAF50",
   },
   filterButtonText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: "#B3B3B3",
     fontWeight: "500",
   },
   filterButtonTextActive: {
@@ -762,19 +770,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: theme.colors.text,
+    color: "#FFFFFF",
     marginTop: theme.spacing.md,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: "#B3B3B3",
     marginTop: theme.spacing.sm,
     textAlign: "center",
   },
   createButtonEmpty: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.primary,
+    backgroundColor: "#4CAF50",
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
     borderRadius: theme.borderRadius.lg,
@@ -792,7 +800,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   filterModal: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: "#1A1A1A",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: theme.spacing.lg,

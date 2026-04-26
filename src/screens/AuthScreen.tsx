@@ -588,12 +588,7 @@ const AuthScreen = ({ navigation }) => {
 
   return (
     <>
-      <ImageBackground
-        source={require("../../assets/background.png")}
-        style={styles.backgroundImage}
-        resizeMode="contain"
-        imageStyle={{ opacity: 0.95 }}
-      >
+      <View style={styles.container}>
         <SafeAreaView style={styles.container}>
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -616,7 +611,7 @@ const AuthScreen = ({ navigation }) => {
               {/* Logo Header */}
               <View style={styles.logoContainer}>
                 <Image
-                  source={require("../../assets/logos/lightmode_logo.jpeg")}
+                  source={require("../../assets/logos/darkmode_logo.png")}
                   style={styles.logo}
                   resizeMode="contain"
                 />
@@ -853,13 +848,13 @@ const AuthScreen = ({ navigation }) => {
                               <Ionicons
                                 name="close-circle"
                                 size={28}
-                                color="#FF1744"
+                                color="#4CAF50"
                               />
                             </TouchableOpacity>
                           </>
                         ) : (
                           <View style={styles.modernAvatarPlaceholder}>
-                            <Ionicons name="camera" size={32} color="#FF1744" />
+                            <Ionicons name="camera" size={32} color="#4CAF50" />
                             <Text style={styles.modernAvatarText}>
                               Add Photo
                             </Text>
@@ -1005,7 +1000,7 @@ const AuthScreen = ({ navigation }) => {
                               color={
                                 profileData.gender === gender.value
                                   ? "#FFF"
-                                  : "#FF1744"
+                                  : "#4CAF50"
                               }
                             />
                             <Text
@@ -1094,7 +1089,7 @@ const AuthScreen = ({ navigation }) => {
                               <Ionicons
                                 name="close-circle"
                                 size={24}
-                                color="#FF1744"
+                                color="#4CAF50"
                               />
                             </TouchableOpacity>
                           </View>
@@ -1107,7 +1102,7 @@ const AuthScreen = ({ navigation }) => {
                             <Ionicons
                               name="add-circle"
                               size={48}
-                              color="#FF1744"
+                              color="#4CAF50"
                             />
                             <Text style={styles.modernAddPhotoText}>Add</Text>
                           </TouchableOpacity>
@@ -1137,7 +1132,7 @@ const AuthScreen = ({ navigation }) => {
                               color={
                                 profileData.interests.includes(interest.label)
                                   ? "#FFF"
-                                  : "#FF1744"
+                                  : "#4CAF50"
                               }
                               style={{ marginRight: 6 }}
                             />
@@ -1253,7 +1248,7 @@ const AuthScreen = ({ navigation }) => {
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
-      </ImageBackground>
+      </View>
 
       {/* ── EMAIL VERIFICATION MODAL ── */}
       <Modal visible={showVerifyModal} transparent animationType="fade">
@@ -1499,10 +1494,11 @@ const styles = StyleSheet.create({
     flex: 1,
     width: "100%",
     height: "100%",
+    backgroundColor: "#0A0A0A",
   },
   container: {
     flex: 1,
-    backgroundColor: "transparent",
+    backgroundColor: "#0A0A0A",
   },
   scrollContent: {
     flexGrow: 1,
@@ -1536,14 +1532,14 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#333",
+    color: "#FFFFFF",
     textAlign: "center",
     marginBottom: 28,
     marginTop: 4,
     letterSpacing: 0.5,
   },
   loginSection: {
-    backgroundColor: "white",
+    backgroundColor: "#1A1A1A",
     borderRadius: 24,
     padding: 28,
     shadowColor: "#000",
@@ -1557,24 +1553,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#333",
     marginBottom: 8,
-    fontWeight: "500",
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#2A2A2A",
     borderRadius: 12,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    height: 50,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#333333",
   },
   inputIcon: {
     marginRight: 10,
   },
   inputField: {
     flex: 1,
-    fontSize: 14,
-    color: "#333",
+    fontSize: 16,
+    color: "#FFFFFF",
+    paddingVertical: 16,
   },
   eyeIcon: {
     padding: 4,
@@ -1600,26 +1597,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   checkboxChecked: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: "#4CAF50",
+    borderColor: "#4CAF50",
   },
   rememberText: {
     fontSize: 14,
-    color: "#666",
+    color: "#B3B3B3",
   },
   forgotText: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: "#4CAF50",
     fontWeight: "500",
   },
   signInButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: "#4CAF50",
     borderRadius: 25,
     height: 50,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
-    shadowColor: theme.colors.primary,
+    shadowColor: "#4CAF50",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1632,7 +1629,7 @@ const styles = StyleSheet.create({
   },
   orText: {
     textAlign: "center",
-    color: "#999",
+    color: "#B3B3B3",
     fontSize: 14,
     marginBottom: 16,
   },
@@ -1647,16 +1644,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "white",
+    backgroundColor: "#1A1A1A",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderColor: "#333333",
     borderRadius: 12,
     paddingVertical: 12,
     gap: 8,
   },
   socialButtonText: {
     fontSize: 14,
-    color: "#333",
+    color: "#FFFFFF",
     fontWeight: "500",
   },
   signUpPrompt: {
@@ -1666,11 +1663,11 @@ const styles = StyleSheet.create({
   },
   signUpText: {
     fontSize: 14,
-    color: "#666",
+    color: "#B3B3B3",
   },
   signUpLink: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: "#4CAF50",
     fontWeight: "600",
   },
   header: {
@@ -1908,7 +1905,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   signupContainer: {
-    backgroundColor: "white",
+    backgroundColor: "#1A1A1A",
     borderRadius: 24,
     padding: 28,
     shadowColor: "#000",
@@ -1921,13 +1918,13 @@ const styles = StyleSheet.create({
   signupTitle: {
     fontSize: 26,
     fontWeight: "700",
-    color: "#333",
+    color: "#FFFFFF",
     textAlign: "center",
     marginBottom: 8,
   },
   signupSubtitle: {
     fontSize: 15,
-    color: "#666",
+    color: "#FFFFFF",
     textAlign: "center",
     marginBottom: 24,
   },
@@ -1947,16 +1944,16 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#2A2A2A",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#FF1744",
+    borderColor: "#333333",
     borderStyle: "dashed",
   },
   modernAvatarText: {
     fontSize: 12,
-    color: "#FF1744",
+    color: "#FFFFFF",
     marginTop: 4,
     fontWeight: "500",
   },
@@ -1971,7 +1968,7 @@ const styles = StyleSheet.create({
   modernInputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#2A2A2A",
     borderRadius: 12,
     marginBottom: 12,
     paddingHorizontal: 12,
@@ -1980,7 +1977,7 @@ const styles = StyleSheet.create({
   modernInput: {
     flex: 1,
     fontSize: 14,
-    color: "#333",
+    color: "#FFFFFF",
   },
   modernSection: {
     marginBottom: 24,
@@ -1988,7 +1985,7 @@ const styles = StyleSheet.create({
   modernLabel: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#333",
+    color: "#FFFFFF",
     marginBottom: 12,
   },
   modernOptionsRow: {
@@ -2009,28 +2006,30 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   modernOptionCardSelected: {
-    backgroundColor: "#FF1744",
-    borderColor: "#FF1744",
+    backgroundColor: "#4CAF50",
+    borderColor: "#4CAF50",
   },
   modernOptionText: {
     fontSize: 14,
-    color: "#333",
+    color: "#FFFFFF",
     fontWeight: "500",
   },
   modernOptionTextSelected: {
     color: "#FFF",
   },
   modernBioInput: {
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#2A2A2A",
     borderRadius: 12,
     padding: 12,
     fontSize: 14,
-    color: "#333",
+    color: "#FFFFFF",
     minHeight: 100,
+    borderWidth: 1,
+    borderColor: "#333333",
   },
   charCount: {
     fontSize: 12,
-    color: "#999",
+    color: "#B3B3B3",
     textAlign: "right",
     marginTop: 4,
   },
@@ -2057,17 +2056,17 @@ const styles = StyleSheet.create({
   modernAddPhoto: {
     width: "47%",
     aspectRatio: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#2A2A2A",
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#FF1744",
+    borderColor: "#4CAF50",
     borderStyle: "dashed",
   },
   modernAddPhotoText: {
     fontSize: 13,
-    color: "#FF1744",
+    color: "#4CAF50",
     fontWeight: "500",
     marginTop: 4,
   },
@@ -2079,28 +2078,28 @@ const styles = StyleSheet.create({
   modernInterestChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#2A2A2A",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderColor: "#333333",
     gap: 4,
   },
   modernInterestChipSelected: {
-    backgroundColor: "#FF1744",
-    borderColor: "#FF1744",
+    backgroundColor: "#4CAF50",
+    borderColor: "#4CAF50",
   },
   modernInterestText: {
     fontSize: 13,
-    color: "#333",
+    color: "#FFFFFF",
     fontWeight: "500",
   },
   modernInterestTextSelected: {
     color: "#FFF",
   },
   modernSignupButton: {
-    backgroundColor: "#FF1744",
+    backgroundColor: "#4CAF50",
     borderRadius: 25,
     height: 52,
     flexDirection: "row",
@@ -2108,7 +2107,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 8,
     marginBottom: 20,
-    shadowColor: "#FF1744",
+    shadowColor: "#4CAF50",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -2130,7 +2129,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   verifyCard: {
-    backgroundColor: "white",
+    backgroundColor: "#1A1A1A",
     borderRadius: 20,
     padding: 28,
     alignItems: "center",
@@ -2140,7 +2139,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "#FFF0F3",
+    backgroundColor: "#2A2A2A",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
@@ -2148,29 +2147,29 @@ const styles = StyleSheet.create({
   verifyTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: theme.colors.text,
+    color: "#FFFFFF",
     marginBottom: 10,
   },
   verifyBody: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: "#B3B3B3",
     textAlign: "center",
     lineHeight: 22,
     marginBottom: 8,
   },
   verifyEmailText: {
     fontWeight: "600",
-    color: theme.colors.text,
+    color: "#FFFFFF",
   },
   verifyHint: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: "#B3B3B3",
     textAlign: "center",
     marginBottom: 24,
     lineHeight: 18,
   },
   verifyBtn: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: "#4CAF50",
     borderRadius: 12,
     paddingVertical: 14,
     width: "100%",
@@ -2184,7 +2183,7 @@ const styles = StyleSheet.create({
   },
   verifyResend: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: "#4CAF50",
     fontWeight: "500",
   },
   termsContainer: {
@@ -2198,11 +2197,11 @@ const styles = StyleSheet.create({
   termsText: {
     flex: 1,
     fontSize: 13,
-    color: "#666",
+    color: "#B3B3B3",
     lineHeight: 20,
   },
   termsLink: {
-    color: theme.colors.primary,
+    color: "#4CAF50",
     fontWeight: "600",
   },
 });

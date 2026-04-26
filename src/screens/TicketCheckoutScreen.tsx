@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,19 +12,20 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import * as WebBrowser from "expo-web-browser";
+import { Platform } from "react-native";
 import {
   formatPrice,
   PLATFORM_FEE_BPS,
   getCategoryDefaultImage,
 } from "../constants/activityCategories";
-import { startTicketCheckout } from "../hooks/useTickets";
+import { processTicketPurchase } from "../hooks/useTickets";
+import { useLoveMapIAP } from "../services/iapService";
+import { TICKET_PRODUCTS } from "../services/iapService";
 import { useActivities, Activity } from "../hooks/useActivities";
 
 /**
- * Ticket purchase summary screen. Shows price breakdown then opens
- * Stripe-hosted Checkout in an in-app browser. On return, the webhook
- * has confirmed the ticket so we navigate to the success screen.
+ * Ticket purchase summary screen. Shows price breakdown then processes
+ * IAP purchase. On success, navigates to the success screen.
  */
 export default function TicketCheckoutScreen({ route, navigation }: any) {
   const { activityId } = route.params || {};
@@ -32,6 +33,26 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
   const [activity, setActivity] = useState<Activity | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string>("");
+
+  // Handle ticket purchase success
+  const handleTicketPurchaseSuccess = useCallback(async (purchase: any) => {
+    const success = await processTicketPurchase(
+      activityId,
+      purchase.productId,
+      purchase.transactionId,
+      purchase.purchaseToken,
+      Platform.OS === "ios" ? "ios" : "android",
+    );
+    if (success) {
+      navigation.replace("TicketSuccess", { activityId });
+    }
+    setBusy(false);
+  }, [activityId, navigation]);
+
+  const { purchaseProduct } = useLoveMapIAP({
+    onTicketPurchaseSuccess: handleTicketPurchaseSuccess,
+  }, activityId);
 
   useEffect(() => {
     (async () => {
@@ -41,29 +62,45 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
     })();
   }, [activityId]);
 
+  // Set default selected product based on activity price
+  useEffect(() => {
+    if (activity?.ticket_price_cents) {
+      const price = activity.ticket_price_cents;
+      let closest = "outlo_ticket_5";
+      let minDiff = Math.abs(500 - price);
+
+      Object.entries(TICKET_PRODUCTS).forEach(([id, config]) => {
+        const diff = Math.abs(config.cents - price);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = id;
+        }
+      });
+
+      setSelectedProductId(closest);
+    }
+  }, [activity]);
+
   const grossCents = activity?.ticket_price_cents ?? 0;
   const platformFeeCents = Math.round((grossCents * PLATFORM_FEE_BPS) / 10000);
   const totalCents = grossCents; // Buyer pays gross; platform fee comes from creator payout
 
+  // Get selected product config
+  const selectedProduct = selectedProductId ? TICKET_PRODUCTS[selectedProductId as keyof typeof TICKET_PRODUCTS] : null;
+  const selectedCents = selectedProduct?.cents || 0;
+
   const onPay = async () => {
-    if (!activity) return;
+    if (!activity || !selectedProductId) return;
     try {
       setBusy(true);
-      const url = await startTicketCheckout(activity.id);
-      if (!url) return;
 
-      const result = await WebBrowser.openAuthSessionAsync(url, "lovemap://");
-      if (result.type === "success" || result.type === "dismiss") {
-        // Webhook confirms server-side. Navigate optimistically; the
-        // success screen polls until the ticket is paid.
-        navigation.replace("TicketSuccess", { activityId: activity.id });
-      } else if (result.type === "cancel") {
-        Alert.alert("Payment cancelled");
-      }
+      // Purchase via IAP
+      purchaseProduct(selectedProductId);
     } catch (e: any) {
-      Alert.alert("Error", e?.message || "Could not open checkout");
-    } finally {
+      Alert.alert("Error", e?.message || "Could not complete purchase");
       setBusy(false);
+    } finally {
+      // setBusy will be set to false in handleTicketPurchaseSuccess
     }
   };
 
@@ -71,7 +108,7 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#16A34A" />
+          <ActivityIndicator size="large" color="#4CAF50" />
         </View>
       </SafeAreaView>
     );
@@ -88,7 +125,7 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
           onPress={() => navigation.goBack()}
           style={styles.headerBtn}
         >
-          <Ionicons name="arrow-back" size={22} color="#111827" />
+          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Buy Ticket</Text>
         <View style={{ width: 38 }} />
@@ -112,17 +149,39 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
           </View>
         </View>
 
+        {/* Price Tier Selection */}
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryHeader}>Select ticket price</Text>
+          {Object.entries(TICKET_PRODUCTS).map(([id, config]) => (
+            <TouchableOpacity
+              key={id}
+              style={[
+                styles.priceOption,
+                selectedProductId === id && styles.priceOptionSelected,
+              ]}
+              onPress={() => setSelectedProductId(id)}
+            >
+              <Text style={[
+                styles.priceOptionText,
+                selectedProductId === id && styles.priceOptionTextSelected,
+              ]}>
+                {config.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <View style={styles.summaryCard}>
           <Text style={styles.summaryHeader}>Order summary</Text>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Ticket</Text>
-            <Text style={styles.summaryValue}>{formatPrice(grossCents)}</Text>
+            <Text style={styles.summaryValue}>{formatPrice(selectedCents)}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.summaryRow}>
             <Text style={styles.summaryTotal}>Total</Text>
             <Text style={styles.summaryTotalValue}>
-              {formatPrice(totalCents)}
+              {formatPrice(selectedCents)}
             </Text>
           </View>
           <Text style={styles.feeNote}>
@@ -132,9 +191,9 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
         </View>
 
         <View style={styles.terms}>
-          <Ionicons name="shield-checkmark" size={14} color="#16A34A" />
+          <Ionicons name="shield-checkmark" size={14} color="#4CAF50" />
           <Text style={styles.termsText}>
-            Secure payment by Stripe. By continuing you agree to Outlo's terms
+            Secure payment via App Store / Google Play. By continuing you agree to Outlo's terms
             and refund policy.
           </Text>
         </View>
@@ -144,7 +203,7 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
         <TouchableOpacity
           style={[styles.payBtn, busy && styles.payBtnDisabled]}
           onPress={onPay}
-          disabled={busy}
+          disabled={busy || !selectedProductId}
         >
           {busy ? (
             <ActivityIndicator color="#fff" />
@@ -152,7 +211,7 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
             <>
               <Ionicons name="lock-closed" size={16} color="#fff" />
               <Text style={styles.payBtnText}>
-                Pay {formatPrice(totalCents)}
+                Pay {formatPrice(selectedCents)}
               </Text>
             </>
           )}
@@ -163,7 +222,7 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F9FAFB" },
+  safe: { flex: 1, backgroundColor: "#0A0A0A" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: {
     flexDirection: "row",
@@ -171,28 +230,28 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 8,
     paddingVertical: 8,
-    backgroundColor: "#fff",
+    backgroundColor: "#1A1A1A",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "#333333",
   },
   headerBtn: { padding: 8 },
-  headerTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  headerTitle: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
 
   scroll: { padding: 16, paddingBottom: 30 },
 
   activityCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#1A1A1A",
     borderRadius: 14,
     overflow: "hidden",
     marginBottom: 14,
   },
-  heroImg: { width: "100%", height: 140, backgroundColor: "#E5E7EB" },
-  title: { fontSize: 18, fontWeight: "800", color: "#111827", marginBottom: 8 },
+  heroImg: { width: "100%", height: 140, backgroundColor: "#333333" },
+  title: { fontSize: 18, fontWeight: "800", color: "#FFFFFF", marginBottom: 8 },
   row: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 2 },
-  rowText: { fontSize: 13, color: "#374151" },
+  rowText: { fontSize: 13, color: "#B3B3B3" },
 
   summaryCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#1A1A1A",
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
@@ -200,26 +259,48 @@ const styles = StyleSheet.create({
   summaryHeader: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#6B7280",
+    color: "#B3B3B3",
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 10,
+  },
+  priceOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#333333",
+    marginBottom: 8,
+  },
+  priceOptionSelected: {
+    borderColor: "#4CAF50",
+    backgroundColor: "rgba(76, 175, 80, 0.1)",
+  },
+  priceOptionText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  priceOptionTextSelected: {
+    color: "#4CAF50",
   },
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 6,
   },
-  summaryLabel: { fontSize: 14, color: "#374151" },
-  summaryValue: { fontSize: 14, color: "#111827", fontWeight: "600" },
+  summaryLabel: { fontSize: 14, color: "#B3B3B3" },
+  summaryValue: { fontSize: 14, color: "#FFFFFF", fontWeight: "600" },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: "#333333",
     marginVertical: 6,
   },
-  summaryTotal: { fontSize: 16, fontWeight: "800", color: "#111827" },
-  summaryTotalValue: { fontSize: 16, fontWeight: "800", color: "#16A34A" },
-  feeNote: { fontSize: 11, color: "#9CA3AF", marginTop: 6 },
+  summaryTotal: { fontSize: 16, fontWeight: "800", color: "#FFFFFF" },
+  summaryTotalValue: { fontSize: 16, fontWeight: "800", color: "#4CAF50" },
+  feeNote: { fontSize: 11, color: "#666666", marginTop: 6 },
 
   terms: {
     flexDirection: "row",
@@ -227,17 +308,17 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     paddingHorizontal: 4,
   },
-  termsText: { fontSize: 12, color: "#6B7280", flex: 1 },
+  termsText: { fontSize: 12, color: "#B3B3B3", flex: 1 },
 
   footer: {
-    backgroundColor: "#fff",
+    backgroundColor: "#1A1A1A",
     padding: 14,
     paddingBottom: 24,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#E5E7EB",
+    borderTopColor: "#333333",
   },
   payBtn: {
-    backgroundColor: "#16A34A",
+    backgroundColor: "#4CAF50",
     borderRadius: 14,
     paddingVertical: 16,
     flexDirection: "row",

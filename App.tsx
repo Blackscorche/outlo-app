@@ -163,7 +163,7 @@ function CustomTabBar({ state, navigation }: any) {
               <Ionicons
                 name={getTabIcon(route.name, focused)}
                 size={24}
-                color={focused ? '#FF1744' : '#999'}
+                color={focused ? '#4CAF50' : '#B3B3B3'}
               />
               {badgeCount > 0 && (
                 <View style={tabBarStyles.badge}>
@@ -175,7 +175,7 @@ function CustomTabBar({ state, navigation }: any) {
             </View>
             <Text style={[
               tabBarStyles.label,
-              { color: focused ? '#FF1744' : '#999' }
+              { color: focused ? '#4CAF50' : '#B3B3B3' }
             ]}>
               {getTabLabel(route.name)}
             </Text>
@@ -264,7 +264,7 @@ function UserProfileTabBar({ navigation: tabNav, parentNavigation }: any) {
                 </View>
               )}
             </View>
-            <Text style={[tabBarStyles.label, { color: '#999' }]}>
+            <Text style={[tabBarStyles.label, { color: '#B3B3B3' }]}>
               {getTabLabel(name)}
             </Text>
           </TouchableOpacity>
@@ -463,7 +463,7 @@ export default function App() {
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#FF1744" />
+        <ActivityIndicator size="large" color="#4CAF50" />
       </View>
     );
   }
@@ -522,7 +522,7 @@ export default function App() {
           </SubscriptionProvider>
         </ToastProvider>
       </SettingsProvider>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
       <ImagePickerModal />
     </SafeAreaProvider>
   );
@@ -531,9 +531,10 @@ export default function App() {
 const tabBarStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     paddingTop: 8,
-    borderTopWidth: 0,
+    borderTopWidth: 1,
+    borderTopColor: '#333333',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.08,
@@ -556,12 +557,13 @@ const tabBarStyles = StyleSheet.create({
     fontSize: 10,
     marginTop: 2,
     fontWeight: '500',
+    color: '#B3B3B3',
   },
   badge: {
     position: 'absolute',
     top: -6,
     right: -10,
-    backgroundColor: '#FF1744',
+    backgroundColor: '#4CAF50',
     borderRadius: 10,
     minWidth: 18,
     height: 18,
@@ -569,7 +571,7 @@ const tabBarStyles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 4,
     borderWidth: 2,
-    borderColor: 'white',
+    borderColor: '#1A1A1A',
   },
   badgeText: {
     color: 'white',
@@ -587,7 +589,9 @@ const tabBarStyles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
+    borderWidth: 2,
+    borderColor: '#333333',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
@@ -596,17 +600,17 @@ const tabBarStyles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#FF1744',
+    backgroundColor: '#4CAF50',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#FF1744',
+    shadowColor: '#4CAF50',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 10,
   },
   centerButtonActive: {
-    backgroundColor: '#D50032',
+    backgroundColor: '#45A049',
     shadowOpacity: 0.5,
   },
 });

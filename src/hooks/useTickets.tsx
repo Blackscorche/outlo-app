@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 import { supabase } from "../integrations/supabase/client";
 import { Tables } from "../integrations/supabase/types";
 
@@ -116,27 +116,38 @@ export function useActivityTicketStats(activityId: string | null | undefined) {
 }
 
 /**
- * Start the Stripe-hosted ticket checkout. Calls the
- * `create-ticket-checkout` edge function and returns a URL the caller
- * should open in an in-app browser.
+ * Process ticket purchase via IAP. Calls the
+ * `process-ticket-purchase` edge function to validate and record the purchase.
  */
-export async function startTicketCheckout(
+export async function processTicketPurchase(
   activityId: string,
-): Promise<string | null> {
+  productId: string,
+  transactionId: string,
+  purchaseToken?: string,
+  platform?: string,
+): Promise<boolean> {
   try {
     const { data, error } = await supabase.functions.invoke(
-      "create-ticket-checkout",
-      { body: { activity_id: activityId } },
+      "process-ticket-purchase",
+      {
+        body: {
+          activity_id: activityId,
+          product_id: productId,
+          transaction_id: transactionId,
+          purchase_token: purchaseToken,
+          platform: platform || (Platform.OS === "ios" ? "ios" : "android"),
+        },
+      },
     );
     if (error) throw error;
-    if (!data?.url) throw new Error("No checkout URL returned");
-    return data.url as string;
+    if (!data?.ok) throw new Error(data?.error || "Ticket purchase failed");
+    return true;
   } catch (err: any) {
-    console.error("Error starting ticket checkout:", err);
+    console.error("Error processing ticket purchase:", err);
     Alert.alert(
-      "Checkout Error",
-      err?.message || "Could not start checkout. Please try again.",
+      "Purchase Failed",
+      err?.message || "Could not complete ticket purchase.",
     );
-    return null;
+    return false;
   }
 }

@@ -198,7 +198,7 @@ const SettingsScreen = ({ navigation }) => {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate("Home")}>
           <Image
-            source={require("../../assets/favicon.png")}
+            source={require('../../assets/logos/darkmode_logo.png')}
             style={styles.headerLogo}
             resizeMode="contain"
           />
@@ -242,7 +242,7 @@ const SettingsScreen = ({ navigation }) => {
         {/* Location Settings */}
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="location" size={20} color="#FF1744" />
+            <Ionicons name="location" size={20} color="#4CAF50" />
             <Text style={styles.sectionTitle}>Location Settings</Text>
           </View>
           <View style={styles.divider} />
@@ -313,12 +313,12 @@ const SettingsScreen = ({ navigation }) => {
               <Text style={styles.toggleSubtitle}>
                 {isVisible && visibleUntil
                   ? `Visible until ${new Date(visibleUntil).toLocaleTimeString(
-                      [],
-                      {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      },
-                    )}`
+                    [],
+                    {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    },
+                  )}`
                   : "Manually check in to appear on the map"}
               </Text>
             </View>
@@ -385,7 +385,7 @@ const SettingsScreen = ({ navigation }) => {
               onSlidingComplete={(v) =>
                 saveFilters({ distance: Math.round(v) })
               }
-              minimumTrackTintColor="#FF1744"
+              minimumTrackTintColor="#4CAF50"
               maximumTrackTintColor="#E0E0E0"
               thumbTintColor="#2979FF"
             />
@@ -413,7 +413,7 @@ const SettingsScreen = ({ navigation }) => {
               onValueChange={setMinAge}
               onSlidingComplete={(v) => saveFilters({ minAge: Math.round(v) })}
               minimumTrackTintColor="#2979FF"
-              maximumTrackTintColor="#FF1744"
+              maximumTrackTintColor="#4CAF50"
               thumbTintColor="#2979FF"
             />
             <View style={styles.sliderRange}>
@@ -508,7 +508,7 @@ const SettingsScreen = ({ navigation }) => {
                     enabled: v,
                   });
                   setNotifActivity(v);
-                } catch (e) {}
+                } catch (e) { }
               }}
               trackColor={{ false: "#E0E0E0", true: "#4CAF50" }}
               thumbColor="#fff"
@@ -713,7 +713,7 @@ const SettingsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#0A0A0A",
   },
   header: {
     flexDirection: "row",
@@ -721,13 +721,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 4,
     paddingRight: 16,
-    backgroundColor: "#FFFFFF",
+    paddingLeft: 12,
+    backgroundColor: "#1A1A1A",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 3,
     zIndex: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333333",
   },
   headerTitle: {
     position: "absolute",
@@ -736,20 +739,20 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 22,
     fontWeight: "bold",
-    color: theme.colors.text,
+    color: "#FFFFFF",
     pointerEvents: "none",
   },
   headerLogo: {
-    width: 150,
-    height: 50,
-    marginLeft: -25,
+    width: 120,
+    height: 40,
+    marginLeft: 0,
   },
   scrollContent: {
     padding: 16,
     gap: 12,
   },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#1A1A1A",
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -758,6 +761,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 3,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: "#333333",
   },
   // Profile
   profileRow: {
@@ -811,7 +816,7 @@ const styles = StyleSheet.create({
   editButton: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#FF1744",
+    color: "#4CAF50",
   },
   // Section header
   sectionHeader: {
@@ -869,7 +874,7 @@ const styles = StyleSheet.create({
   sliderValue: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FF1744",
+    color: "#4CAF50",
   },
   slider: {
     width: "100%",
@@ -992,7 +997,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   checkInStartButton: {
-    backgroundColor: "#FF1744",
+    backgroundColor: "#4CAF50",
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 10,
@@ -1004,14 +1009,14 @@ const styles = StyleSheet.create({
   },
   checkInEndButton: {
     backgroundColor: "#F5F5F5",
-    borderColor: "#FF1744",
+    borderColor: "#4CAF50",
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 10,
   },
   checkInEndButtonText: {
-    color: "#FF1744",
+    color: "#4CAF50",
     fontWeight: "700",
     fontSize: 13,
   },

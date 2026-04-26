@@ -23,8 +23,8 @@ const SIZES = {
 // Concentric circular arcs, each on its own layer, spinning at different speeds
 // borderTopColor + borderRightColor = half-circle arc
 const RINGS = [
-  { color: '#FF1744', duration: 2000, startAngle: 0,   direction: 1 },
-  { color: '#2979FF', duration: 2500, startAngle: 90,  direction: -1 },
+  { color: '#4CAF50', duration: 2000, startAngle: 0, direction: 1 },
+  { color: '#2979FF', duration: 2500, startAngle: 90, direction: -1 },
   { color: '#00C853', duration: 1800, startAngle: 180, direction: 1 },
   { color: '#FF9100', duration: 3000, startAngle: 270, direction: -1 },
 ];
@@ -94,7 +94,7 @@ const AppLoading = ({ size = 'medium', style, overlay = false }: AppLoadingProps
       })}
       {/* Logo on top */}
       <Image
-        source={require('../../assets/favicon.png')}
+        source={require('../../assets/logos/darkmode_logo.png')}
         style={{ position: 'absolute', width: dims.logo, height: dims.logo }}
         resizeMode="contain"
       />

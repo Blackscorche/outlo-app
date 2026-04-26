@@ -25,7 +25,7 @@ export default function OutloLogo({
 
   const source =
     resolved === "dark"
-      ? require("../../assets/logos/darkmode_logo.jpeg")
+      ? require("../../assets/logos/darkmode_logo.png")
       : require("../../assets/logos/lightmode_logo.jpeg");
 
   return (

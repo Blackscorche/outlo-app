@@ -98,7 +98,7 @@ const CheckInDetailModal: React.FC<CheckInDetailModalProps> = ({
                   <Ionicons
                     name={getActivityTag(checkIn.activity_tag)?.icon || 'location'}
                     size={16}
-                    color="#FF1744"
+                    color="#4CAF50"
                   />
                   <Text style={styles.activityBadgeText}>
                     {getActivityTag(checkIn.activity_tag)?.label || 'Activity'}
@@ -114,7 +114,7 @@ const CheckInDetailModal: React.FC<CheckInDetailModalProps> = ({
                       ? (getActivityTag(checkIn.activity_tag)?.icon || 'location')
                       : 'location'}
                     size={24}
-                    color="#FF1744"
+                    color="#4CAF50"
                   />
                 </View>
                 <View style={styles.locationInfo}>
@@ -189,7 +189,7 @@ const CheckInDetailModal: React.FC<CheckInDetailModalProps> = ({
                     onPress={() => !isExpired && onGetDirections(checkIn.latitude, checkIn.longitude)}
                     disabled={isExpired}
                   >
-                    <Ionicons name="navigate" size={20} color={isExpired ? '#999' : '#FF1744'} />
+                    <Ionicons name="navigate" size={20} color={isExpired ? '#999' : '#4CAF50'} />
                     <Text style={[styles.secondaryButtonText, isExpired && styles.disabledButtonText]}>
                       {isExpired ? 'Expired' : 'View on Map'}
                     </Text>
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   activityBadgeText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FF1744',
+    color: '#4CAF50',
   },
   locationSection: {
     flexDirection: 'row',
@@ -309,13 +309,13 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     borderWidth: 2,
-    borderColor: '#FF1744',
+    borderColor: '#4CAF50',
   },
   avatarPlaceholder: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#FF1744',
+    backgroundColor: '#4CAF50',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FF1744',
+    backgroundColor: '#4CAF50',
     borderRadius: 12,
     paddingVertical: 14,
     gap: 8,
@@ -373,11 +373,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     borderWidth: 2,
-    borderColor: '#FF1744',
+    borderColor: '#4CAF50',
     gap: 8,
   },
   secondaryButtonText: {
-    color: '#FF1744',
+    color: '#4CAF50',
     fontSize: 16,
     fontWeight: '600',
   },
