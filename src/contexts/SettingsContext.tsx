@@ -51,11 +51,11 @@ interface SettingsContextType {
 
 // AsyncStorage keys for persistent settings
 const STORAGE_KEYS = {
-  SETTINGS: "@lovemap_settings",
-  LOCATION_ENABLED: "@lovemap_location_enabled",
-  // VISIBILITY: "@lovemap_visibility",
-  KEEP_SCREEN_ON: "@lovemap_keep_screen_on",
-  FILTERS: "@lovemap_filters",
+  SETTINGS: "@outlo_settings",
+  LOCATION_ENABLED: "@outlo_location_enabled",
+  // VISIBILITY: "@outlo_visibility",
+  KEEP_SCREEN_ON: "@outlo_keep_screen_on",
+  FILTERS: "@outlo_filters",
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(

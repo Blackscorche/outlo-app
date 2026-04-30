@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { theme } from '../styles/theme';
 import AppLoading from './AppLoading';
+import { useTheme } from '../contexts/ThemeContext';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -29,6 +29,8 @@ export default function ImageViewer({
   initialIndex = 0,
   onClose,
 }: ImageViewerProps) {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [imageLoading, setImageLoading] = useState<{ [key: number]: boolean }>({});
 
@@ -109,7 +111,7 @@ export default function ImageViewer({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.95)',

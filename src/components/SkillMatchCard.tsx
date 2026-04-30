@@ -7,10 +7,10 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { Tables } from '../integrations/supabase/types';
 import { SkillBadgeDisplay, SkillLevelBadge } from './SkillBadgeDisplay';
 import { getSkillLevel } from '../constants/skillTypes';
+import { useTheme } from '../contexts/ThemeContext';
 
 const DEFAULT_AVATAR = 'https://ui-avatars.com/api/?background=FF1744&color=fff&size=100';
 
@@ -73,6 +73,8 @@ export default function SkillMatchCard({
   const matchingLearnSkills = skillsWantToLearn.filter(s =>
     matchingLearnSkillIds.includes(s.skill_id)
   );
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <TouchableOpacity
@@ -201,12 +203,12 @@ export default function SkillMatchCard({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.lg,
+    padding: t.spacing.md,
+    marginBottom: t.spacing.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -219,7 +221,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: theme.colors.success,
+    backgroundColor: t.colors.success,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
@@ -235,15 +237,15 @@ const styles = StyleSheet.create({
   userRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
   },
   avatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    marginRight: theme.spacing.md,
+    marginRight: t.spacing.md,
     borderWidth: 2,
-    borderColor: theme.colors.primary + '30',
+    borderColor: t.colors.primary + '30',
   },
   userInfo: {
     flex: 1,
@@ -251,7 +253,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginBottom: 2,
   },
   distanceRow: {
@@ -261,15 +263,15 @@ const styles = StyleSheet.create({
   },
   distanceText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   skillsSection: {
-    marginTop: theme.spacing.sm,
+    marginTop: t.spacing.sm,
   },
   skillsSectionTitle: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     marginBottom: 6,
   },
   skillsChips: {
@@ -281,7 +283,7 @@ const styles = StyleSheet.create({
   skillChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary + '10',
+    backgroundColor: t.colors.primary + '10',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
@@ -289,7 +291,7 @@ const styles = StyleSheet.create({
   },
   skillChipText: {
     fontSize: 13,
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontWeight: '500',
   },
   learnChip: {
@@ -303,17 +305,17 @@ const styles = StyleSheet.create({
   },
   moreSkillsText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     fontStyle: 'italic',
   },
   proposeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.success,
+    backgroundColor: t.colors.success,
     paddingVertical: 10,
-    borderRadius: theme.borderRadius.md,
-    marginTop: theme.spacing.md,
+    borderRadius: t.borderRadius.md,
+    marginTop: t.spacing.md,
     gap: 8,
   },
   proposeButtonText: {
@@ -322,11 +324,11 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   requestButton: {
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: t.colors.primary + '15',
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: t.colors.primary,
   },
   requestButtonText: {
-    color: theme.colors.primary,
+    color: t.colors.primary,
   },
 });

@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../contexts/ThemeContext';
 import { theme } from '../styles/theme';
-
 interface EmoticonPickerProps {
   visible: boolean;
   onClose: () => void;
@@ -59,6 +59,8 @@ const EmoticonPicker: React.FC<EmoticonPickerProps> = ({
       <Text style={styles.emoticonText}>{item}</Text>
     </TouchableOpacity>
   );
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <Modal
@@ -91,40 +93,40 @@ const EmoticonPicker: React.FC<EmoticonPickerProps> = ({
 const { width } = Dimensions.get('window');
 const emoticonSize = (width - (theme.spacing.md * 2) - (theme.spacing.xs * 7)) / 8;
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   title: {
-    fontSize: theme.fontSize.lg,
+    fontSize: t.fontSize.lg,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   closeButton: {
-    padding: theme.spacing.xs,
+    padding: t.spacing.xs,
   },
   emoticonGrid: {
-    paddingHorizontal: theme.spacing.md,
-    paddingTop: theme.spacing.md,
+    paddingHorizontal: t.spacing.md,
+    paddingTop: t.spacing.md,
   },
   emoticonButton: {
     width: emoticonSize,
     height: emoticonSize,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing.xs,
-    marginBottom: theme.spacing.xs,
-    borderRadius: theme.borderRadius.sm,
+    marginRight: t.spacing.xs,
+    marginBottom: t.spacing.xs,
+    borderRadius: t.borderRadius.sm,
   },
   emoticonText: {
     fontSize: 24,

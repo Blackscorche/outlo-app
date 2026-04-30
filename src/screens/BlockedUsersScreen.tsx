@@ -11,10 +11,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
 import { supabase } from '../integrations/supabase/client';
 import { useBlocking } from '../hooks/useBlocking';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface BlockedUserProfile {
   id: string;
@@ -79,6 +79,8 @@ const BlockedUsersScreen = ({ navigation }) => {
 
   const renderItem = ({ item }: { item: BlockedUserProfile }) => {
     const avatar = item.photos?.[0];
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
     return (
       <View style={styles.card}>
@@ -147,32 +149,32 @@ const BlockedUsersScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.md,
   },
   listContent: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.lg,
+    paddingHorizontal: t.spacing.lg,
+    paddingBottom: t.spacing.lg,
   },
   card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.lg,
+    padding: t.spacing.md,
+    marginBottom: t.spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
   },
   avatarContainer: {
-    marginRight: theme.spacing.md,
+    marginRight: t.spacing.md,
   },
   avatar: {
     width: 56,
@@ -180,7 +182,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
   },
   avatarPlaceholder: {
-    backgroundColor: theme.colors.gray[200],
+    backgroundColor: t.colors.gray[200],
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -188,32 +190,32 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   name: {
-    fontSize: theme.fontSize.md,
+    fontSize: t.fontSize.md,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   unblockButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: t.colors.primary,
   },
   unblockText: {
-    fontSize: theme.fontSize.sm,
+    fontSize: t.fontSize.sm,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: t.colors.primary,
   },
   emptyText: {
-    fontSize: theme.fontSize.lg,
+    fontSize: t.fontSize.lg,
     fontWeight: '600',
-    color: theme.colors.text,
-    marginTop: theme.spacing.lg,
+    color: t.colors.text,
+    marginTop: t.spacing.lg,
   },
   emptySubtext: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.sm,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
+    marginTop: t.spacing.sm,
     textAlign: 'center',
   },
 });

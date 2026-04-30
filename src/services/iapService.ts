@@ -11,6 +11,12 @@ export const IAP_PRODUCTS = {
     "lovemap_connection_request",
     "lovemap_first_impression",
     "lovemap_invisible_mode",
+    "outlo_ticket_5",
+    "outlo_ticket_10",
+    "outlo_ticket_15",
+    "outlo_ticket_20",
+    "outlo_ticket_25",
+    "outlo_ticket_50",
   ],
   // All products combined for loading
   all: [
@@ -19,6 +25,12 @@ export const IAP_PRODUCTS = {
     "lovemap_connection_request",
     "lovemap_first_impression",
     "lovemap_invisible_mode",
+    "outlo_ticket_5",
+    "outlo_ticket_10",
+    "outlo_ticket_15",
+    "outlo_ticket_20",
+    "outlo_ticket_25",
+    "outlo_ticket_50",
   ],
 };
 

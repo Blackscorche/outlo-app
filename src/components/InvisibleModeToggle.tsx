@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { useQuotaManager } from '../hooks/useQuotaManager';
 import { useSubscription } from '../hooks/useSubscription';
 import { useNavigation } from '@react-navigation/native';
+import { theme } from '../styles/theme';
 
 export const InvisibleModeToggle: React.FC = () => {
   const { hasInvisibleMode, getQuotaDetails } = useQuotaManager();
@@ -75,6 +76,8 @@ export const InvisibleModeToggle: React.FC = () => {
   const getIconColor = () => {
     return isInvisible ? theme.colors.success : theme.colors.textSecondary;
   };
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <TouchableOpacity style={styles.container} onPress={handleInvisibleModePress}>
@@ -105,13 +108,13 @@ export const InvisibleModeToggle: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: t.colors.surface,
     borderRadius: 8,
     marginVertical: 4,
   },
@@ -126,7 +129,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   status: {
     fontSize: 14,

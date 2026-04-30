@@ -11,8 +11,7 @@ import {
   Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
-
+import { useTheme } from '../contexts/ThemeContext';
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 // ============ Purchase Loading Modal ============
@@ -81,6 +80,8 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -92,13 +93,13 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
           ]}
         >
           {/* Animated Background Circles */}
-          <Animated.View 
+          <Animated.View
             style={[
               styles.loadingBackgroundCircle,
               { transform: [{ scale: pulseAnim }, { rotate: spin }] }
             ]}
           />
-          
+
           <View style={styles.loadingContent}>
             {/* Custom Loading Indicator */}
             <View style={styles.loadingIndicatorContainer}>
@@ -107,16 +108,16 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
                 <View style={[styles.loadingDot, styles.loadingDot2]} />
                 <View style={[styles.loadingDot, styles.loadingDot3]} />
               </Animated.View>
-              
+
               {/* Center Icon */}
               <View style={styles.loadingCenterIcon}>
                 <Ionicons name="card" size={24} color={theme.colors.primary} />
               </View>
             </View>
-            
+
             {/* Title */}
             <Text style={styles.loadingTitle}>Processing Payment</Text>
-            
+
             {/* Price & Product Highlight */}
             {(productName || price) && (
               <View style={styles.loadingPriceContainer}>
@@ -128,16 +129,18 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
                 )}
               </View>
             )}
-            
+
             {/* Message */}
             <Text style={styles.loadingMessage}>{message}</Text>
-            <Animated.Text 
+            <Animated.Text
               style={[
                 styles.loadingSubtext,
-                { opacity: pulseAnim.interpolate({
-                  inputRange: [1, 1.1],
-                  outputRange: [0.7, 1],
-                })}
+                {
+                  opacity: pulseAnim.interpolate({
+                    inputRange: [1, 1.1],
+                    outputRange: [0.7, 1],
+                  })
+                }
               ]}
             >
               Please wait...
@@ -167,7 +170,8 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
   productName,
   onClose,
 }) => {
-  // No animations - keep it simple
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -184,10 +188,10 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
                 />
               </View>
             </View>
-            
+
             {/* Title */}
             <Text style={styles.successTitle}>{title}</Text>
-            
+
             {/* Product & Price Highlight - More Prominent */}
             {(productName || price) && (
               <View style={styles.purchaseDetailsContainer}>
@@ -201,15 +205,15 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
                 </View>
               </View>
             )}
-            
+
             {/* Success Message */}
             <Text style={styles.successMessage}>{message}</Text>
-            
+
             {/* Simple Celebration - No Animation */}
             <View style={styles.celebrationContainer}>
               <Text style={styles.emoji}>🎉</Text>
             </View>
-            
+
             {/* Close Button */}
             <TouchableOpacity
               style={styles.successButton}
@@ -241,7 +245,8 @@ export const PurchaseErrorModal: React.FC<PurchaseErrorModalProps> = ({
   onClose,
   onRetry,
 }) => {
-  // No animations - keep it simple
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -256,11 +261,11 @@ export const PurchaseErrorModal: React.FC<PurchaseErrorModalProps> = ({
                 color={theme.colors.error}
               />
             </View>
-            
+
             {/* Error Message */}
             <Text style={styles.errorTitle}>{title}</Text>
             <Text style={styles.errorMessage}>{message}</Text>
-            
+
             {/* Action Buttons */}
             <View style={styles.buttonContainer}>
               {onRetry && (
@@ -273,7 +278,7 @@ export const PurchaseErrorModal: React.FC<PurchaseErrorModalProps> = ({
                   <Text style={styles.retryButtonText}>Try Again</Text>
                 </TouchableOpacity>
               )}
-              
+
               <TouchableOpacity
                 style={[styles.button, styles.closeButton]}
                 onPress={onClose}
@@ -311,7 +316,8 @@ export const InfoModal: React.FC<InfoModalProps> = ({
   cancelText = "Cancel",
   type = 'info',
 }) => {
-  // No animations - keep it simple
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   const getIcon = () => {
     switch (type) {
@@ -339,11 +345,11 @@ export const InfoModal: React.FC<InfoModalProps> = ({
                 color={icon.color}
               />
             </View>
-            
+
             {/* Info Message */}
             <Text style={styles.infoTitle}>{title}</Text>
             <Text style={styles.infoMessage}>{message}</Text>
-            
+
             {/* Action Buttons */}
             <View style={styles.buttonContainer}>
               {onConfirm ? (
@@ -355,7 +361,7 @@ export const InfoModal: React.FC<InfoModalProps> = ({
                   >
                     <Text style={styles.cancelButtonText}>{cancelText}</Text>
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
                     style={[styles.button, styles.confirmButton]}
                     onPress={onConfirm}
@@ -381,7 +387,7 @@ export const InfoModal: React.FC<InfoModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'center',
@@ -393,8 +399,8 @@ const styles = StyleSheet.create({
   loadingContainer: {
     backgroundColor: 'white',
     borderRadius: 20,
-    padding: theme.spacing.md,
-    margin: theme.spacing.lg,
+    padding: t.spacing.md,
+    margin: t.spacing.lg,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
@@ -411,7 +417,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
     opacity: 0.03,
     top: -30,
     right: -30,
@@ -424,7 +430,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: 60,
     height: 60,
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -435,25 +441,25 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     borderWidth: 3,
     borderColor: 'transparent',
-    borderTopColor: theme.colors.primary,
-    borderRightColor: theme.colors.primary + '60',
+    borderTopColor: t.colors.primary,
+    borderRightColor: t.colors.primary + '60',
   },
   loadingDot: {
     position: 'absolute',
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
     top: -3,
     left: 22,
   },
   loadingDot2: {
     transform: [{ rotate: '120deg' }],
-    backgroundColor: theme.colors.primary + '80',
+    backgroundColor: t.colors.primary + '80',
   },
   loadingDot3: {
     transform: [{ rotate: '240deg' }],
-    backgroundColor: theme.colors.primary + '60',
+    backgroundColor: t.colors.primary + '60',
   },
   loadingCenterIcon: {
     position: 'absolute',
@@ -463,40 +469,40 @@ const styles = StyleSheet.create({
     height: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: theme.colors.primary,
+    shadowColor: t.colors.primary,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 3,
   },
   loadingTitle: {
-    fontSize: theme.fontSize.lg,
+    fontSize: t.fontSize.lg,
     fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    color: t.colors.text,
+    marginBottom: t.spacing.sm,
     textAlign: 'center',
   },
   loadingPriceContainer: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.sm,
-    shadowColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
+    paddingVertical: t.spacing.xs,
+    paddingHorizontal: t.spacing.md,
+    borderRadius: t.borderRadius.md,
+    marginBottom: t.spacing.sm,
+    shadowColor: t.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
   },
   loadingProductText: {
-    fontSize: theme.fontSize.sm,
+    fontSize: t.fontSize.sm,
     fontWeight: '600',
     color: 'white',
     textAlign: 'center',
     marginBottom: 1,
   },
   loadingPriceText: {
-    fontSize: theme.fontSize.xxxl,
+    fontSize: t.fontSize.xxxl,
     fontWeight: '900',
     color: 'white',
     textAlign: 'center',
@@ -505,15 +511,15 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   loadingMessage: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.sm,
+    marginBottom: t.spacing.xs,
+    paddingHorizontal: t.spacing.sm,
   },
   loadingSubtext: {
-    fontSize: theme.fontSize.xs,
-    color: theme.colors.gray[500],
+    fontSize: t.fontSize.xs,
+    color: t.colors.gray[500],
     textAlign: 'center',
     fontStyle: 'italic',
   },
@@ -522,8 +528,8 @@ const styles = StyleSheet.create({
   successContainer: {
     backgroundColor: 'white',
     borderRadius: 20,
-    padding: theme.spacing.md,
-    margin: theme.spacing.lg,
+    padding: t.spacing.md,
+    margin: t.spacing.lg,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
@@ -535,10 +541,10 @@ const styles = StyleSheet.create({
   },
   successContent: {
     alignItems: 'center',
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: t.spacing.sm,
   },
   successIconContainer: {
-    marginBottom: theme.spacing.sm,
+    marginBottom: t.spacing.sm,
   },
   successIconWrapper: {
     backgroundColor: '#00D4AA' + '20',
@@ -546,21 +552,21 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   successTitle: {
-    fontSize: theme.fontSize.lg,
+    fontSize: t.fontSize.lg,
     fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    color: t.colors.text,
+    marginBottom: t.spacing.sm,
     textAlign: 'center',
   },
   purchaseDetailsContainer: {
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
     width: '100%',
   },
   priceHighlight: {
     backgroundColor: '#00D4AA',
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    paddingVertical: t.spacing.sm,
+    paddingHorizontal: t.spacing.md,
+    borderRadius: t.borderRadius.md,
     alignItems: 'center',
     shadowColor: '#00D4AA',
     shadowOffset: { width: 0, height: 2 },
@@ -569,20 +575,20 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   productNameText: {
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
     color: 'white',
     textAlign: 'center',
     marginBottom: 2,
   },
   priceText: {
-    fontSize: theme.fontSize.lg,
+    fontSize: t.fontSize.lg,
     fontWeight: '800',
     color: 'white',
     textAlign: 'center',
   },
   priceTextLarge: {
-    fontSize: theme.fontSize.xxxl,
+    fontSize: t.fontSize.xxxl,
     fontWeight: '900',
     color: 'white',
     textAlign: 'center',
@@ -591,15 +597,15 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   successMessage: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
     lineHeight: 20,
-    paddingHorizontal: theme.spacing.sm,
+    paddingHorizontal: t.spacing.sm,
   },
   celebrationContainer: {
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -609,14 +615,14 @@ const styles = StyleSheet.create({
   },
   successButton: {
     backgroundColor: '#00D4AA',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.sm,
+    borderRadius: t.borderRadius.md,
     minWidth: 100,
   },
   successButtonText: {
     color: 'white',
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -625,8 +631,8 @@ const styles = StyleSheet.create({
   errorContainer: {
     backgroundColor: 'white',
     borderRadius: 20,
-    padding: theme.spacing.md,
-    margin: theme.spacing.lg,
+    padding: t.spacing.md,
+    margin: t.spacing.lg,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
@@ -636,40 +642,40 @@ const styles = StyleSheet.create({
     minWidth: 280,
     maxWidth: screenWidth - 60,
     borderWidth: 1,
-    borderColor: theme.colors.error + '20',
+    borderColor: t.colors.error + '20',
   },
   errorContent: {
     alignItems: 'center',
-    paddingVertical: theme.spacing.xs,
+    paddingVertical: t.spacing.xs,
   },
   errorIconContainer: {
-    marginBottom: theme.spacing.sm,
-    backgroundColor: theme.colors.error + '10',
+    marginBottom: t.spacing.sm,
+    backgroundColor: t.colors.error + '10',
     borderRadius: 35,
-    padding: theme.spacing.sm,
+    padding: t.spacing.sm,
   },
   errorTitle: {
-    fontSize: theme.fontSize.lg,
+    fontSize: t.fontSize.lg,
     fontWeight: '700',
-    color: theme.colors.error,
-    marginBottom: theme.spacing.xs,
+    color: t.colors.error,
+    marginBottom: t.spacing.xs,
     textAlign: 'center',
   },
   errorMessage: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
     lineHeight: 20,
-    paddingHorizontal: theme.spacing.xs,
+    paddingHorizontal: t.spacing.xs,
   },
 
   // Info Modal Styles - Compact
   infoContainer: {
     backgroundColor: 'white',
     borderRadius: 20,
-    padding: theme.spacing.md,
-    margin: theme.spacing.lg,
+    padding: t.spacing.md,
+    margin: t.spacing.lg,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
@@ -681,28 +687,28 @@ const styles = StyleSheet.create({
   },
   infoContent: {
     alignItems: 'center',
-    paddingVertical: theme.spacing.xs,
+    paddingVertical: t.spacing.xs,
   },
   infoIconContainer: {
-    marginBottom: theme.spacing.sm,
-    backgroundColor: theme.colors.primary + '10',
+    marginBottom: t.spacing.sm,
+    backgroundColor: t.colors.primary + '10',
     borderRadius: 30,
-    padding: theme.spacing.sm,
+    padding: t.spacing.sm,
   },
   infoTitle: {
-    fontSize: theme.fontSize.lg,
+    fontSize: t.fontSize.lg,
     fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    color: t.colors.text,
+    marginBottom: t.spacing.xs,
     textAlign: 'center',
   },
   infoMessage: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
     lineHeight: 20,
-    paddingHorizontal: theme.spacing.xs,
+    paddingHorizontal: t.spacing.xs,
   },
 
   // Button Styles
@@ -712,58 +718,58 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   button: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.full,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.full,
     minWidth: 100,
     flex: 1,
-    marginHorizontal: theme.spacing.xs,
+    marginHorizontal: t.spacing.xs,
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   retryButtonText: {
     color: 'white',
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
-    marginLeft: theme.spacing.xs,
+    marginLeft: t.spacing.xs,
   },
   closeButton: {
-    backgroundColor: theme.colors.gray[100],
+    backgroundColor: t.colors.gray[100],
   },
   closeButtonText: {
-    color: theme.colors.text,
-    fontSize: theme.fontSize.base,
+    color: t.colors.text,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
     textAlign: 'center',
   },
   confirmButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
   },
   confirmButtonText: {
     color: 'white',
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
     textAlign: 'center',
   },
   cancelButton: {
-    backgroundColor: theme.colors.gray[100],
+    backgroundColor: t.colors.gray[100],
   },
   cancelButtonText: {
-    color: theme.colors.text,
-    fontSize: theme.fontSize.base,
+    color: t.colors.text,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
     textAlign: 'center',
   },
   singleButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
   },
   singleButtonText: {
     color: 'white',
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
     textAlign: 'center',
   },

@@ -11,10 +11,10 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import AppLoading from './AppLoading';
 import { Place, PlaceReview, usePlaces } from '../hooks/usePlaces';
 import { getPlaceType, getReviewTag, getBestForOption } from '../constants/placeTypes';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface PlaceDetailModalProps {
   visible: boolean;
@@ -104,6 +104,8 @@ export default function PlaceDetailModal({
   };
 
   const placeType = place ? getPlaceType(place.place_type) : null;
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <Modal
@@ -359,23 +361,23 @@ export default function PlaceDetailModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderBottomColor: t.colors.border,
+    backgroundColor: t.colors.surface,
   },
   closeButton: {
-    padding: theme.spacing.sm,
+    padding: t.spacing.sm,
   },
   headerTitleContainer: {
     flex: 1,
@@ -384,7 +386,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   content: {
     flex: 1,
@@ -398,24 +400,24 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.xl,
+    padding: t.spacing.xl,
   },
   errorText: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.md,
+    color: t.colors.textSecondary,
+    marginTop: t.spacing.md,
   },
   placeHeader: {
     flexDirection: 'row',
-    padding: theme.spacing.lg,
-    backgroundColor: theme.colors.surface,
-    gap: theme.spacing.md,
+    padding: t.spacing.lg,
+    backgroundColor: t.colors.surface,
+    gap: t.spacing.md,
   },
   placeIconContainer: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: t.colors.primary + '15',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -425,36 +427,36 @@ const styles = StyleSheet.create({
   placeName: {
     fontSize: 22,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginBottom: 4,
   },
   placeType: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontWeight: '500',
     marginBottom: 4,
   },
   placeAddress: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     lineHeight: 18,
   },
   ratingSection: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.md,
+    backgroundColor: t.colors.surface,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: t.colors.border,
   },
   ratingMain: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   ratingNumber: {
     fontSize: 32,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   starsContainer: {
     flexDirection: 'row',
@@ -462,15 +464,15 @@ const styles = StyleSheet.create({
   },
   reviewCount: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: theme.spacing.lg,
-    backgroundColor: theme.colors.surface,
-    marginTop: theme.spacing.sm,
+    paddingVertical: t.spacing.lg,
+    backgroundColor: t.colors.surface,
+    marginTop: t.spacing.sm,
   },
   statItem: {
     alignItems: 'center',
@@ -479,73 +481,73 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginTop: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     marginTop: 2,
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: theme.colors.border,
+    backgroundColor: t.colors.border,
   },
   section: {
-    padding: theme.spacing.lg,
-    backgroundColor: theme.colors.surface,
-    marginTop: theme.spacing.sm,
+    padding: t.spacing.lg,
+    backgroundColor: t.colors.surface,
+    marginTop: t.spacing.sm,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   writeReviewLink: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontWeight: '500',
   },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
-    marginTop: theme.spacing.sm,
+    gap: t.spacing.sm,
+    marginTop: t.spacing.sm,
   },
   tag: {
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: t.colors.primary + '15',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   tagText: {
     fontSize: 13,
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontWeight: '500',
   },
   reviewCard: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
+    backgroundColor: t.colors.background,
+    borderRadius: t.borderRadius.md,
+    padding: t.spacing.md,
+    marginBottom: t.spacing.md,
   },
   reviewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: theme.spacing.sm,
+    marginBottom: t.spacing.sm,
   },
   reviewUser: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   reviewAvatar: {
     width: 40,
@@ -555,79 +557,79 @@ const styles = StyleSheet.create({
   reviewUserName: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   reviewDate: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   reviewRating: {
     flexDirection: 'row',
   },
   reviewText: {
     fontSize: 14,
-    color: theme.colors.text,
+    color: t.colors.text,
     lineHeight: 20,
-    marginBottom: theme.spacing.sm,
+    marginBottom: t.spacing.sm,
   },
   reviewTags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginBottom: theme.spacing.sm,
+    marginBottom: t.spacing.sm,
   },
   reviewTag: {
-    backgroundColor: theme.colors.gray[100],
+    backgroundColor: t.colors.gray[100],
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
   },
   reviewTagText: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   bestForContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: theme.spacing.sm,
+    marginBottom: t.spacing.sm,
   },
   bestForLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     fontWeight: '500',
   },
   bestForItem: {
     fontSize: 12,
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   helpfulButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingTop: theme.spacing.sm,
+    paddingTop: t.spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: t.colors.border,
   },
   helpfulText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   helpfulTextActive: {
-    color: theme.colors.primary,
+    color: t.colors.primary,
   },
   noReviews: {
     alignItems: 'center',
-    padding: theme.spacing.xl,
+    padding: t.spacing.xl,
   },
   noReviewsText: {
     fontSize: 16,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.md,
+    color: t.colors.textSecondary,
+    marginTop: t.spacing.md,
   },
   noReviewsSubtext: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     marginTop: 4,
   },
   actionContainer: {
@@ -635,36 +637,36 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: theme.spacing.md,
-    paddingBottom: theme.spacing.lg,
-    backgroundColor: theme.colors.surface,
+    padding: t.spacing.md,
+    paddingBottom: t.spacing.lg,
+    backgroundColor: t.colors.surface,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: t.colors.border,
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.lg,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderColor: t.colors.border,
+    backgroundColor: t.colors.surface,
     gap: 6,
   },
   actionButtonPrimary: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
+    borderColor: t.colors.primary,
   },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: t.colors.primary,
   },
   actionButtonTextPrimary: {
     fontSize: 14,

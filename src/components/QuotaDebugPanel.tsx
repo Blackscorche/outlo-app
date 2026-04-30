@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { useQuotaManager, QuotaDetails } from '../hooks/useQuotaManager';
 import { useSubscription } from '../hooks/useSubscription';
 import { useIAP } from '../components/IAPProvider';
 
 export const QuotaDebugPanel: React.FC = () => {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const [quotaDetails, setQuotaDetails] = useState<QuotaDetails | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   const { getQuotaDetails, loading } = useQuotaManager();
   const { subscription } = useSubscription();
   const { products, subscriptions, availablePurchases, connected } = useIAP();
@@ -34,10 +36,10 @@ export const QuotaDebugPanel: React.FC = () => {
       <View style={styles.header}>
         <Text style={styles.title}>🔧 Debug Panel</Text>
         <TouchableOpacity onPress={loadQuotaDetails} disabled={refreshing}>
-          <Ionicons 
-            name="refresh" 
-            size={20} 
-            color={refreshing ? theme.colors.textSecondary : theme.colors.primary} 
+          <Ionicons
+            name="refresh"
+            size={20}
+            color={refreshing ? theme.colors.textSecondary : theme.colors.primary}
           />
         </TouchableOpacity>
       </View>
@@ -65,17 +67,17 @@ export const QuotaDebugPanel: React.FC = () => {
         {quotaDetails && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Quotas</Text>
-            
+
             <Text style={styles.subTitle}>Partner Requests</Text>
             <Text style={styles.debugText}>Remaining: {quotaDetails.connectionRequests.remaining}</Text>
             <Text style={styles.debugText}>Purchased: {quotaDetails.connectionRequests.purchased}</Text>
             <Text style={styles.debugText}>Total: {quotaDetails.connectionRequests.total}</Text>
-            
+
             <Text style={styles.subTitle}>First Impressions</Text>
             <Text style={styles.debugText}>Remaining: {quotaDetails.firstImpressions.remaining}</Text>
             <Text style={styles.debugText}>Purchased: {quotaDetails.firstImpressions.purchased}</Text>
             <Text style={styles.debugText}>Total: {quotaDetails.firstImpressions.total}</Text>
-            
+
             <Text style={styles.subTitle}>Invisible Mode</Text>
             <Text style={styles.debugText}>Active: {quotaDetails.invisibleMode.active ? '✅' : '❌'}</Text>
             <Text style={styles.debugText}>Source: {quotaDetails.invisibleMode.source}</Text>
@@ -106,13 +108,13 @@ export const QuotaDebugPanel: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: t.colors.surface,
     margin: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
   },
   header: {
     flexDirection: 'row',
@@ -120,12 +122,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   content: {
     maxHeight: 300,
@@ -137,19 +139,19 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: t.colors.primary,
     marginBottom: 4,
   },
   subTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginTop: 8,
     marginBottom: 2,
   },
   debugText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     fontFamily: 'monospace',
     marginBottom: 2,
   },

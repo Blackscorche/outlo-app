@@ -22,11 +22,11 @@ import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import { showImagePickerOptions } from "../utils/imagePicker";
-import { theme } from "../styles/theme";
 import { commonStyles } from "../styles/common";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../integrations/supabase/client";
 import { validateSafeText } from "../utils/contentModeration";
+import { useTheme } from '../contexts/ThemeContext';
 
 GoogleSignin.configure({
   webClientId:
@@ -63,11 +63,11 @@ const INTERESTS_OPTIONS = [
 ];
 
 const TERMS_URL =
-  "https://youthful-bath-564.notion.site/LoveMap-Terms-of-Service-32f2528e6c418020b72de5f727b05da2";
+  "https://youthful-bath-564.notion.site/Outlo-Terms-of-Service-32f2528e6c418020b72de5f727b05da2";
 const PRIVACY_POLICY_URL =
-  "https://youthful-bath-564.notion.site/LoveMap-Privacy-Policy-32f2528e6c4180028ae7d72d7cc9a2b7";
+  "https://youthful-bath-564.notion.site/Outlo-Privacy-Policy-32f2528e6c4180028ae7d72d7cc9a2b7";
 const COMMUNITY_GUIDELINES_URL =
-  "https://youthful-bath-564.notion.site/LoveMap-Community-Guidelines-1f12528e6c41806ab694d4ec2bc722be";
+  "https://youthful-bath-564.notion.site/Outlo-Community-Guidelines-1f12528e6c41806ab694d4ec2bc722be";
 
 const AuthScreen = ({ navigation }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -585,6 +585,8 @@ const AuthScreen = ({ navigation }) => {
     await supabase.auth.signOut();
     setForgotPasswordStep(4);
   };
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <>
@@ -791,7 +793,7 @@ const AuthScreen = ({ navigation }) => {
                             <Text
                               style={styles.termsLink}
                               onPress={() =>
-                                Linking.openURL("https://www.lovemap.biz/terms")
+                                Linking.openURL("https://www.outlo.app/terms")
                               }
                             >
                               Terms of Use
@@ -801,7 +803,7 @@ const AuthScreen = ({ navigation }) => {
                               style={styles.termsLink}
                               onPress={() =>
                                 Linking.openURL(
-                                  "https://www.lovemap.biz/community-guidelines",
+                                  "https://www.outlo.app/community-guidelines",
                                 )
                               }
                             >
@@ -1489,16 +1491,16 @@ const AuthScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   backgroundImage: {
     flex: 1,
     width: "100%",
     height: "100%",
-    backgroundColor: "#0A0A0A",
+    backgroundColor: t.colors.background,
   },
   container: {
     flex: 1,
-    backgroundColor: "#0A0A0A",
+    backgroundColor: t.colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -1532,14 +1534,14 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: t.colors.text,
     textAlign: "center",
     marginBottom: 28,
     marginTop: 4,
     letterSpacing: 0.5,
   },
   loginSection: {
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
     borderRadius: 24,
     padding: 28,
     shadowColor: "#000",
@@ -1557,12 +1559,12 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2A2A2A",
+    backgroundColor: t.colors.inputBg,
     borderRadius: 12,
     paddingHorizontal: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#333333",
+    borderColor: t.colors.border,
   },
   inputIcon: {
     marginRight: 10,
@@ -1570,7 +1572,7 @@ const styles = StyleSheet.create({
   inputField: {
     flex: 1,
     fontSize: 16,
-    color: "#FFFFFF",
+    color: t.colors.text,
     paddingVertical: 16,
   },
   eyeIcon: {
@@ -1602,7 +1604,7 @@ const styles = StyleSheet.create({
   },
   rememberText: {
     fontSize: 14,
-    color: "#B3B3B3",
+    color: t.colors.textSecondary,
   },
   forgotText: {
     fontSize: 14,
@@ -1629,7 +1631,7 @@ const styles = StyleSheet.create({
   },
   orText: {
     textAlign: "center",
-    color: "#B3B3B3",
+    color: t.colors.textSecondary,
     fontSize: 14,
     marginBottom: 16,
   },
@@ -1644,16 +1646,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
     borderWidth: 1,
-    borderColor: "#333333",
+    borderColor: t.colors.border,
     borderRadius: 12,
     paddingVertical: 12,
     gap: 8,
   },
   socialButtonText: {
     fontSize: 14,
-    color: "#FFFFFF",
+    color: t.colors.text,
     fontWeight: "500",
   },
   signUpPrompt: {
@@ -1663,7 +1665,7 @@ const styles = StyleSheet.create({
   },
   signUpText: {
     fontSize: 14,
-    color: "#B3B3B3",
+    color: t.colors.textSecondary,
   },
   signUpLink: {
     fontSize: 14,
@@ -1672,24 +1674,24 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginBottom: theme.spacing.xl,
+    marginBottom: t.spacing.xl,
     backgroundColor: "rgba(255, 255, 255, 0.9)",
-    paddingVertical: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.xl,
-    borderRadius: theme.borderRadius.xl,
+    paddingVertical: t.spacing.lg,
+    paddingHorizontal: t.spacing.xl,
+    borderRadius: t.borderRadius.xl,
   },
   title: {
-    fontSize: theme.fontSize.xxxl,
+    fontSize: t.fontSize.xxxl,
     fontWeight: "bold",
-    color: theme.colors.primary,
-    marginBottom: theme.spacing.sm,
+    color: t.colors.primary,
+    marginBottom: t.spacing.sm,
     textShadowColor: "rgba(0, 0, 0, 0.1)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
   subtitle: {
-    fontSize: theme.fontSize.lg,
-    color: theme.colors.text,
+    fontSize: t.fontSize.lg,
+    color: t.colors.text,
     textAlign: "center",
     fontWeight: "500",
   },
@@ -1698,34 +1700,34 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: "rgba(255, 255, 255, 0.95)",
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
+    borderRadius: t.borderRadius.lg,
+    padding: t.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   sectionTitle: {
-    fontSize: theme.fontSize.lg,
+    fontSize: t.fontSize.lg,
     fontWeight: "600",
-    color: theme.colors.text,
-    marginBottom: theme.spacing.md,
+    color: t.colors.text,
+    marginBottom: t.spacing.md,
   },
   inputContainer: {
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
   },
   label: {
-    fontSize: theme.fontSize.sm,
+    fontSize: t.fontSize.sm,
     fontWeight: "600",
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    color: t.colors.text,
+    marginBottom: t.spacing.xs,
   },
   input: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    fontSize: theme.fontSize.base,
-    color: theme.colors.text,
+    borderColor: t.colors.border,
+    borderRadius: t.borderRadius.md,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
+    fontSize: t.fontSize.base,
+    color: t.colors.text,
   },
   bioInput: {
     minHeight: 100,
@@ -1734,23 +1736,23 @@ const styles = StyleSheet.create({
   optionsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   optionChip: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    borderColor: t.colors.border,
+    borderRadius: t.borderRadius.md,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
   },
   optionChipSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
+    borderColor: t.colors.primary,
   },
   optionText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.text,
+    fontSize: t.fontSize.sm,
+    color: t.colors.text,
   },
   optionTextSelected: {
     color: "white",
@@ -1758,7 +1760,7 @@ const styles = StyleSheet.create({
   photosGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   photoContainer: {
     width: 80,
@@ -1768,7 +1770,7 @@ const styles = StyleSheet.create({
   photo: {
     width: "100%",
     height: "100%",
-    borderRadius: theme.borderRadius.md,
+    borderRadius: t.borderRadius.md,
   },
   removePhoto: {
     position: "absolute",
@@ -1781,23 +1783,23 @@ const styles = StyleSheet.create({
   addPhoto: {
     width: 80,
     height: 80,
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: t.colors.background,
+    borderRadius: t.borderRadius.md,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
     borderStyle: "dashed",
   },
   addPhotoText: {
-    color: theme.colors.primary,
-    fontSize: theme.fontSize.xs,
+    color: t.colors.primary,
+    fontSize: t.fontSize.xs,
     marginTop: 4,
     textAlign: "center",
   },
   avatarContainer: {
     alignItems: "center",
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
   },
   avatarWrapper: {
     position: "relative",
@@ -1807,7 +1809,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
-    borderColor: theme.colors.primary,
+    borderColor: t.colors.primary,
   },
   removeAvatar: {
     position: "absolute",
@@ -1820,54 +1822,54 @@ const styles = StyleSheet.create({
   addAvatar: {
     width: 120,
     height: 120,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
     borderRadius: 60,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 3,
-    borderColor: theme.colors.primary,
+    borderColor: t.colors.primary,
     borderStyle: "dashed",
   },
   addAvatarText: {
-    color: theme.colors.primary,
-    fontSize: theme.fontSize.xs,
+    color: t.colors.primary,
+    fontSize: t.fontSize.xs,
     marginTop: 4,
     textAlign: "center",
   },
   interestsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   interestChip: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.lg,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
+    borderColor: t.colors.border,
+    borderRadius: t.borderRadius.lg,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.xs,
   },
   interestChipSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
+    borderColor: t.colors.primary,
   },
   interestText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.text,
+    fontSize: t.fontSize.sm,
+    color: t.colors.text,
   },
   interestTextSelected: {
     color: "white",
   },
   button: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.md,
-    paddingVertical: theme.spacing.md,
+    backgroundColor: t.colors.primary,
+    borderRadius: t.borderRadius.md,
+    paddingVertical: t.spacing.md,
     alignItems: "center",
-    marginBottom: theme.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   buttonText: {
     color: "white",
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: "600",
   },
   buttonDisabled: {
@@ -1876,15 +1878,15 @@ const styles = StyleSheet.create({
   loadingContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   switchMode: {
     alignItems: "center",
-    marginBottom: theme.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   switchModeText: {
-    color: theme.colors.primary,
-    fontSize: theme.fontSize.base,
+    color: t.colors.primary,
+    fontSize: t.fontSize.base,
   },
   // Modern Signup Styles
   backButton: {
@@ -1905,7 +1907,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   signupContainer: {
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
     borderRadius: 24,
     padding: 28,
     shadowColor: "#000",
@@ -1918,13 +1920,13 @@ const styles = StyleSheet.create({
   signupTitle: {
     fontSize: 26,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: t.colors.text,
     textAlign: "center",
     marginBottom: 8,
   },
   signupSubtitle: {
     fontSize: 15,
-    color: "#FFFFFF",
+    color: t.colors.text,
     textAlign: "center",
     marginBottom: 24,
   },
@@ -1944,16 +1946,16 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: t.colors.inputBg,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#333333",
+    borderColor: t.colors.border,
     borderStyle: "dashed",
   },
   modernAvatarText: {
     fontSize: 12,
-    color: "#FFFFFF",
+    color: t.colors.text,
     marginTop: 4,
     fontWeight: "500",
   },
@@ -1968,7 +1970,7 @@ const styles = StyleSheet.create({
   modernInputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2A2A2A",
+    backgroundColor: t.colors.inputBg,
     borderRadius: 12,
     marginBottom: 12,
     paddingHorizontal: 12,
@@ -1977,7 +1979,7 @@ const styles = StyleSheet.create({
   modernInput: {
     flex: 1,
     fontSize: 14,
-    color: "#FFFFFF",
+    color: t.colors.text,
   },
   modernSection: {
     marginBottom: 24,
@@ -1985,7 +1987,7 @@ const styles = StyleSheet.create({
   modernLabel: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: t.colors.text,
     marginBottom: 12,
   },
   modernOptionsRow: {
@@ -2011,25 +2013,25 @@ const styles = StyleSheet.create({
   },
   modernOptionText: {
     fontSize: 14,
-    color: "#FFFFFF",
+    color: t.colors.text,
     fontWeight: "500",
   },
   modernOptionTextSelected: {
     color: "#FFF",
   },
   modernBioInput: {
-    backgroundColor: "#2A2A2A",
+    backgroundColor: t.colors.inputBg,
     borderRadius: 12,
     padding: 12,
     fontSize: 14,
-    color: "#FFFFFF",
+    color: t.colors.text,
     minHeight: 100,
     borderWidth: 1,
-    borderColor: "#333333",
+    borderColor: t.colors.border,
   },
   charCount: {
     fontSize: 12,
-    color: "#B3B3B3",
+    color: t.colors.textSecondary,
     textAlign: "right",
     marginTop: 4,
   },
@@ -2056,7 +2058,7 @@ const styles = StyleSheet.create({
   modernAddPhoto: {
     width: "47%",
     aspectRatio: 1,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: t.colors.inputBg,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
@@ -2078,12 +2080,12 @@ const styles = StyleSheet.create({
   modernInterestChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2A2A2A",
+    backgroundColor: t.colors.inputBg,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#333333",
+    borderColor: t.colors.border,
     gap: 4,
   },
   modernInterestChipSelected: {
@@ -2092,7 +2094,7 @@ const styles = StyleSheet.create({
   },
   modernInterestText: {
     fontSize: 13,
-    color: "#FFFFFF",
+    color: t.colors.text,
     fontWeight: "500",
   },
   modernInterestTextSelected: {
@@ -2129,7 +2131,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   verifyCard: {
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
     borderRadius: 20,
     padding: 28,
     alignItems: "center",
@@ -2139,7 +2141,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: t.colors.inputBg,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
@@ -2147,23 +2149,23 @@ const styles = StyleSheet.create({
   verifyTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: t.colors.text,
     marginBottom: 10,
   },
   verifyBody: {
     fontSize: 15,
-    color: "#B3B3B3",
+    color: t.colors.textSecondary,
     textAlign: "center",
     lineHeight: 22,
     marginBottom: 8,
   },
   verifyEmailText: {
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: t.colors.text,
   },
   verifyHint: {
     fontSize: 13,
-    color: "#B3B3B3",
+    color: t.colors.textSecondary,
     textAlign: "center",
     marginBottom: 24,
     lineHeight: 18,
@@ -2197,7 +2199,7 @@ const styles = StyleSheet.create({
   termsText: {
     flex: 1,
     fontSize: 13,
-    color: "#B3B3B3",
+    color: t.colors.textSecondary,
     lineHeight: 20,
   },
   termsLink: {

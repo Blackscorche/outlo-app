@@ -12,10 +12,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
 import { supabase } from '../integrations/supabase/client';
 import AppLoading from '../components/AppLoading';
+import { useTheme } from '../contexts/ThemeContext';
+import { theme } from '../styles/theme';
 
 const { width } = Dimensions.get('window');
 const ITEM_SIZE = (width - theme.spacing.lg * 2 - theme.spacing.xs * 2) / 3;
@@ -38,6 +39,8 @@ const AllPostsScreen = ({ navigation, route }) => {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const POSTS_PER_PAGE = 21; // Multiple of 3 for grid
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   useEffect(() => {
     loadPosts();
@@ -105,13 +108,13 @@ const AllPostsScreen = ({ navigation, route }) => {
   };
 
   const renderPost = ({ item }: { item: Post }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.postItem}
       onPress={() => navigation.navigate('PostDetail', { postId: item.id })}
       activeOpacity={0.8}
     >
-      <Image 
-        source={{ uri: item.media_url }} 
+      <Image
+        source={{ uri: item.media_url }}
         style={styles.postImage}
         resizeMode="cover"
       />
@@ -205,19 +208,19 @@ const AllPostsScreen = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   loadingContainer: {
     flex: 1,
@@ -225,13 +228,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   content: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.sm,
-    paddingBottom: theme.spacing.xl,
+    paddingHorizontal: t.spacing.lg,
+    paddingTop: t.spacing.sm,
+    paddingBottom: t.spacing.xl,
   },
   row: {
     justifyContent: 'space-between',
-    marginBottom: theme.spacing.xs,
+    marginBottom: t.spacing.xs,
   },
   postItem: {
     width: ITEM_SIZE,
@@ -241,7 +244,7 @@ const styles = StyleSheet.create({
   postImage: {
     width: '100%',
     height: '100%',
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: t.borderRadius.sm,
   },
   videoOverlay: {
     position: 'absolute',
@@ -252,7 +255,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: t.borderRadius.sm,
   },
   postStats: {
     position: 'absolute',
@@ -279,22 +282,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: theme.spacing.xxxl * 2,
+    paddingVertical: t.spacing.xxxl * 2,
   },
   emptyText: {
-    fontSize: theme.fontSize.lg,
+    fontSize: t.fontSize.lg,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.md,
+    color: t.colors.textSecondary,
+    marginTop: t.spacing.md,
   },
   emptySubtext: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.xs,
+    fontSize: t.fontSize.base,
+    color: t.colors.textSecondary,
+    marginTop: t.spacing.xs,
     textAlign: 'center',
   },
   footerLoader: {
-    paddingVertical: theme.spacing.lg,
+    paddingVertical: t.spacing.lg,
     alignItems: 'center',
   },
 });

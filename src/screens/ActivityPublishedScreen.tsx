@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BOOST_PLANS, formatPrice } from "../constants/activityCategories";
 import { useBoosts } from "../hooks/useBoosts";
+import { useTheme } from "../contexts/ThemeContext";
 
 interface RouteParams {
   activityId: string;
@@ -29,6 +30,7 @@ export default function ActivityPublishedScreen({ route, navigation }: any) {
   const { activityId, isPaid }: RouteParams = route.params || {};
   const { activateBoost } = useBoosts(activityId);
   const [busy, setBusy] = useState<string | null>(null);
+  const { theme } = useTheme();
 
   const goToActivity = () => {
     // Navigate to the activities list and let the user open it from there.
@@ -67,16 +69,18 @@ export default function ActivityPublishedScreen({ route, navigation }: any) {
     }
   };
 
+  const s = makeStyles(theme);
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+    <SafeAreaView style={s.safe}>
+      <ScrollView contentContainerStyle={s.scroll}>
         {/* Success header */}
-        <View style={styles.successHero}>
-          <View style={styles.successIcon}>
+        <View style={s.successHero}>
+          <View style={s.successIcon}>
             <Ionicons name="checkmark-circle" size={64} color="#fff" />
           </View>
-          <Text style={styles.successTitle}>Your activity is live!</Text>
-          <Text style={styles.successSub}>
+          <Text style={s.successTitle}>Your activity is live!</Text>
+          <Text style={s.successSub}>
             {isPaid
               ? "Tickets can now be purchased."
               : "People can now find and join it on the map."}
@@ -84,12 +88,12 @@ export default function ActivityPublishedScreen({ route, navigation }: any) {
         </View>
 
         {/* Boost upsell */}
-        <View style={styles.boostBlock}>
-          <View style={styles.boostHeaderRow}>
+        <View style={s.boostBlock}>
+          <View style={s.boostHeaderRow}>
             <Ionicons name="rocket" size={22} color="#F59E0B" />
-            <Text style={styles.boostHeader}>Want more people to see it?</Text>
+            <Text style={s.boostHeader}>Want more people to see it?</Text>
           </View>
-          <Text style={styles.boostSub}>
+          <Text style={s.boostSub}>
             Boost your activity on the map to get more attendees.
           </Text>
 
@@ -99,36 +103,36 @@ export default function ActivityPublishedScreen({ route, navigation }: any) {
               <TouchableOpacity
                 key={plan.id}
                 disabled={!!busy}
-                style={[styles.planCard, plan.popular && styles.planCardPopular]}
+                style={[s.planCard, plan.popular && s.planCardPopular]}
                 onPress={() => handleBoost(plan.id)}
                 activeOpacity={0.85}
               >
                 {plan.popular && (
-                  <View style={styles.popularPill}>
-                    <Text style={styles.popularPillText}>POPULAR</Text>
+                  <View style={s.popularPill}>
+                    <Text style={s.popularPillText}>POPULAR</Text>
                   </View>
                 )}
-                <View style={styles.planRow}>
+                <View style={s.planRow}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.planLabel}>{plan.label}</Text>
-                    <View style={styles.benefitsRow}>
+                    <Text style={s.planLabel}>{plan.label}</Text>
+                    <View style={s.benefitsRow}>
                       {plan.benefits.map((b) => (
-                        <View key={b} style={styles.benefitChip}>
-                          <Ionicons name="checkmark" size={11} color="#16A34A" />
-                          <Text style={styles.benefitText}>{b}</Text>
+                        <View key={b} style={s.benefitChip}>
+                          <Ionicons name="checkmark" size={11} color="#4CAF50" />
+                          <Text style={s.benefitText}>{b}</Text>
                         </View>
                       ))}
                     </View>
                   </View>
-                  <View style={styles.priceCol}>
+                  <View style={s.priceCol}>
                     {isBusy ? (
                       <ActivityIndicator color="#F59E0B" />
                     ) : (
                       <>
-                        <Text style={styles.planPrice}>
+                        <Text style={s.planPrice}>
                           {formatPrice(plan.priceCents)}
                         </Text>
-                        <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+                        <Ionicons name="chevron-forward" size={18} color={theme.colors.textSecondary} />
                       </>
                     )}
                   </View>
@@ -138,11 +142,11 @@ export default function ActivityPublishedScreen({ route, navigation }: any) {
           })}
 
           <TouchableOpacity
-            style={styles.skipBtn}
+            style={s.skipBtn}
             onPress={goToActivity}
             disabled={!!busy}
           >
-            <Text style={styles.skipText}>Skip for now</Text>
+            <Text style={s.skipText}>Skip for now</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -150,15 +154,15 @@ export default function ActivityPublishedScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F9FAFB" },
+const makeStyles = (theme: any) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: theme.colors.background },
   scroll: { padding: 16, paddingBottom: 40 },
 
   successHero: {
     alignItems: "center",
     paddingTop: 28,
     paddingBottom: 32,
-    backgroundColor: "#16A34A",
+    backgroundColor: "#2E7D32",
     borderRadius: 20,
     marginBottom: 18,
   },
@@ -172,27 +176,27 @@ const styles = StyleSheet.create({
   },
 
   boostBlock: {
-    backgroundColor: "#fff",
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: theme.colors.border,
   },
   boostHeaderRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  boostHeader: { fontSize: 17, fontWeight: "800", color: "#111827" },
-  boostSub: { fontSize: 13, color: "#6B7280", marginTop: 4, marginBottom: 14 },
+  boostHeader: { fontSize: 17, fontWeight: "800", color: theme.colors.text },
+  boostSub: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 4, marginBottom: 14 },
 
   planCard: {
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: theme.colors.border,
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
-    backgroundColor: "#fff",
+    backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface,
   },
   planCardPopular: {
     borderColor: "#F59E0B",
-    backgroundColor: "#FFFBEB",
+    backgroundColor: theme.isDark ? '#2A2200' : '#FFFBEB',
   },
   popularPill: {
     position: "absolute",
@@ -205,7 +209,7 @@ const styles = StyleSheet.create({
   },
   popularPillText: { color: "#fff", fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
   planRow: { flexDirection: "row", alignItems: "center" },
-  planLabel: { fontSize: 16, fontWeight: "800", color: "#111827", marginBottom: 6 },
+  planLabel: { fontSize: 16, fontWeight: "800", color: theme.colors.text, marginBottom: 6 },
   benefitsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   benefitChip: {
     flexDirection: "row",
@@ -213,13 +217,13 @@ const styles = StyleSheet.create({
     gap: 3,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    backgroundColor: "#F0FDF4",
+    backgroundColor: theme.isDark ? 'rgba(76,175,80,0.12)' : '#F0FDF4',
     borderRadius: 999,
   },
-  benefitText: { fontSize: 11, color: "#15803D", fontWeight: "600" },
+  benefitText: { fontSize: 11, color: theme.colors.primary, fontWeight: "600" },
   priceCol: { flexDirection: "row", alignItems: "center", gap: 6 },
   planPrice: { fontSize: 17, fontWeight: "800", color: "#F59E0B" },
 
   skipBtn: { alignItems: "center", paddingVertical: 14, marginTop: 4 },
-  skipText: { color: "#6B7280", fontWeight: "700" },
+  skipText: { color: theme.colors.textSecondary, fontWeight: "700" },
 });

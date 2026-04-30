@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { usePresence } from './src/hooks/usePresence';
 import { useBadgeCounts } from './src/hooks/useBadgeCounts';
 import { useInAppNotifications } from './src/hooks/useInAppNotifications';
 import { SettingsProvider, useSettings } from './src/contexts/SettingsContext';
+import { ThemeProvider, useTheme, darkTheme, lightTheme } from './src/contexts/ThemeContext';
 import { ToastProvider } from './src/contexts/ToastContext';
 import { SubscriptionProvider } from './src/contexts/SubscriptionContext';
 import { IAPProvider } from './src/components/IAPProvider';
@@ -42,6 +43,7 @@ import CreateActivityScreen from './src/screens/CreateActivityScreen';
 import ActivityPublishedScreen from './src/screens/ActivityPublishedScreen';
 import TicketCheckoutScreen from './src/screens/TicketCheckoutScreen';
 import TicketSuccessScreen from './src/screens/TicketSuccessScreen';
+import CreatorWalletScreen from './src/screens/CreatorWalletScreen';
 import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
 const Stack = createNativeStackNavigator();
@@ -106,6 +108,7 @@ function getTabLabel(routeName: string) {
 // Custom tab bar with elevated center Home button
 function CustomTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
   const { chatBadgeCount, connectionsBadgeCount } = useBadgeCounts();
 
   const getBadgeCount = (routeName: string) => {
@@ -115,7 +118,7 @@ function CustomTabBar({ state, navigation }: any) {
   };
 
   return (
-    <View style={[tabBarStyles.container, { paddingBottom: insets.bottom > 0 ? insets.bottom : 10 }]}>
+    <View style={[tabBarStyles.container, { paddingBottom: insets.bottom > 0 ? insets.bottom : 10, backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}>
       {state.routes.map((route: any, index: number) => {
         const focused = state.index === index;
         const isCenter = route.name === 'Home';
@@ -142,7 +145,7 @@ function CustomTabBar({ state, navigation }: any) {
               style={tabBarStyles.centerWrapper}
               activeOpacity={0.8}
             >
-              <View style={tabBarStyles.centerButtonOuter}>
+              <View style={[tabBarStyles.centerButtonOuter, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
                 <View style={[tabBarStyles.centerButton, focused && tabBarStyles.centerButtonActive]}>
                   <Ionicons name="map" size={28} color="#FFF" />
                 </View>
@@ -339,11 +342,21 @@ function AuthenticatedApp({ user, navigation }: { user: any; navigation?: any })
       <Stack.Screen name="ActivityPublished" component={ActivityPublishedScreen} />
       <Stack.Screen name="TicketCheckout" component={TicketCheckoutScreen} />
       <Stack.Screen name="TicketSuccess" component={TicketSuccessScreen} />
+      <Stack.Screen name="CreatorWallet" component={CreatorWalletScreen} />
     </Stack.Navigator>
   );
 }
 
 // Component to manage keep-awake based on settings
+const navDarkTheme = {
+  ...DarkTheme,
+  colors: { ...DarkTheme.colors, primary: '#4CAF50', background: '#0A0A0A', card: '#1A1A1A', text: '#FFFFFF', border: '#333333', notification: '#4CAF50' },
+};
+const navLightTheme = {
+  ...DefaultTheme,
+  colors: { ...DefaultTheme.colors, primary: '#4CAF50', background: '#F5F5F5', card: '#FFFFFF', text: '#111827', border: '#E5E7EB', notification: '#4CAF50' },
+};
+
 function KeepAwakeManager({ children }: { children: React.ReactNode }) {
   const { settings } = useSettings();
 
@@ -460,71 +473,70 @@ export default function App() {
   }, []);
 
 
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <SettingsProvider>
+          <ToastProvider>
+            <SubscriptionProvider>
+              <IAPProvider>
+                <AppContent user={user} loading={loading} />
+              </IAPProvider>
+            </SubscriptionProvider>
+          </ToastProvider>
+        </SettingsProvider>
+      </ThemeProvider>
+      <StatusBar style="auto" />
+      <ImagePickerModal />
+    </SafeAreaProvider>
+  );
+}
+
+function AppContent({ user, loading }: { user: any; loading: boolean }) {
+  const { isDark } = useTheme();
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0A0A0A' }}>
         <ActivityIndicator size="large" color="#4CAF50" />
       </View>
     );
   }
-
+  if (user) {
+    return (
+      <KeepAwakeManager>
+        <NavigationContainer
+          ref={navigationRef}
+          theme={isDark ? navDarkTheme : navLightTheme}
+          linking={{
+            prefixes: ['lovemap://'],
+            config: {
+              screens: {
+                AuthenticatedApp: {
+                  path: '',
+                  screens: {
+                    SubscriptionSuccess: { path: 'subscription-success', parse: { session_id: (s: string) => s } },
+                    ExtraPurchaseSuccess: { path: 'extra-purchase-success', parse: { session_id: (s: string) => s, type: (t: string) => t } },
+                  },
+                },
+              },
+            },
+          }}
+        >
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="AuthenticatedApp">
+              {({ navigation }) => <AuthenticatedApp user={user} navigation={navigation} />}
+            </Stack.Screen>
+          </Stack.Navigator>
+        </NavigationContainer>
+      </KeepAwakeManager>
+    );
+  }
   return (
-    <SafeAreaProvider>
-      <SettingsProvider>
-        <ToastProvider>
-          <SubscriptionProvider>
-            <IAPProvider>
-              {user ? (
-                <KeepAwakeManager>
-                  <NavigationContainer
-                    ref={navigationRef}
-                    linking={{
-                      prefixes: ['lovemap://'],
-                      config: {
-                        screens: {
-                          AuthenticatedApp: {
-                            path: '',
-                            screens: {
-                              SubscriptionSuccess: {
-                                path: 'subscription-success',
-                                parse: {
-                                  session_id: (session_id: string) => session_id,
-                                },
-                              },
-                              ExtraPurchaseSuccess: {
-                                path: 'extra-purchase-success',
-                                parse: {
-                                  session_id: (session_id: string) => session_id,
-                                  type: (type: string) => type,
-                                },
-                              },
-                            },
-                          },
-                        },
-                      },
-                    }}
-                  >
-                    <Stack.Navigator screenOptions={{ headerShown: false }}>
-                      <Stack.Screen name="AuthenticatedApp">
-                        {({ navigation }) => <AuthenticatedApp user={user} navigation={navigation} />}
-                      </Stack.Screen>
-                    </Stack.Navigator>
-                  </NavigationContainer>
-                </KeepAwakeManager>
-              ) : (
-                <NavigationContainer>
-                  <Stack.Navigator screenOptions={{ headerShown: false }}>
-                    <Stack.Screen name="Auth" component={AuthScreen} />
-                  </Stack.Navigator>
-                </NavigationContainer>
-              )}
-            </IAPProvider>
-          </SubscriptionProvider>
-        </ToastProvider>
-      </SettingsProvider>
-      <StatusBar style="light" />
-      <ImagePickerModal />
-    </SafeAreaProvider>
+    <NavigationContainer theme={isDark ? navDarkTheme : navLightTheme}>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Auth" component={AuthScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 

@@ -14,12 +14,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { theme } from '../styles/theme';
 import { supabase } from '../integrations/supabase/client';
 import { useConnectionRequests } from '../hooks/useConnectionRequests';
 import { useBadgeCounts } from '../hooks/useBadgeCounts';
 import { usePinnedUsers } from '../hooks/usePinnedUsers';
 import AppLoading from '../components/AppLoading';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ChatRoom {
   id: string;
@@ -52,6 +52,9 @@ interface ConnectedUser {
 }
 
 export default function ChatScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
+
   const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
@@ -556,19 +559,19 @@ export default function ChatScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.xs,
-    paddingRight: theme.spacing.md,
+    paddingVertical: t.spacing.xs,
+    paddingRight: t.spacing.md,
     paddingLeft: 12,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: t.colors.surface,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -576,7 +579,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     zIndex: 1,
     borderBottomWidth: 1,
-    borderBottomColor: '#333333',
+    borderBottomColor: t.colors.border,
   },
   headerTitle: {
     position: 'absolute',
@@ -585,7 +588,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: t.colors.text,
     pointerEvents: 'none',
   },
   headerLogo: {
@@ -601,7 +604,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: t.colors.inputBg,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -613,19 +616,19 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2A2A2A',
+    backgroundColor: t.colors.inputBg,
     marginHorizontal: 16,
     marginVertical: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#333333',
+    borderColor: t.colors.border,
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#FFFFFF',
+    color: t.colors.text,
     padding: 0,
   },
   loadingContainer: {
@@ -642,7 +645,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: t.colors.text,
     marginTop: 16,
   },
   emptySubtext: {
@@ -656,9 +659,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: '#1A1A1A',
+    backgroundColor: t.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#333333',
+    borderBottomColor: t.colors.border,
   },
   avatarContainer: {
     position: 'relative',
@@ -670,11 +673,11 @@ const styles = StyleSheet.create({
     borderRadius: 28,
   },
   avatarPlaceholder: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: t.colors.inputBg,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#333333',
+    borderColor: t.colors.border,
   },
   onlineIndicator: {
     position: 'absolute',
@@ -685,7 +688,7 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: '#4CAF50',
     borderWidth: 2,
-    borderColor: '#1A1A1A',
+    borderColor: t.colors.surface,
   },
   chatInfo: {
     flex: 1,
@@ -699,7 +702,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: t.colors.text,
     flex: 1,
   },
   timestamp: {
@@ -718,7 +721,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   lastMessageUnread: {
-    color: '#FFFFFF',
+    color: t.colors.text,
     fontWeight: '500',
   },
   unreadBadge: {
@@ -738,7 +741,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-    backgroundColor: '#333333',
+    backgroundColor: t.colors.border,
     marginLeft: 84,
   },
   pinnedIndicator: {

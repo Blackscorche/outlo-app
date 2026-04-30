@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View, ViewStyle } from "react-native";
+import { useTheme } from '../contexts/ThemeContext';
 import { Ionicons } from "@expo/vector-icons";
 import { formatPrice } from "../constants/activityCategories";
 
@@ -23,6 +24,8 @@ export default function PriceBadge({
   size = "md",
   style,
 }: PriceBadgeProps) {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const small = size === "sm";
   if (!isPaid) {
     return (
@@ -60,7 +63,7 @@ export default function PriceBadge({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   base: {
     flexDirection: "row",
     alignItems: "center",
@@ -91,6 +94,6 @@ const styles = StyleSheet.create({
     color: "#15803D",
   },
   paidText: {
-    color: "#FFFFFF",
+    color: t.colors.text,
   },
 });

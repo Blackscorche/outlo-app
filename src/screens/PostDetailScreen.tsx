@@ -11,10 +11,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../styles/theme";
 import { commonStyles } from "../styles/common";
 import { supabase } from "../integrations/supabase/client";
 import AppLoading from "../components/AppLoading";
+import { useTheme } from '../contexts/ThemeContext';
 
 const DEFAULT_PROFILE_PHOTO =
   "https://ui-avatars.com/api/?background=FF1744&color=fff&size=200&font-size=0.5";
@@ -35,6 +35,8 @@ interface Post {
 }
 
 const PostDetailScreen = ({ navigation, route }) => {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const { postId } = route.params;
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
@@ -292,19 +294,19 @@ const PostDetailScreen = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   loadingContainer: {
     flex: 1,
@@ -317,8 +319,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   errorText: {
-    fontSize: theme.fontSize.lg,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.lg,
+    color: t.colors.textSecondary,
   },
   content: {
     flex: 1,
@@ -326,25 +328,25 @@ const styles = StyleSheet.create({
   userHeader: {
     flexDirection: "row",
     alignItems: "center",
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
   },
   userAvatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    marginRight: theme.spacing.md,
+    marginRight: t.spacing.md,
   },
   userInfo: {
     flex: 1,
   },
   userName: {
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: "600",
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   postTime: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
     marginTop: 2,
   },
   mediaContainer: {
@@ -366,90 +368,90 @@ const styles = StyleSheet.create({
   },
   actionsContainer: {
     flexDirection: "row",
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    gap: theme.spacing.lg,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.md,
+    gap: t.spacing.lg,
   },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.xs,
+    gap: t.spacing.xs,
   },
   actionText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.text,
+    fontSize: t.fontSize.sm,
+    color: t.colors.text,
     fontWeight: "500",
   },
   captionContainer: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.lg,
+    paddingHorizontal: t.spacing.lg,
+    paddingBottom: t.spacing.lg,
   },
   caption: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.text,
+    fontSize: t.fontSize.base,
+    color: t.colors.text,
     lineHeight: 22,
   },
   commentInputContainer: {
     flexDirection: "row",
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: t.colors.border,
     alignItems: "flex-end",
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   commentInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.lg,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    fontSize: theme.fontSize.base,
-    color: theme.colors.text,
+    borderColor: t.colors.border,
+    borderRadius: t.borderRadius.lg,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
+    fontSize: t.fontSize.base,
+    color: t.colors.text,
     maxHeight: 100,
   },
   submitButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.sm,
+    backgroundColor: t.colors.primary,
+    borderRadius: t.borderRadius.lg,
+    padding: t.spacing.sm,
     width: 40,
     height: 40,
     justifyContent: "center",
     alignItems: "center",
   },
   submitButtonDisabled: {
-    backgroundColor: theme.colors.textSecondary,
+    backgroundColor: t.colors.textSecondary,
   },
   commentsSection: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.lg,
+    paddingHorizontal: t.spacing.lg,
+    paddingBottom: t.spacing.lg,
   },
   commentsTitle: {
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: "600",
-    color: theme.colors.text,
-    marginBottom: theme.spacing.md,
+    color: t.colors.text,
+    marginBottom: t.spacing.md,
   },
   commentsLoading: {
     alignItems: "center",
-    paddingVertical: theme.spacing.md,
+    paddingVertical: t.spacing.md,
   },
   commentItem: {
     flexDirection: "row",
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
     alignItems: "flex-start",
   },
   commentAvatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    marginRight: theme.spacing.sm,
+    marginRight: t.spacing.sm,
   },
   commentContent: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: t.colors.surface,
+    padding: t.spacing.sm,
+    borderRadius: t.borderRadius.md,
   },
   commentHeader: {
     flexDirection: "row",
@@ -458,26 +460,26 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   commentAuthor: {
-    fontSize: theme.fontSize.sm,
+    fontSize: t.fontSize.sm,
     fontWeight: "600",
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   commentTime: {
-    fontSize: theme.fontSize.xs,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.xs,
+    color: t.colors.textSecondary,
   },
   commentText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.text,
+    fontSize: t.fontSize.sm,
+    color: t.colors.text,
     lineHeight: 18,
   },
   noComments: {
     alignItems: "center",
-    paddingVertical: theme.spacing.xl,
+    paddingVertical: t.spacing.xl,
   },
   noCommentsText: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.base,
+    color: t.colors.textSecondary,
   },
 });
 

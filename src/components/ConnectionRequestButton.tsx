@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { useQuotaManager } from '../hooks/useQuotaManager';
 import { useNavigation } from '@react-navigation/native';
 import { useToast } from '../contexts/ToastContext';
+import { theme } from '../styles/theme';
 
 interface ConnectionRequestButtonProps {
   targetUserId: string;
@@ -56,6 +57,8 @@ export const ConnectionRequestButton: React.FC<ConnectionRequestButtonProps> = (
       });
     }
   };
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <TouchableOpacity 
@@ -75,18 +78,18 @@ export const ConnectionRequestButton: React.FC<ConnectionRequestButtonProps> = (
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     gap: 4,
   },
   buttonDisabled: {
-    backgroundColor: theme.colors.border,
+    backgroundColor: t.colors.border,
   },
   buttonText: {
     color: '#fff',
@@ -94,6 +97,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   buttonTextDisabled: {
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
 });

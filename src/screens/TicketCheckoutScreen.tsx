@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Platform } from "react-native";
+import { useTheme } from '../contexts/ThemeContext';
 import {
   formatPrice,
   PLATFORM_FEE_BPS,
@@ -28,6 +29,8 @@ import { useActivities, Activity } from "../hooks/useActivities";
  * IAP purchase. On success, navigates to the success screen.
  */
 export default function TicketCheckoutScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const { activityId } = route.params || {};
   const { getActivityById } = useActivities();
   const [activity, setActivity] = useState<Activity | null>(null);
@@ -195,8 +198,8 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0A0A0A" },
+const makeStyles = (t: any) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: t.colors.background },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: {
     flexDirection: "row",
@@ -204,28 +207,28 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 8,
     paddingVertical: 8,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#333333",
+    borderBottomColor: t.colors.border,
   },
   headerBtn: { padding: 8 },
-  headerTitle: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
+  headerTitle: { fontSize: 16, fontWeight: "700", color: t.colors.text },
 
   scroll: { padding: 16, paddingBottom: 30 },
 
   activityCard: {
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
     borderRadius: 14,
     overflow: "hidden",
     marginBottom: 14,
   },
-  heroImg: { width: "100%", height: 140, backgroundColor: "#333333" },
-  title: { fontSize: 18, fontWeight: "800", color: "#FFFFFF", marginBottom: 8 },
+  heroImg: { width: "100%", height: 140, backgroundColor: t.colors.border },
+  title: { fontSize: 18, fontWeight: "800", color: t.colors.text, marginBottom: 8 },
   row: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 2 },
-  rowText: { fontSize: 13, color: "#B3B3B3" },
+  rowText: { fontSize: 13, color: t.colors.textSecondary },
 
   summaryCard: {
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
@@ -233,7 +236,7 @@ const styles = StyleSheet.create({
   summaryHeader: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#B3B3B3",
+    color: t.colors.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 10,
@@ -243,14 +246,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 6,
   },
-  summaryLabel: { fontSize: 14, color: "#B3B3B3" },
-  summaryValue: { fontSize: 14, color: "#FFFFFF", fontWeight: "600" },
+  summaryLabel: { fontSize: 14, color: t.colors.textSecondary },
+  summaryValue: { fontSize: 14, color: t.colors.text, fontWeight: "600" },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "#333333",
+    backgroundColor: t.colors.border,
     marginVertical: 6,
   },
-  summaryTotal: { fontSize: 16, fontWeight: "800", color: "#FFFFFF" },
+  summaryTotal: { fontSize: 16, fontWeight: "800", color: t.colors.text },
   summaryTotalValue: { fontSize: 16, fontWeight: "800", color: "#4CAF50" },
   feeNote: { fontSize: 11, color: "#666666", marginTop: 6 },
 
@@ -260,14 +263,14 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     paddingHorizontal: 4,
   },
-  termsText: { fontSize: 12, color: "#B3B3B3", flex: 1 },
+  termsText: { fontSize: 12, color: t.colors.textSecondary, flex: 1 },
 
   footer: {
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
     padding: 14,
     paddingBottom: 24,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#333333",
+    borderTopColor: t.colors.border,
   },
   payBtn: {
     backgroundColor: "#4CAF50",

@@ -13,10 +13,10 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import AppLoading from './AppLoading';
 import { Place, PlaceReview, usePlaces } from '../hooks/usePlaces';
 import { REVIEW_TAGS, BEST_FOR_OPTIONS, getPlaceType } from '../constants/placeTypes';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface PlaceReviewModalProps {
   visible: boolean;
@@ -122,6 +122,8 @@ export default function PlaceReviewModal({
   };
 
   const placeType = place ? getPlaceType(place.place_type) : null;
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <Modal
@@ -303,23 +305,23 @@ export default function PlaceReviewModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderBottomColor: t.colors.border,
+    backgroundColor: t.colors.surface,
   },
   closeButton: {
-    padding: theme.spacing.sm,
+    padding: t.spacing.sm,
   },
   headerTitleContainer: {
     flex: 1,
@@ -328,7 +330,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   loadingContainer: {
     flex: 1,
@@ -341,109 +343,109 @@ const styles = StyleSheet.create({
   placeInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: theme.spacing.lg,
-    backgroundColor: theme.colors.surface,
-    gap: theme.spacing.md,
+    padding: t.spacing.lg,
+    backgroundColor: t.colors.surface,
+    gap: t.spacing.md,
   },
   placeIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: t.colors.primary + '15',
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeName: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
     flex: 1,
   },
   section: {
-    padding: theme.spacing.lg,
-    backgroundColor: theme.colors.surface,
-    marginTop: theme.spacing.sm,
+    padding: t.spacing.lg,
+    backgroundColor: t.colors.surface,
+    marginTop: t.spacing.sm,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.md,
+    color: t.colors.text,
+    marginBottom: t.spacing.md,
   },
   ratingContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   starButton: {
-    padding: theme.spacing.xs,
+    padding: t.spacing.xs,
   },
   ratingLabel: {
     textAlign: 'center',
     fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.sm,
+    color: t.colors.textSecondary,
+    marginTop: t.spacing.sm,
   },
   tagsGrid: {
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   tagButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing.sm,
-    gap: theme.spacing.sm,
+    paddingVertical: t.spacing.sm,
+    gap: t.spacing.sm,
   },
   tagButtonActive: {},
   tagButtonText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   tagButtonTextActive: {
-    color: theme.colors.text,
+    color: t.colors.text,
     fontWeight: '500',
   },
   reviewInput: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: t.colors.background,
+    borderRadius: t.borderRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.md,
+    borderColor: t.colors.border,
+    padding: t.spacing.md,
     fontSize: 14,
-    color: theme.colors.text,
+    color: t.colors.text,
     minHeight: 120,
   },
   charCount: {
     textAlign: 'right',
     fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.xs,
+    color: t.colors.textSecondary,
+    marginTop: t.spacing.xs,
   },
   bestForGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   bestForButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.lg,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
+    borderRadius: t.borderRadius.lg,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    borderColor: t.colors.border,
+    backgroundColor: t.colors.background,
     gap: 6,
   },
   bestForButtonActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + '10',
+    borderColor: t.colors.primary,
+    backgroundColor: t.colors.primary + '10',
   },
   bestForButtonText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   bestForButtonTextActive: {
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontWeight: '500',
   },
   submitContainer: {
@@ -451,20 +453,20 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: theme.spacing.md,
-    paddingBottom: theme.spacing.lg,
-    backgroundColor: theme.colors.surface,
+    padding: t.spacing.md,
+    paddingBottom: t.spacing.lg,
+    backgroundColor: t.colors.surface,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: t.colors.border,
   },
   submitButton: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: t.colors.primary,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.lg,
     alignItems: 'center',
   },
   submitButtonDisabled: {
-    backgroundColor: theme.colors.gray[300],
+    backgroundColor: t.colors.gray[300],
   },
   submitButtonText: {
     fontSize: 16,

@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
-
 interface PurchaseStatusProps {
   isLoading?: boolean;
   isSuccess?: boolean;
@@ -18,6 +17,9 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
   message,
   size = 'medium',
 }) => {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
+
   if (!isLoading && !isSuccess && !isError) return null;
 
   const sizeStyles = {
@@ -55,10 +57,10 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
     if (isSuccess) {
       return (
         <>
-          <Ionicons 
-            name="checkmark-circle" 
-            size={currentSize.icon} 
-            color={theme.colors.success} 
+          <Ionicons
+            name="checkmark-circle"
+            size={currentSize.icon}
+            color={theme.colors.success}
           />
           <Text style={[currentSize.text, { color: theme.colors.success }]}>
             {message || 'Success!'}
@@ -70,10 +72,10 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
     if (isError) {
       return (
         <>
-          <Ionicons 
-            name="close-circle" 
-            size={currentSize.icon} 
-            color={theme.colors.error} 
+          <Ionicons
+            name="close-circle"
+            size={currentSize.icon}
+            color={theme.colors.error}
           />
           <Text style={[currentSize.text, { color: theme.colors.error }]}>
             {message || 'Failed'}
@@ -92,44 +94,44 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: t.colors.background,
+    borderRadius: t.borderRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
   },
   containerSmall: {
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-    gap: theme.spacing.xs,
+    paddingHorizontal: t.spacing.sm,
+    paddingVertical: t.spacing.xs,
+    gap: t.spacing.xs,
   },
   containerMedium: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    gap: theme.spacing.sm,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
+    gap: t.spacing.sm,
   },
   containerLarge: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    gap: theme.spacing.md,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.md,
+    gap: t.spacing.md,
   },
   textSmall: {
-    fontSize: theme.fontSize.xs,
+    fontSize: t.fontSize.xs,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   textMedium: {
-    fontSize: theme.fontSize.sm,
+    fontSize: t.fontSize.sm,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   textLarge: {
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
 });

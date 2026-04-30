@@ -16,8 +16,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { theme } from "../styles/theme";
 import { supabase } from "../integrations/supabase/client";
+import { useTheme } from '../contexts/ThemeContext';
 
 interface PostUploadModalProps {
   visible: boolean;
@@ -220,6 +220,8 @@ const PostUploadModal = ({
       setUploading(false);
     }
   };
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <Modal
@@ -303,76 +305,76 @@ const PostUploadModal = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   title: {
-    fontSize: theme.fontSize.lg,
+    fontSize: t.fontSize.lg,
     fontWeight: "600",
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   doneButton: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.primary,
+    fontSize: t.fontSize.base,
+    color: t.colors.primary,
     fontWeight: "600",
   },
   doneButtonDisabled: {
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   content: {
     flex: 1,
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
   },
   mediaPreview: {
     position: "relative",
-    marginBottom: theme.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   previewImage: {
     width: "100%",
     aspectRatio: 1,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: t.borderRadius.md,
   },
   removeButton: {
     position: "absolute",
-    top: theme.spacing.sm,
-    right: theme.spacing.sm,
+    top: t.spacing.sm,
+    right: t.spacing.sm,
   },
   mediaOptions: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: theme.spacing.xl,
-    marginBottom: theme.spacing.lg,
+    paddingVertical: t.spacing.xl,
+    marginBottom: t.spacing.lg,
   },
   mediaOption: {
     alignItems: "center",
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
+    borderColor: t.colors.border,
+    borderRadius: t.borderRadius.md,
     width: "40%",
   },
   mediaOptionText: {
-    marginTop: theme.spacing.sm,
-    fontSize: theme.fontSize.base,
-    color: theme.colors.text,
+    marginTop: t.spacing.sm,
+    fontSize: t.fontSize.base,
+    color: t.colors.text,
   },
   captionInput: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    fontSize: theme.fontSize.base,
+    borderColor: t.colors.border,
+    borderRadius: t.borderRadius.md,
+    padding: t.spacing.md,
+    fontSize: t.fontSize.base,
     minHeight: 100,
     textAlignVertical: "top",
   },

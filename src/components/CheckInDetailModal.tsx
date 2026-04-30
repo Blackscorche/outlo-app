@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getActivityTag } from './CheckInModal';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface CheckInDetailModalProps {
   visible: boolean;
@@ -77,6 +78,8 @@ const CheckInDetailModal: React.FC<CheckInDetailModalProps> = ({
   const isExpired = checkIn.expires_at
     ? new Date(checkIn.expires_at).getTime() < Date.now()
     : false;
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <Modal
@@ -209,7 +212,7 @@ const CheckInDetailModal: React.FC<CheckInDetailModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

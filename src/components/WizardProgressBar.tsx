@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { useTheme } from '../contexts/ThemeContext';
 interface WizardProgressBarProps {
   step: number; // 1-indexed
   total: number;
@@ -17,6 +18,8 @@ export default function WizardProgressBar({
   title,
 }: WizardProgressBarProps) {
   const pct = Math.min(100, Math.max(0, ((step - 0) / total) * 100));
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   return (
     <View style={styles.wrap}>
       <View style={styles.headerRow}>
@@ -32,7 +35,7 @@ export default function WizardProgressBar({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   wrap: {
     paddingHorizontal: 16,
     paddingTop: 8,

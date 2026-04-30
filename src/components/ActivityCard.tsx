@@ -7,11 +7,12 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { Activity } from '../hooks/useActivities';
 import { getActivityType, getActivityIcon } from '../constants/activityTypes';
+import { getCategoryDefaultImage } from '../constants/activityCategories';
 import PriceBadge from './PriceBadge';
 import BoostBadge from './BoostBadge';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ActivityCardProps {
   activity: Activity;
@@ -129,166 +130,182 @@ export default function ActivityCard({
   const remainingCount = actualParticipants - avatars.length;
 
   const typeColor = activityType?.color || '#4CAF50';
+  const heroSrc = activity.image_url
+    ? { uri: activity.image_url }
+    : getCategoryDefaultImage(activity.category);
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <TouchableOpacity style={[styles.container, activity.status === 'cancelled' && styles.pastContainer]} onPress={onPress} activeOpacity={0.8}>
-      {/* Header: Icon + Title + Spots */}
-      <View style={styles.headerRow}>
-        <View style={styles.headerLeft}>
-          <View style={[styles.typeIcon, { backgroundColor: typeColor + '18' }, activity.status === 'cancelled' && { backgroundColor: '#E0E0E0' }]}>
-            <Ionicons
-              name={activityType?.icon || 'calendar-outline'}
-              size={22}
-              color={activity.status === 'cancelled' ? '#999' : typeColor}
-            />
-          </View>
-          <View style={styles.headerInfo}>
-            <Text style={styles.title} numberOfLines={1}>{activity.title}</Text>
-            {(activity.is_paid || activity.is_boosted) && (
-              <View style={{ flexDirection: 'row', gap: 6, marginTop: 4, marginBottom: 2 }}>
-                {activity.is_boosted && <BoostBadge size="sm" />}
-                {activity.is_paid && (
-                  <PriceBadge
-                    isPaid
-                    priceCents={activity.ticket_price_cents}
-                    currency={activity.currency || 'EUR'}
-                    size="sm"
-                  />
-                )}
+      <Image source={heroSrc} style={styles.heroImg} />
+      <View style={styles.cardBody}>
+        {/* Header: Icon + Title + Spots */}
+        <View style={styles.headerRow}>
+          <View style={styles.headerLeft}>
+            <View style={[styles.typeIcon, { backgroundColor: typeColor + '18' }, activity.status === 'cancelled' && { backgroundColor: '#E0E0E0' }]}>
+              <Ionicons
+                name={activityType?.icon || 'calendar-outline'}
+                size={22}
+                color={activity.status === 'cancelled' ? '#999' : typeColor}
+              />
+            </View>
+            <View style={styles.headerInfo}>
+              <Text style={styles.title} numberOfLines={1}>{activity.title}</Text>
+              {(activity.is_paid || activity.is_boosted) && (
+                <View style={{ flexDirection: 'row', gap: 6, marginTop: 4, marginBottom: 2 }}>
+                  {activity.is_boosted && <BoostBadge size="sm" />}
+                  {activity.is_paid && (
+                    <PriceBadge
+                      isPaid
+                      priceCents={activity.ticket_price_cents}
+                      currency={activity.currency || 'EUR'}
+                      size="sm"
+                    />
+                  )}
+                </View>
+              )}
+              <View style={styles.locationRow}>
+                <Ionicons name="location" size={13} color={theme.colors.textSecondary} />
+                <Text style={styles.locationText} numberOfLines={1}>
+                  {distance !== undefined ? formatDistance(distance) : activity.location_name}
+                </Text>
               </View>
-            )}
-            <View style={styles.locationRow}>
-              <Ionicons name="location" size={13} color={theme.colors.textSecondary} />
-              <Text style={styles.locationText} numberOfLines={1}>
-                {distance !== undefined ? formatDistance(distance) : activity.location_name}
-              </Text>
             </View>
           </View>
-        </View>
-        {/* Status badges */}
-        {activity.status === 'completed' ? (
-          <View style={styles.completedBadge}>
-            <Text style={styles.completedBadgeText}>Completed</Text>
-          </View>
-        ) : activity.status === 'cancelled' ? (
-          <View style={styles.pastBadge}>
-            <Text style={styles.pastBadgeText}>Cancelled</Text>
-          </View>
-        ) : isPast ? (
-          <View style={styles.pastBadge}>
-            <Text style={styles.pastBadgeText}>Past</Text>
-          </View>
-        ) : isStarted ? (
-          <View style={styles.liveBadge}>
-            <Text style={styles.liveBadgeText}>Live</Text>
-          </View>
-        ) : !isFull ? (
-          <View style={styles.spotsBadge}>
-            <Text style={styles.spotsText}>{spotsLeft} spots left</Text>
-          </View>
-        ) : (
-          <View style={styles.fullBadge}>
-            <Text style={styles.fullBadgeText}>Full</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Description */}
-      {activity.description && (
-        <Text style={styles.description} numberOfLines={2}>
-          {activity.description}
-        </Text>
-      )}
-
-      {/* Info: Date + Participants count */}
-      <View style={styles.infoRow}>
-        <View style={styles.infoItem}>
-          <Ionicons name="calendar-outline" size={14} color={theme.colors.textSecondary} />
-          <Text style={styles.infoText}>{formatDate(activity.scheduled_at)}</Text>
-        </View>
-        <View style={styles.infoItem}>
-          <Ionicons name="people" size={14} color={theme.colors.textSecondary} />
-          <Text style={styles.infoText}>
-            {actualParticipants}/{activity.max_participants} joined
-          </Text>
-        </View>
-      </View>
-
-      {/* Participants Avatars */}
-      <View style={styles.participantsRow}>
-        <View style={styles.avatarStack}>
-          {avatars.map((uri, i) => (
-            <Image
-              key={i}
-              source={{ uri }}
-              style={[styles.avatar, { marginLeft: i > 0 ? -8 : 0, zIndex: avatars.length - i }]}
-            />
-          ))}
-          {remainingCount > 0 && (
-            <View style={[styles.avatarMore, { marginLeft: -8 }]}>
-              <Text style={styles.avatarMoreText}>+{remainingCount}</Text>
+          {/* Status badges */}
+          {activity.status === 'completed' ? (
+            <View style={styles.completedBadge}>
+              <Text style={styles.completedBadgeText}>Completed</Text>
+            </View>
+          ) : activity.status === 'cancelled' ? (
+            <View style={styles.pastBadge}>
+              <Text style={styles.pastBadgeText}>Cancelled</Text>
+            </View>
+          ) : isPast ? (
+            <View style={styles.pastBadge}>
+              <Text style={styles.pastBadgeText}>Past</Text>
+            </View>
+          ) : isStarted ? (
+            <View style={styles.liveBadge}>
+              <Text style={styles.liveBadgeText}>Live</Text>
+            </View>
+          ) : !isFull ? (
+            <View style={styles.spotsBadge}>
+              <Text style={styles.spotsText}>{spotsLeft} spots left</Text>
+            </View>
+          ) : (
+            <View style={styles.fullBadge}>
+              <Text style={styles.fullBadgeText}>Full</Text>
             </View>
           )}
         </View>
-        <Text style={styles.participantNames} numberOfLines={1}>{getParticipantNames()}</Text>
-      </View>
 
-      {/* Action Button */}
-      {activity.status === 'completed' ? (
-        <View style={styles.completedButton}>
-          <Text style={styles.completedButtonText}>Completed ✓</Text>
-        </View>
-      ) : activity.status === 'cancelled' ? (
-        <View style={styles.cancelledButton}>
-          <Text style={styles.cancelledButtonText}>Cancelled</Text>
-        </View>
-      ) : showJoinButton && !isCreator ? (
-        <TouchableOpacity
-          style={[
-            styles.joinButton,
-            isParticipant && styles.joinedButton,
-            isFull && !isParticipant && styles.disabledButton,
-          ]}
-          onPress={(e) => {
-            e.stopPropagation();
-            onJoin?.();
-          }}
-          disabled={isFull && !isParticipant}
-        >
-          <Text style={[
-            styles.joinButtonText,
-            isParticipant && styles.joinedButtonText,
-            isFull && !isParticipant && styles.disabledButtonText,
-          ]}>
-            {isParticipant
-              ? 'Joined ✓'
-              : isFull
-                ? (activity.is_paid ? 'Sold Out' : 'Full')
-                : activity.is_paid
-                  ? `Buy Ticket · €${((activity.ticket_price_cents ?? 0) / 100).toFixed(2)}`
-                  : 'Join Activity'}
+        {/* Description */}
+        {activity.description && (
+          <Text style={styles.description} numberOfLines={2}>
+            {activity.description}
           </Text>
-        </TouchableOpacity>
-      ) : isCreator ? (
-        <View style={styles.creatorButton}>
-          <Text style={styles.creatorButtonText}>Your Activity</Text>
+        )}
+
+        {/* Info: Date + Participants count */}
+        <View style={styles.infoRow}>
+          <View style={styles.infoItem}>
+            <Ionicons name="calendar-outline" size={14} color={theme.colors.textSecondary} />
+            <Text style={styles.infoText}>{formatDate(activity.scheduled_at)}</Text>
+          </View>
+          <View style={styles.infoItem}>
+            <Ionicons name="people" size={14} color={theme.colors.textSecondary} />
+            <Text style={styles.infoText}>
+              {actualParticipants}/{activity.max_participants} joined
+            </Text>
+          </View>
         </View>
-      ) : null}
+
+        {/* Participants Avatars */}
+        <View style={styles.participantsRow}>
+          <View style={styles.avatarStack}>
+            {avatars.map((uri, i) => (
+              <Image
+                key={i}
+                source={{ uri }}
+                style={[styles.avatar, { marginLeft: i > 0 ? -8 : 0, zIndex: avatars.length - i }]}
+              />
+            ))}
+            {remainingCount > 0 && (
+              <View style={[styles.avatarMore, { marginLeft: -8 }]}>
+                <Text style={styles.avatarMoreText}>+{remainingCount}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.participantNames} numberOfLines={1}>{getParticipantNames()}</Text>
+        </View>
+
+        {/* Action Button */}
+        {activity.status === 'completed' ? (
+          <View style={styles.completedButton}>
+            <Text style={styles.completedButtonText}>Completed ✓</Text>
+          </View>
+        ) : activity.status === 'cancelled' ? (
+          <View style={styles.cancelledButton}>
+            <Text style={styles.cancelledButtonText}>Cancelled</Text>
+          </View>
+        ) : showJoinButton && !isCreator ? (
+          <TouchableOpacity
+            style={[
+              styles.joinButton,
+              isParticipant && styles.joinedButton,
+              isFull && !isParticipant && styles.disabledButton,
+            ]}
+            onPress={(e) => {
+              e.stopPropagation();
+              onJoin?.();
+            }}
+            disabled={isFull && !isParticipant}
+          >
+            <Text style={[
+              styles.joinButtonText,
+              isParticipant && styles.joinedButtonText,
+              isFull && !isParticipant && styles.disabledButtonText,
+            ]}>
+              {isParticipant
+                ? 'Joined ✓'
+                : isFull
+                  ? (activity.is_paid ? 'Sold Out' : 'Full')
+                  : activity.is_paid
+                    ? `Buy Ticket · €${((activity.ticket_price_cents ?? 0) / 100).toFixed(2)}`
+                    : 'Join Activity'}
+            </Text>
+          </TouchableOpacity>
+        ) : isCreator ? (
+          <View style={styles.creatorButton}>
+            <Text style={styles.creatorButtonText}>Your Activity</Text>
+          </View>
+        ) : null}
+      </View>
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: t.colors.surface,
     borderRadius: 16,
-    padding: 16,
+    overflow: 'hidden',
     marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
+  },
+  heroImg: {
+    width: '100%',
+    height: 150,
+    backgroundColor: t.colors.inputBg,
+  },
+  cardBody: {
+    padding: 16,
   },
   pastContainer: {
     opacity: 0.6,
@@ -310,7 +327,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: t.colors.inputBg,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -320,7 +337,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: t.colors.text,
     marginBottom: 2,
   },
   locationRow: {
@@ -330,10 +347,10 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   spotsBadge: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: t.colors.inputBg,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
@@ -355,7 +372,7 @@ const styles = StyleSheet.create({
     color: '#E53935',
   },
   pastBadge: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: t.colors.inputBg,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
@@ -366,7 +383,7 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   completedBadge: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: t.colors.inputBg,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
@@ -377,7 +394,7 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
   },
   liveBadge: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: t.colors.inputBg,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
@@ -390,7 +407,7 @@ const styles = StyleSheet.create({
   // Description
   description: {
     fontSize: 14,
-    color: '#B3B3B3',
+    color: t.colors.textSecondary,
     lineHeight: 20,
     marginBottom: 12,
   },
@@ -407,7 +424,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   // Participants
   participantsRow: {
@@ -425,26 +442,26 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: '#1A1A1A',
+    borderColor: t.colors.surface,
   },
   avatarMore: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: t.colors.inputBg,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#1A1A1A',
+    borderColor: t.colors.surface,
   },
   avatarMoreText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: t.colors.text,
   },
   participantNames: {
     fontSize: 13,
-    color: '#B3B3B3',
+    color: t.colors.textSecondary,
     flex: 1,
   },
   // Buttons
@@ -455,12 +472,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   joinButtonText: {
-    color: '#FFFFFF',
+    color: t.colors.text,
     fontSize: 15,
     fontWeight: '700',
   },
   joinedButton: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: t.colors.inputBg,
     borderWidth: 1.5,
     borderColor: '#4CAF50',
   },
@@ -468,13 +485,13 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
   },
   disabledButton: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: t.colors.inputBg,
   },
   disabledButtonText: {
     color: '#999',
   },
   creatorButton: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: t.colors.inputBg,
     paddingVertical: 12,
     borderRadius: 24,
     alignItems: 'center',
@@ -487,7 +504,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   completedButton: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: t.colors.inputBg,
     paddingVertical: 12,
     borderRadius: 24,
     alignItems: 'center',

@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { useQuotaManager, QuotaDetails } from '../hooks/useQuotaManager';
 import { useNavigation } from '@react-navigation/native';
 
 export const QuotaOverview: React.FC = () => {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const [quotaDetails, setQuotaDetails] = useState<QuotaDetails | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   const { getQuotaDetails } = useQuotaManager();
   const navigation = useNavigation();
 
@@ -40,10 +42,10 @@ export const QuotaOverview: React.FC = () => {
       <View style={styles.header}>
         <Text style={styles.title}>Your Quotas</Text>
         <TouchableOpacity onPress={loadQuotaDetails} disabled={refreshing}>
-          <Ionicons 
-            name="refresh" 
-            size={20} 
-            color={refreshing ? theme.colors.textSecondary : theme.colors.primary} 
+          <Ionicons
+            name="refresh"
+            size={20}
+            color={refreshing ? theme.colors.textSecondary : theme.colors.primary}
           />
         </TouchableOpacity>
       </View>
@@ -58,7 +60,7 @@ export const QuotaOverview: React.FC = () => {
             <Text style={styles.quotaName}>Partner Requests</Text>
             <Text style={styles.quotaDetails}>
               {quotaDetails.connectionRequests.total} available
-              {quotaDetails.connectionRequests.purchased > 0 && 
+              {quotaDetails.connectionRequests.purchased > 0 &&
                 ` (${quotaDetails.connectionRequests.purchased} purchased)`
               }
             </Text>
@@ -77,7 +79,7 @@ export const QuotaOverview: React.FC = () => {
             <Text style={styles.quotaName}>First Impressions</Text>
             <Text style={styles.quotaDetails}>
               {quotaDetails.firstImpressions.total} available
-              {quotaDetails.firstImpressions.purchased > 0 && 
+              {quotaDetails.firstImpressions.purchased > 0 &&
                 ` (${quotaDetails.firstImpressions.purchased} purchased)`
               }
             </Text>
@@ -90,20 +92,20 @@ export const QuotaOverview: React.FC = () => {
         {/* Invisible Mode */}
         <TouchableOpacity style={styles.quotaItem} onPress={navigateToSubscription}>
           <View style={styles.quotaIcon}>
-            <Ionicons 
-              name="eye-off" 
-              size={20} 
-              color={quotaDetails.invisibleMode.active ? theme.colors.success : theme.colors.textSecondary} 
+            <Ionicons
+              name="eye-off"
+              size={20}
+              color={quotaDetails.invisibleMode.active ? theme.colors.success : theme.colors.textSecondary}
             />
           </View>
           <View style={styles.quotaInfo}>
             <Text style={styles.quotaName}>Invisible Mode</Text>
             <Text style={styles.quotaDetails}>
               {quotaDetails.invisibleMode.active ? (
-                quotaDetails.invisibleMode.source === 'premium' ? 
-                  'Active with Premium' : 
-                  `Active until ${quotaDetails.invisibleMode.expiresAt ? 
-                    new Date(quotaDetails.invisibleMode.expiresAt).toLocaleDateString() : 
+                quotaDetails.invisibleMode.source === 'premium' ?
+                  'Active with Premium' :
+                  `Active until ${quotaDetails.invisibleMode.expiresAt ?
+                    new Date(quotaDetails.invisibleMode.expiresAt).toLocaleDateString() :
                     'unknown'}`
               ) : 'Not active'}
             </Text>
@@ -126,9 +128,9 @@ export const QuotaOverview: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: t.colors.surface,
     borderRadius: 12,
     padding: 16,
     margin: 16,
@@ -142,11 +144,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   loadingText: {
     textAlign: 'center',
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     fontSize: 16,
     padding: 20,
   },
@@ -163,7 +165,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.primary + '10',
+    backgroundColor: t.colors.primary + '10',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -174,23 +176,23 @@ const styles = StyleSheet.create({
   quotaName: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginBottom: 2,
   },
   quotaDetails: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   quotaValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: t.colors.primary,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
     paddingVertical: 12,
     borderRadius: 8,
     gap: 8,

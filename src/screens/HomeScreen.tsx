@@ -23,7 +23,6 @@ import ActivityDetailModal from "../components/ActivityDetailModal";
 import { getActivityTag } from "../components/CheckInModal";
 import { getActivityType } from "../constants/activityTypes";
 import { useSettings } from "../contexts/SettingsContext";
-import { theme } from "../styles/theme";
 import { commonStyles } from "../styles/common";
 import { useSubscription } from "../hooks/useSubscription";
 import { useInAppNotifications } from "../hooks/useInAppNotifications";
@@ -33,6 +32,7 @@ import { getPlaceIcon } from "../constants/placeTypes";
 import PlaceDetailModal from "../components/PlaceDetailModal";
 import PlaceReviewModal from "../components/PlaceReviewModal";
 import AppLoading from "../components/AppLoading";
+import { useTheme } from '../contexts/ThemeContext';
 
 interface UserLocation {
   id: string;
@@ -183,6 +183,8 @@ const getMarkersWithOffsets = (
 };
 
 export default function HomeScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const {
     settings,
     updateLocationEnabled,
@@ -1901,10 +1903,10 @@ export default function HomeScreen({ navigation, route }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0A0A0A",
+    backgroundColor: t.colors.background,
   },
   mapContainer: {
     flex: 1,
@@ -1927,7 +1929,7 @@ const styles = StyleSheet.create({
   nearbyPill: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 24,
@@ -1938,7 +1940,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     gap: 8,
     borderWidth: 1,
-    borderColor: "#333333",
+    borderColor: t.colors.border,
   },
   nearbyDot: {
     width: 8,
@@ -1949,7 +1951,7 @@ const styles = StyleSheet.create({
   nearbyText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: t.colors.text,
   },
   checkInExpiryText: {
     fontSize: 10,
@@ -1962,7 +1964,7 @@ const styles = StyleSheet.create({
     right: 16,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: t.colors.text,
     borderRadius: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -1991,7 +1993,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: t.colors.text,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
@@ -2274,10 +2276,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: theme.spacing.xs,
-    paddingRight: theme.spacing.md,
+    paddingVertical: t.spacing.xs,
+    paddingRight: t.spacing.md,
     paddingLeft: 12,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -2285,7 +2287,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     zIndex: 1,
     borderBottomWidth: 1,
-    borderBottomColor: "#333333",
+    borderBottomColor: t.colors.border,
   },
   headerLogo: {
     width: 120,
@@ -2299,7 +2301,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 22,
     fontWeight: "bold",
-    color: "#FFFFFF",
+    color: t.colors.text,
     pointerEvents: "none",
   },
   headerActions: {
@@ -2311,7 +2313,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: t.colors.surface,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",

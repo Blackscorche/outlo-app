@@ -127,6 +127,20 @@ export const BOOST_PLANS: BoostPlan[] = [
 export const getBoostPlan = (id: string | null | undefined) =>
   BOOST_PLANS.find((p) => p.id === id);
 
+/** Ticket price tiers for paid activities (match Google Play product IDs). */
+export interface TicketPriceTier {
+  priceCents: number;
+  label: string;
+  productId: string;
+}
+
+export const TICKET_PRICE_TIERS: TicketPriceTier[] = [
+  { priceCents: 500, label: "€5", productId: "outlo_ticket_5" },
+  { priceCents: 1000, label: "€10", productId: "outlo_ticket_10" },
+  { priceCents: 2000, label: "€20", productId: "outlo_ticket_20" },
+  { priceCents: 5000, label: "€50", productId: "outlo_ticket_50" },
+];
+
 /** Platform commission applied to paid ticket sales (basis points). */
 export const PLATFORM_FEE_BPS = 1000; // 10%
 

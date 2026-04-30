@@ -15,17 +15,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
 import { useConnectionRequests } from '../hooks/useConnectionRequests';
 import { useBadgeCounts } from '../hooks/useBadgeCounts';
 import { supabase } from '../integrations/supabase/client';
 import AppLoading from '../components/AppLoading';
+import { useTheme } from '../contexts/ThemeContext';
 
 type SentStatusFilter = 'all' | 'pending' | 'accepted' | 'rejected';
 type SortOrder = 'default' | 'az' | 'za';
 
 const ConnectionRequestsScreen = ({ navigation }) => {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
+
   const [activeTab, setActiveTab] = useState('received');
   const [loading, setLoading] = useState(true);
   const [receivedRequestsWithProfiles, setReceivedRequestsWithProfiles] = useState([]);
@@ -700,19 +703,19 @@ const ConnectionRequestsScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.xs,
-    paddingRight: theme.spacing.md,
+    paddingVertical: t.spacing.xs,
+    paddingRight: t.spacing.md,
     paddingLeft: 12,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: t.colors.surface,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -720,7 +723,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     zIndex: 1,
     borderBottomWidth: 1,
-    borderBottomColor: '#333333',
+    borderBottomColor: t.colors.border,
   },
   headerTitle: {
     position: 'absolute',
@@ -729,7 +732,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: t.colors.text,
     pointerEvents: 'none',
   },
   headerLogo: {
@@ -746,7 +749,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: t.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -762,7 +765,7 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -789,41 +792,41 @@ const styles = StyleSheet.create({
   },
   tabs: {
     flexDirection: 'row',
-    paddingHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
+    paddingHorizontal: t.spacing.lg,
+    marginBottom: t.spacing.md,
+    backgroundColor: t.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   tab: {
     flex: 1,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: t.spacing.sm,
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: theme.colors.primary,
+    borderBottomColor: t.colors.primary,
   },
   tabText: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.base,
+    color: t.colors.textSecondary,
   },
   activeTabText: {
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontWeight: '600',
   },
   listContent: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing.lg,
+    paddingHorizontal: t.spacing.lg,
+    paddingTop: t.spacing.md,
+    paddingBottom: t.spacing.lg,
   },
   requestCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    paddingHorizontal: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.lg,
+    paddingHorizontal: t.spacing.md,
     paddingVertical: 12,
-    marginBottom: theme.spacing.sm,
+    marginBottom: t.spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -846,7 +849,7 @@ const styles = StyleSheet.create({
     borderRadius: 27,
   },
   avatarPlaceholder: {
-    backgroundColor: theme.colors.gray[200],
+    backgroundColor: t.colors.gray[200],
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -859,7 +862,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: '#4CAF50',
     borderWidth: 2,
-    borderColor: theme.colors.surface,
+    borderColor: t.colors.surface,
   },
   requestInfo: {
     flex: 1,
@@ -868,26 +871,26 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginBottom: 3,
   },
   userSubText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   userBio: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xs,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
+    marginBottom: t.spacing.xs,
   },
   mutualInterests: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   mutualText: {
-    fontSize: theme.fontSize.xs,
-    color: theme.colors.primary,
-    marginLeft: theme.spacing.xs,
+    fontSize: t.fontSize.xs,
+    color: t.colors.primary,
+    marginLeft: t.spacing.xs,
   },
   sentTimeRow: {
     flexDirection: 'row',
@@ -897,15 +900,15 @@ const styles = StyleSheet.create({
   },
   sentTimeText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   sentCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    paddingHorizontal: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.lg,
+    paddingHorizontal: t.spacing.md,
     paddingVertical: 12,
     paddingTop: 20,
-    marginBottom: theme.spacing.sm,
+    marginBottom: t.spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -916,7 +919,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -10,
     right: -10,
-    backgroundColor: theme.colors.warning,
+    backgroundColor: t.colors.warning,
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 10,
@@ -926,7 +929,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -10,
     right: -10,
-    backgroundColor: theme.colors.success,
+    backgroundColor: t.colors.success,
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 10,
@@ -936,7 +939,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -10,
     right: -10,
-    backgroundColor: theme.colors.error,
+    backgroundColor: t.colors.error,
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 10,
@@ -960,7 +963,7 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   interestsRow: {
     flexDirection: 'row',
@@ -970,7 +973,7 @@ const styles = StyleSheet.create({
   },
   interestsText: {
     fontSize: 13,
-    color: theme.colors.primary,
+    color: t.colors.primary,
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -979,16 +982,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   statusBadgePending: {
-    borderColor: theme.colors.warning,
-    backgroundColor: theme.colors.warning + '15',
+    borderColor: t.colors.warning,
+    backgroundColor: t.colors.warning + '15',
   },
   statusBadgeAccepted: {
-    borderColor: theme.colors.success,
-    backgroundColor: theme.colors.success + '15',
+    borderColor: t.colors.success,
+    backgroundColor: t.colors.success + '15',
   },
   statusBadgeRejected: {
-    borderColor: theme.colors.error,
-    backgroundColor: theme.colors.error + '15',
+    borderColor: t.colors.error,
+    backgroundColor: t.colors.error + '15',
   },
   statusBadgeText: {
     fontSize: 12,
@@ -1015,40 +1018,40 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
   },
   chatButton: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + '10',
+    borderColor: t.colors.primary,
+    backgroundColor: t.colors.primary + '10',
   },
   statusContainer: {
-    marginTop: theme.spacing.xs,
+    marginTop: t.spacing.xs,
   },
   statusText: {
-    fontSize: theme.fontSize.xs,
+    fontSize: t.fontSize.xs,
     fontWeight: '500',
   },
   pendingStatus: {
-    color: theme.colors.warning,
+    color: t.colors.warning,
   },
   acceptedStatus: {
-    color: theme.colors.success,
+    color: t.colors.success,
   },
   rejectedStatus: {
-    color: theme.colors.error,
+    color: t.colors.error,
   },
   emptyText: {
-    marginTop: theme.spacing.md,
-    fontSize: theme.fontSize.lg,
-    color: theme.colors.textSecondary,
+    marginTop: t.spacing.md,
+    fontSize: t.fontSize.lg,
+    color: t.colors.textSecondary,
   },
   firstImpressionContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginTop: theme.spacing.xs,
-    gap: theme.spacing.xs,
+    marginTop: t.spacing.xs,
+    gap: t.spacing.xs,
   },
   firstImpressionText: {
     flex: 1,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.primary,
+    fontSize: t.fontSize.sm,
+    color: t.colors.primary,
     fontStyle: 'italic',
     lineHeight: 18,
   },
@@ -1059,88 +1062,88 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   filterModal: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: t.colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl * 2,
+    padding: t.spacing.lg,
+    paddingBottom: t.spacing.xl * 2,
   },
   filterModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   filterModalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   filterSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    color: t.colors.text,
+    marginBottom: t.spacing.sm,
   },
   filterOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.md,
+    gap: t.spacing.sm,
+    marginBottom: t.spacing.md,
   },
   filterOption: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    borderColor: t.colors.border,
+    backgroundColor: t.colors.background,
   },
   filterOptionActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + '15',
+    borderColor: t.colors.primary,
+    backgroundColor: t.colors.primary + '15',
   },
   filterOptionText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   filterOptionTextActive: {
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontWeight: '600',
   },
   noFilterContainer: {
     alignItems: 'center',
-    paddingVertical: theme.spacing.xl,
-    gap: theme.spacing.md,
+    paddingVertical: t.spacing.xl,
+    gap: t.spacing.md,
   },
   noFilterText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     textAlign: 'center',
   },
   filterModalActions: {
     flexDirection: 'row',
-    gap: theme.spacing.md,
-    marginTop: theme.spacing.md,
+    gap: t.spacing.md,
+    marginTop: t.spacing.md,
   },
   resetButton: {
     flex: 1,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.lg,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
   },
   resetButtonText: {
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     fontSize: 16,
     fontWeight: '600',
   },
   applyButton: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: t.colors.primary,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.lg,
     alignItems: 'center',
   },
   applyButtonText: {

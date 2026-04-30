@@ -9,8 +9,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
-
+import { useTheme } from '../contexts/ThemeContext';
 const { width: screenWidth } = Dimensions.get('window');
 
 export interface ToastNotificationData {
@@ -36,6 +35,8 @@ export default function ToastNotification({
   visible,
   onDismiss,
 }: ToastNotificationProps) {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const translateY = useRef(new Animated.Value(-100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -174,17 +175,17 @@ export default function ToastNotification({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     position: 'absolute',
     top: 50,
-    left: theme.spacing.md,
-    right: theme.spacing.md,
+    left: t.spacing.md,
+    right: t.spacing.md,
     zIndex: 9999,
   },
   notification: {
     backgroundColor: 'white',
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: t.borderRadius.lg,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -194,15 +195,15 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     borderLeftWidth: 4,
-    borderLeftColor: theme.colors.primary,
+    borderLeftColor: t.colors.primary,
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: theme.spacing.md,
+    padding: t.spacing.md,
   },
   iconContainer: {
-    marginRight: theme.spacing.md,
+    marginRight: t.spacing.md,
   },
   iconBackground: {
     width: 40,
@@ -216,24 +217,24 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: theme.colors.primary,
+    borderColor: t.colors.primary,
   },
   textContainer: {
     flex: 1,
   },
   title: {
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    color: t.colors.text,
+    marginBottom: t.spacing.xs,
   },
   message: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
     lineHeight: 18,
   },
   dismissButton: {
-    padding: theme.spacing.xs,
-    marginLeft: theme.spacing.sm,
+    padding: t.spacing.xs,
+    marginLeft: t.spacing.sm,
   },
 });

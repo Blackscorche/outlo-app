@@ -12,11 +12,11 @@ import {
   UIManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { useSkills, UserSkillWithDetails, UserSkillWantWithDetails } from '../hooks/useSkills';
 import { getSkillLevel, SkillLevelId } from '../constants/skillTypes';
 import { SkillBadgeDisplay, SkillLevelBadge } from './SkillBadgeDisplay';
 import SkillSelectionModal from './SkillSelectionModal';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -51,6 +51,9 @@ export default function SkillEditSection({
     addSkillWant,
     removeSkillWant,
   } = useSkills();
+
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   const [showTeachModal, setShowTeachModal] = useState(false);
   const [showLearnModal, setShowLearnModal] = useState(false);
@@ -523,19 +526,19 @@ export default function SkillEditSection({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
     width: '100%',
   },
   loadingContainer: {
-    padding: theme.spacing.md,
+    padding: t.spacing.md,
     alignItems: 'center',
     width: '100%',
   },
   section: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.md,
     overflow: 'hidden',
     width: '100%',
   },
@@ -543,7 +546,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: theme.spacing.md,
+    padding: t.spacing.md,
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -553,10 +556,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   countBadge: {
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: t.colors.primary + '20',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
@@ -565,7 +568,7 @@ const styles = StyleSheet.create({
   countText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: t.colors.primary,
   },
   learnCountBadge: {
     backgroundColor: '#2196F3' + '20',
@@ -581,11 +584,11 @@ const styles = StyleSheet.create({
   addButton: {
     padding: 6,
     borderRadius: 16,
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: t.colors.primary + '15',
   },
   sectionContent: {
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.md,
+    paddingHorizontal: t.spacing.md,
+    paddingBottom: t.spacing.md,
     width: '100%',
   },
   chipContainer: {
@@ -597,7 +600,7 @@ const styles = StyleSheet.create({
   skillChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary + '10',
+    backgroundColor: t.colors.primary + '10',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
@@ -609,7 +612,7 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.colors.primary,
+    color: t.colors.primary,
     maxWidth: 120,
   },
   learnChipText: {
@@ -627,18 +630,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: theme.spacing.sm,
+    padding: t.spacing.sm,
     gap: 8,
   },
   emptyText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   // Compact mode styles
   compactContainer: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.md,
+    padding: t.spacing.md,
     width: '100%',
   },
   compactRow: {
@@ -648,17 +651,17 @@ const styles = StyleSheet.create({
   },
   compactText: {
     fontSize: 13,
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   compactDivider: {
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     marginHorizontal: 4,
   },
   compactExpanded: {
-    marginTop: theme.spacing.md,
-    paddingTop: theme.spacing.sm,
+    marginTop: t.spacing.md,
+    paddingTop: t.spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: t.colors.border,
   },
   // Detail Modal styles
   modalOverlay: {
@@ -666,19 +669,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
   },
   detailModal: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.lg,
+    padding: t.spacing.lg,
     width: '100%',
     maxWidth: 340,
   },
   detailHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   detailIconContainer: {
     width: 56,
@@ -689,16 +692,16 @@ const styles = StyleSheet.create({
   },
   detailHeaderInfo: {
     flex: 1,
-    marginLeft: theme.spacing.md,
+    marginLeft: t.spacing.md,
   },
   detailSkillName: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   detailType: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     marginTop: 2,
   },
   detailCloseButton: {
@@ -708,35 +711,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: t.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   detailLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   detailDescriptionSection: {
-    marginTop: theme.spacing.md,
+    marginTop: t.spacing.md,
   },
   detailDescription: {
     fontSize: 14,
-    color: theme.colors.text,
-    marginTop: theme.spacing.sm,
+    color: t.colors.text,
+    marginTop: t.spacing.sm,
     lineHeight: 20,
   },
   detailRemoveButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
+    marginTop: t.spacing.lg,
+    paddingVertical: t.spacing.sm,
     gap: 8,
   },
   detailRemoveText: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.error,
+    color: t.colors.error,
   },
 });

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   View,
   Image,
@@ -30,6 +31,8 @@ const RINGS = [
 ];
 
 const AppLoading = ({ size = 'medium', style, overlay = false }: AppLoadingProps) => {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const dims = SIZES[size];
 
   const rotations = useRef(
@@ -112,7 +115,7 @@ const AppLoading = ({ size = 'medium', style, overlay = false }: AppLoadingProps
   return content;
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     justifyContent: 'center',
     alignItems: 'center',

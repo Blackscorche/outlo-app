@@ -16,10 +16,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
-import { theme } from '../styles/theme';
 import { Tables } from '../integrations/supabase/types';
 import { useSkillExchange } from '../hooks/useSkillExchange';
 import { SkillLevelBadge } from './SkillBadgeDisplay';
+import { useTheme } from '../contexts/ThemeContext';
 
 const DEFAULT_AVATAR = 'https://ui-avatars.com/api/?background=FF1744&color=fff&size=100';
 
@@ -191,6 +191,8 @@ export default function SkillExchangeProposalModal({
   };
 
   if (!receiver) return null;
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <Modal
@@ -437,151 +439,151 @@ export default function SkillExchangeProposalModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   closeButton: {
-    padding: theme.spacing.xs,
+    padding: t.spacing.xs,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   headerRight: {
     width: 32,
   },
   content: {
     flex: 1,
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
   },
   receiverCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.lg,
-    gap: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    padding: t.spacing.md,
+    borderRadius: t.borderRadius.md,
+    marginBottom: t.spacing.lg,
+    gap: t.spacing.md,
   },
   receiverAvatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
     borderWidth: 2,
-    borderColor: theme.colors.primary + '30',
+    borderColor: t.colors.primary + '30',
   },
   receiverName: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   proposingTo: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   section: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    color: t.colors.text,
+    marginBottom: t.spacing.sm,
   },
   skillOptions: {
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   skillOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: t.colors.surface,
+    padding: t.spacing.md,
+    borderRadius: t.borderRadius.md,
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
     gap: 10,
   },
   skillOptionSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + '10',
+    borderColor: t.colors.primary,
+    backgroundColor: t.colors.primary + '10',
   },
   skillOptionText: {
     flex: 1,
     fontSize: 15,
-    color: theme.colors.text,
+    color: t.colors.text,
     fontWeight: '500',
   },
   skillOptionTextSelected: {
-    color: theme.colors.primary,
+    color: t.colors.primary,
   },
   locationRow: {
     flexDirection: 'row',
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   locationInput: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.md,
+    padding: t.spacing.md,
     fontSize: 15,
-    color: theme.colors.text,
+    color: t.colors.text,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
   },
   locationButton: {
     width: 48,
     height: 48,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.primary + '15',
+    borderRadius: t.borderRadius.md,
+    backgroundColor: t.colors.primary + '15',
     justifyContent: 'center',
     alignItems: 'center',
   },
   dateTimeRow: {
     flexDirection: 'row',
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   dateTimeButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: t.colors.surface,
+    padding: t.spacing.md,
+    borderRadius: t.borderRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
     gap: 8,
   },
   dateTimeText: {
     fontSize: 15,
-    color: theme.colors.text,
+    color: t.colors.text,
     fontWeight: '500',
   },
   messageInput: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.md,
+    padding: t.spacing.md,
     fontSize: 15,
-    color: theme.colors.text,
+    color: t.colors.text,
     minHeight: 100,
     textAlignVertical: 'top',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
   },
   charCount: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     textAlign: 'right',
     marginTop: 4,
   },
@@ -589,11 +591,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
     padding: 16,
-    borderRadius: theme.borderRadius.md,
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.xl,
+    borderRadius: t.borderRadius.md,
+    marginTop: t.spacing.md,
+    marginBottom: t.spacing.xl,
     gap: 8,
   },
   submitButtonDisabled: {

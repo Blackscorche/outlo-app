@@ -13,10 +13,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { supabase } from '../integrations/supabase/client';
 import { useConnectionRequests } from '../hooks/useConnectionRequests';
 import ImageViewer from './ImageViewer';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface UserProfilePopupProps {
   visible: boolean;
@@ -44,11 +44,11 @@ interface UserProfilePopupProps {
   navigation?: any;
 }
 
-export default function UserProfilePopup({ 
-  visible, 
-  onClose, 
-  user, 
-  onConnect, 
+export default function UserProfilePopup({
+  visible,
+  onClose,
+  user,
+  onConnect,
   onChat,
   navigation
 }: UserProfilePopupProps) {
@@ -58,8 +58,10 @@ export default function UserProfilePopup({
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showImageViewer, setShowImageViewer] = useState(false);
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const { sendConnectionRequest, getConnectionStatus, sentRequests, receivedRequests, connections } = useConnectionRequests();
-  
+
   const connectionStatus = useMemo(() => {
     return getConnectionStatus(user.id);
   }, [getConnectionStatus, user.id]);
@@ -74,18 +76,18 @@ export default function UserProfilePopup({
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         if (currentUser) {
           setCurrentUserId(currentUser.id);
-          
+
           // Check if current user is blocked by the profile owner
           const { data: blockedMe } = await supabase
             .from('blocked_users')
             .select('*')
             .eq('blocker_id', user.id)
             .eq('blocked_id', currentUser.id);
-          
+
           // If the current user is blocked by this user, show alert and close popup
           if (blockedMe && blockedMe.length > 0) {
             Alert.alert(
-              'Profile Unavailable', 
+              'Profile Unavailable',
               'You have been blocked by this user and cannot view their profile.',
               [
                 {
@@ -161,7 +163,7 @@ export default function UserProfilePopup({
       Alert.alert('Not Connected', 'You need to be connected to chat with this user.');
       return;
     }
-    
+
     setLoading(true);
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
@@ -177,7 +179,7 @@ export default function UserProfilePopup({
         .single();
 
       let roomId;
-      
+
       if (existingRoom) {
         // Use existing room
         console.log('Using existing chat room:', existingRoom.id);
@@ -187,7 +189,7 @@ export default function UserProfilePopup({
         console.log('Creating new chat room between', currentUser.id, 'and', user.id);
         const user1 = currentUser.id < user.id ? currentUser.id : user.id;
         const user2 = currentUser.id < user.id ? user.id : currentUser.id;
-        
+
         const { data: newRoom, error } = await supabase
           .from('chat_rooms')
           .insert({
@@ -209,7 +211,7 @@ export default function UserProfilePopup({
               .select('*')
               .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${user.id}),and(user1_id.eq.${user.id},user2_id.eq.${currentUser.id})`)
               .single();
-            
+
             if (existingRoomRetry) {
               roomId = existingRoomRetry.id;
               console.log('Found existing room:', roomId);
@@ -230,7 +232,7 @@ export default function UserProfilePopup({
       // Close the modal and navigate to the chat room
       onClose();
       console.log('Navigating to ChatRoom with:', { roomId, otherUserId: user.id, otherUserName: user.name });
-      
+
       if (navigation) {
         navigation.navigate('ChatRoom', {
           roomId: roomId,
@@ -238,7 +240,7 @@ export default function UserProfilePopup({
           otherUserName: user.name,
         });
       }
-      
+
     } catch (error) {
       console.error('Error navigating to chat:', error);
       Alert.alert('Error', 'Failed to open chat');
@@ -400,7 +402,7 @@ export default function UserProfilePopup({
                 <Ionicons name="person" size={80} color="#ccc" />
               </View>
             )}
-            
+
             {user.photos && user.photos.length > 1 && (
               <>
                 <TouchableOpacity
@@ -408,25 +410,25 @@ export default function UserProfilePopup({
                   onPress={prevPhoto}
                   disabled={currentPhotoIndex === 0}
                 >
-                  <Ionicons 
-                    name="chevron-back" 
-                    size={24} 
-                    color={currentPhotoIndex === 0 ? theme.colors.gray[400] : 'white'} 
+                  <Ionicons
+                    name="chevron-back"
+                    size={24}
+                    color={currentPhotoIndex === 0 ? theme.colors.gray[400] : 'white'}
                   />
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={[styles.photoNav, styles.photoNavRight]}
                   onPress={nextPhoto}
                   disabled={!user.photos || currentPhotoIndex === user.photos.length - 1}
                 >
-                  <Ionicons 
-                    name="chevron-forward" 
-                    size={24} 
-                    color={user.photos && currentPhotoIndex === user.photos.length - 1 ? theme.colors.gray[400] : 'white'} 
+                  <Ionicons
+                    name="chevron-forward"
+                    size={24}
+                    color={user.photos && currentPhotoIndex === user.photos.length - 1 ? theme.colors.gray[400] : 'white'}
                   />
                 </TouchableOpacity>
-                
+
                 <View style={styles.photoIndicators}>
                   {user.photos && user.photos.map((_, index) => (
                     <View
@@ -445,11 +447,11 @@ export default function UserProfilePopup({
           {/* User Info */}
           <View style={styles.userInfo}>
             <Text style={styles.userName}>{user.name}, {user.age}</Text>
-            
+
             {user.bio && (
               <Text style={styles.userBio}>{user.bio}</Text>
             )}
-            
+
             {/* Interests */}
             {user.interests && user.interests.length > 0 && (
               <View style={styles.interestsContainer}>
@@ -463,7 +465,7 @@ export default function UserProfilePopup({
                 </View>
               </View>
             )}
-            
+
             {/* Check-in Info */}
             {user.checkInInfo && (
               <View style={styles.checkInSection}>
@@ -477,7 +479,7 @@ export default function UserProfilePopup({
                 </Text>
               </View>
             )}
-            
+
             {/* Posts Section */}
             {userPosts.length > 0 && (
               <View style={styles.postsSection}>
@@ -485,8 +487,8 @@ export default function UserProfilePopup({
                 <View style={styles.postsGrid}>
                   {userPosts.map((post) => (
                     <TouchableOpacity key={post.id} style={styles.postItem}>
-                      <Image 
-                        source={{ uri: post.media_url }} 
+                      <Image
+                        source={{ uri: post.media_url }}
                         style={styles.postImage}
                         resizeMode="cover"
                       />
@@ -507,8 +509,8 @@ export default function UserProfilePopup({
         <View style={styles.actionButtons}>
           {!isOwnProfile && (
             <TouchableOpacity
-              style={[styles.actionButton, styles.connectButton, 
-                (connectionLoading || connectionStatus === 'connected' || connectionStatus === 'request_sent') && styles.disabledButton]}
+              style={[styles.actionButton, styles.connectButton,
+              (connectionLoading || connectionStatus === 'connected' || connectionStatus === 'request_sent') && styles.disabledButton]}
               onPress={handleConnect}
               disabled={connectionLoading || loading || connectionStatus === 'connected' || connectionStatus === 'request_sent'}
             >
@@ -518,15 +520,15 @@ export default function UserProfilePopup({
                 <>
                   <Ionicons name="person-add" size={20} color="white" />
                   <Text style={styles.actionButtonText}>
-                    {connectionStatus === 'connected' ? 'Connected' : 
-                     connectionStatus === 'request_sent' ? 'Request Sent' : 
-                     connectionStatus === 'request_received' ? 'Respond' : 'Connect'}
+                    {connectionStatus === 'connected' ? 'Connected' :
+                      connectionStatus === 'request_sent' ? 'Request Sent' :
+                        connectionStatus === 'request_received' ? 'Respond' : 'Connect'}
                   </Text>
                 </>
               )}
             </TouchableOpacity>
           )}
-          
+
           {!isOwnProfile && user.current_latitude && user.current_longitude && user.is_online && user.is_visible !== false && (
             <TouchableOpacity
               style={[styles.actionButton, styles.mapButton]}
@@ -546,11 +548,11 @@ export default function UserProfilePopup({
               <Text style={styles.actionButtonText}>Show on Map</Text>
             </TouchableOpacity>
           )}
-          
+
           {!isOwnProfile && (
             <TouchableOpacity
-              style={[styles.actionButton, styles.chatButton, 
-                connectionLoading && styles.disabledButton]}
+              style={[styles.actionButton, styles.chatButton,
+              connectionLoading && styles.disabledButton]}
               onPress={handleChat}
               disabled={connectionLoading || loading}
             >
@@ -560,7 +562,7 @@ export default function UserProfilePopup({
           )}
         </View>
       </View>
-      
+
       {/* Image Viewer */}
       {user.photos && user.photos.length > 0 && (
         <ImageViewer
@@ -574,10 +576,10 @@ export default function UserProfilePopup({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -636,12 +638,12 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginBottom: 8,
   },
   userBio: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     lineHeight: 22,
     marginBottom: 16,
   },
@@ -651,7 +653,7 @@ const styles = StyleSheet.create({
   interestsTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginBottom: 12,
   },
   interestsList: {
@@ -660,13 +662,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   interestTag: {
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: t.colors.primary + '20',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   interestText: {
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontSize: 14,
   },
   actionButtons: {
@@ -675,7 +677,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     gap: 12,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: t.colors.border,
   },
   actionButton: {
     flex: 1,
@@ -687,10 +689,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   connectButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
   },
   chatButton: {
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: t.colors.secondary,
   },
   mapButton: {
     backgroundColor: '#4CAF50',
@@ -711,7 +713,7 @@ const styles = StyleSheet.create({
   postsTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginBottom: 12,
   },
   postsGrid: {
@@ -743,32 +745,32 @@ const styles = StyleSheet.create({
   checkInSection: {
     marginTop: 16,
     padding: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: t.colors.surface,
     borderRadius: 12,
     borderLeftWidth: 4,
-    borderLeftColor: theme.colors.primary,
+    borderLeftColor: t.colors.primary,
   },
   checkInTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginBottom: 8,
   },
   checkInLocation: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: t.colors.primary,
     marginBottom: 4,
   },
   checkInDescription: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     marginBottom: 8,
     lineHeight: 20,
   },
   checkInTime: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     fontStyle: 'italic',
   },
   zoomIconContainer: {

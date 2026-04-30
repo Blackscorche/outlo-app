@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { supabase } from '../integrations/supabase/client';
 import { showImagePickerOptions } from '../utils/imagePicker';
 import { useSettings } from '../contexts/SettingsContext';
@@ -23,6 +22,7 @@ import PostUploadModal from '../components/PostUploadModal';
 import CheckInModal, { CheckInSuccessData } from '../components/CheckInModal';
 import PlaceReviewModal from '../components/PlaceReviewModal';
 import { usePlaces, Place } from '../hooks/usePlaces';
+import { useTheme } from '../contexts/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const POST_SIZE = Math.floor((SCREEN_WIDTH - 32 - 4) / 3);
@@ -42,6 +42,8 @@ interface CheckIn {
 }
 
 const ProfileScreen = ({ navigation }) => {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const { settings } = useSettings();
   const { getPlaceById } = usePlaces();
   const [isEditing, setIsEditing] = useState(false);
@@ -727,7 +729,7 @@ const ProfileScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   // ── Header ──
   headerSection: {
     backgroundColor: HEADER_COLOR,

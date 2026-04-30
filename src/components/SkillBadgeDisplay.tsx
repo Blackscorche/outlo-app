@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import {
   getBadgeLevelById,
   getSkillLevel,
@@ -36,6 +36,8 @@ export function SkillBadgeDisplay({
   };
 
   const config = sizeConfig[size];
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <View style={styles.container}>
@@ -78,6 +80,8 @@ interface SkillLevelBadgeProps {
 }
 
 export function SkillLevelBadge({ level, size = 'medium' }: SkillLevelBadgeProps) {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const levelInfo = getSkillLevel(level);
   if (!levelInfo) return null;
 
@@ -100,7 +104,7 @@ export function SkillLevelBadge({ level, size = 'medium' }: SkillLevelBadgeProps
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     alignItems: 'flex-start',
   },
@@ -121,7 +125,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   ratingContainer: {
     flexDirection: 'row',

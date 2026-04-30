@@ -20,7 +20,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Rect } from 'react-native-svg';
 import { showImagePickerOptions } from '../utils/imagePicker';
-import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
 import { supabase } from '../integrations/supabase/client';
 import { useSettings } from '../contexts/SettingsContext';
@@ -33,6 +32,7 @@ import { useActivities, Activity } from '../hooks/useActivities';
 import { getActivityType, ACTIVITY_TYPES } from '../constants/activityTypes';
 import AppLoading from '../components/AppLoading';
 import SkillEditSection from '../components/SkillEditSection';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface TimelineItem {
   id: string;
@@ -63,9 +63,9 @@ interface TimelineItem {
 const DEFAULT_PROFILE_PHOTO = 'https://ui-avatars.com/api/?background=FF1744&color=fff&size=200&font-size=0.5';
 
 const { width } = Dimensions.get('window');
-const GRID_ITEM_SIZE = (width - theme.spacing.lg * 2 - theme.spacing.xs * 2) / 3;
-const HEADER_COLOR = '#FF3D6E';
-const HEADER_COLOR_END = '#E8197D';
+const GRID_ITEM_SIZE = (width - 24 * 2 - 4 * 2) / 3;
+const HEADER_COLOR = '#0A1A0A';
+const HEADER_COLOR_END = '#1B5E20';
 
 const INTERESTS_OPTIONS = [
   'Travel', 'Photography', 'Music', 'Sports', 'Art', 'Reading', 'Movies', 'Dancing',
@@ -76,6 +76,8 @@ const INTERESTS_OPTIONS = [
 ];
 
 const ProfileScreenV2 = ({ navigation, route }: any) => {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const { settings } = useSettings();
   const { getConnectionStatus } = useConnectionRequests();
   const {
@@ -685,7 +687,7 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
       </View>
 
       <ScrollView
-        style={{ flex: 1, backgroundColor: '#F3F4F6' }}
+        style={{ flex: 1, backgroundColor: '#0A0A0A' }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="white" />}
       >
@@ -1009,8 +1011,8 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
                       </TouchableOpacity>
                     )}
                     {showAllInterests && profile.interests.length > 5 && (
-                      <TouchableOpacity style={[styles.tagChip, { backgroundColor: '#E5E7EB' }]} onPress={() => setShowAllInterests(false)}>
-                        <Text style={[styles.tagText, { color: '#6B7280' }]}>Show less</Text>
+                      <TouchableOpacity style={[styles.tagChip, { backgroundColor: '#2A2A2A' }]} onPress={() => setShowAllInterests(false)}>
+                        <Text style={[styles.tagText, { color: '#B3B3B3' }]}>Show less</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -1172,7 +1174,7 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
               {profile?.photos?.[0] ? (
                 <Image source={{ uri: profile.photos[0] }} style={styles.avatarModalImage} />
               ) : (
-                <View style={[styles.avatarModalImage, { backgroundColor: '#E5E7EB', justifyContent: 'center', alignItems: 'center' }]}>
+                <View style={[styles.avatarModalImage, { backgroundColor: '#2A2A2A', justifyContent: 'center', alignItems: 'center' }]}>
                   <Ionicons name="person" size={48} color="#9CA3AF" />
                 </View>
               )}
@@ -1296,11 +1298,11 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   // ── Container ──
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
 
   // ── Nav header (same as ConnectionRequestsScreen) ──
@@ -1308,10 +1310,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.xs,
-    paddingRight: theme.spacing.md,
+    paddingVertical: t.spacing.xs,
+    paddingRight: t.spacing.md,
     paddingLeft: 12,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: t.colors.surface,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -1319,7 +1321,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     zIndex: 1,
     borderBottomWidth: 1,
-    borderBottomColor: '#333333',
+    borderBottomColor: t.colors.border,
   },
   headerLogo: {
     width: 120,
@@ -1333,7 +1335,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 24,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: t.colors.text,
     pointerEvents: 'none',
   },
   headerActions: {
@@ -1345,7 +1347,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: t.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -1401,7 +1403,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   avatarModalSheet: {
-    backgroundColor: 'white',
+    backgroundColor: t.colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 24,
@@ -1420,7 +1422,7 @@ const styles = StyleSheet.create({
   avatarModalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginBottom: 20,
   },
   avatarModalBtn: {
@@ -1430,14 +1432,14 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
     borderRadius: 12,
     marginBottom: 10,
   },
   avatarModalBtnText: {
     fontSize: 16,
     fontWeight: '500',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   avatarModalCancelBtn: {
     marginTop: 4,
@@ -1447,7 +1449,7 @@ const styles = StyleSheet.create({
   },
   avatarModalCancelText: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   profileInfoColumn: {
     flex: 1,
@@ -1482,7 +1484,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: t.colors.background,
   },
 
   // Stats card wrapper — pulls card up to overlap gradient
@@ -1493,10 +1495,12 @@ const styles = StyleSheet.create({
   },
   // Stats card
   statsCard: {
-    backgroundColor: 'white',
+    backgroundColor: t.colors.surface,
     borderRadius: 16,
     flexDirection: 'row',
     paddingVertical: 16,
+    borderWidth: 1,
+    borderColor: t.colors.border,
     marginBottom: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1511,7 +1515,7 @@ const styles = StyleSheet.create({
   statNum: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: t.colors.text,
   },
   statLbl: {
     fontSize: 11,
@@ -1521,7 +1525,7 @@ const styles = StyleSheet.create({
   },
   statSep: {
     width: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: t.colors.border,
     marginVertical: 4,
   },
 
@@ -1537,34 +1541,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: '#FF1744',
+    backgroundColor: '#4CAF50',
     borderRadius: 12,
     paddingVertical: 13,
-  },
-  checkInActionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    backgroundColor: '#10B981',
-    borderRadius: 12,
-    paddingVertical: 13,
-  },
-  saveBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    backgroundColor: '#FF1744',
-    borderRadius: 12,
-    paddingVertical: 13,
-  },
-  actionBtnText: {
-    color: 'white',
-    fontSize: 15,
-    fontWeight: '600',
   },
 
   // Section
@@ -1580,24 +1559,26 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: t.colors.text,
   },
   addLink: {
     fontSize: 14,
-    color: '#FF1744',
+    color: '#4CAF50',
     fontWeight: '600',
   },
   viewAllLink: {
     fontSize: 14,
-    color: '#FF1744',
+    color: '#4CAF50',
     fontWeight: '600',
   },
 
-  // White card
+  // Card
   card: {
-    backgroundColor: 'white',
+    backgroundColor: t.colors.surface,
     borderRadius: 12,
     padding: 14,
+    borderWidth: 1,
+    borderColor: t.colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -1610,7 +1591,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: 'rgba(76, 175, 80, 0.12)',
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -1619,30 +1600,39 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: '#10B981',
+    backgroundColor: '#4CAF50',
   },
   liveText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#059669',
+    color: '#4CAF50',
   },
   checkInActiveRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   checkInActiveIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#D1FAE5',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(76, 175, 80, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  checkInActiveName: {
-    fontSize: 15,
+  checkInIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(76, 175, 80, 0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  checkInSimpleLocation: {
+    fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: t.colors.text,
   },
   checkInActiveSub: {
     fontSize: 13,
@@ -1650,7 +1640,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   endBtn: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#2A1515',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -1664,7 +1654,7 @@ const styles = StyleSheet.create({
   // About Me
   bioText: {
     fontSize: 14,
-    color: '#374151',
+    color: t.colors.text,
     lineHeight: 22,
   },
   bioPlaceholder: {
@@ -1675,11 +1665,11 @@ const styles = StyleSheet.create({
   },
   bioEditInput: {
     fontSize: 14,
-    color: '#374151',
+    color: t.colors.text,
     textAlignVertical: 'top',
     minHeight: 70,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: t.colors.border,
     borderRadius: 8,
     padding: 10,
     marginBottom: 10,
@@ -1697,12 +1687,13 @@ const styles = StyleSheet.create({
   editFieldInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: t.colors.border,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
     fontSize: 14,
-    color: '#1F2937',
+    color: t.colors.text,
+    backgroundColor: t.colors.inputBg,
   },
   tagsRow: {
     flexDirection: 'row',
@@ -1711,14 +1702,16 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   tagChip: {
-    backgroundColor: '#FFF1F2',
+    backgroundColor: 'rgba(76, 175, 80, 0.12)',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 0.25)',
   },
   tagText: {
     fontSize: 13,
-    color: '#FF1744',
+    color: '#4CAF50',
     fontWeight: '500',
   },
   interestsEditContainer: {
@@ -1727,7 +1720,7 @@ const styles = StyleSheet.create({
   interestsEditTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: t.colors.textSecondary,
     marginBottom: 8,
   },
   interestsEditGrid: {
@@ -1736,20 +1729,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   interestEditChip: {
-    backgroundColor: 'white',
+    backgroundColor: t.colors.inputBg,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: t.colors.border,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   interestEditChipSelected: {
-    backgroundColor: '#FF1744',
-    borderColor: '#FF1744',
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
   },
   interestEditText: {
     fontSize: 12,
-    color: '#374151',
+    color: t.colors.textSecondary,
     fontWeight: '500',
   },
   interestEditTextSelected: {
@@ -1804,7 +1797,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   activityCard: {
-    backgroundColor: 'white',
+    backgroundColor: t.colors.surface,
+    borderWidth: 1,
+    borderColor: t.colors.border,
     borderRadius: 12,
     padding: 12,
     flexDirection: 'row',
@@ -1819,7 +1814,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFF1F2',
+    backgroundColor: 'rgba(76, 175, 80, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -1830,7 +1825,7 @@ const styles = StyleSheet.create({
   activityTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: t.colors.text,
   },
   activityMeta: {
     flexDirection: 'row',
@@ -1855,7 +1850,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   liveBadgeSmall: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: '#1A2E1A',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -1867,7 +1862,7 @@ const styles = StyleSheet.create({
     color: '#059669',
   },
   pastBadge: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: t.colors.inputBg,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -1895,7 +1890,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   checkInSimpleCard: {
-    backgroundColor: 'white',
+    backgroundColor: t.colors.surface,
+    borderWidth: 1,
+    borderColor: t.colors.border,
     borderRadius: 12,
     padding: 12,
     flexDirection: 'row',
@@ -1949,7 +1946,9 @@ const styles = StyleSheet.create({
 
   // Empty state
   emptyCard: {
-    backgroundColor: 'white',
+    backgroundColor: t.colors.surface,
+    borderWidth: 1,
+    borderColor: t.colors.border,
     borderRadius: 12,
     padding: 28,
     alignItems: 'center',
@@ -1961,7 +1960,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   emptyCardBtn: {
-    backgroundColor: '#FF1744',
+    backgroundColor: '#4CAF50',
     paddingHorizontal: 20,
     paddingVertical: 9,
     borderRadius: 8,

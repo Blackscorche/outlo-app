@@ -10,9 +10,10 @@ import {
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 import engagementNotificationService from '../services/engagementNotificationService';
-import { theme } from '../styles/theme';
-
+import { useTheme } from '../contexts/ThemeContext';
 export default function EngagementNotificationSettings() {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const [settings, setSettings] = useState({
     enabled: true,
     minInterval: 3,
@@ -176,29 +177,29 @@ export default function EngagementNotificationSettings() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    marginBottom: t.spacing.sm,
   },
   title: {
-    fontSize: theme.fontSize.xl,
+    fontSize: t.fontSize.xl,
     fontWeight: 'bold',
-    color: theme.colors.text,
-    marginLeft: theme.spacing.sm,
+    color: t.colors.text,
+    marginLeft: t.spacing.sm,
   },
   description: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xl,
+    fontSize: t.fontSize.base,
+    color: t.colors.textSecondary,
+    marginBottom: t.spacing.xl,
     lineHeight: 22,
   },
   setting: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: t.spacing.xl,
   },
   settingRow: {
     flexDirection: 'row',
@@ -206,34 +207,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   settingLabel: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.text,
+    fontSize: t.fontSize.base,
+    color: t.colors.text,
     fontWeight: '500',
-    marginBottom: theme.spacing.sm,
+    marginBottom: t.spacing.sm,
   },
   slider: {
     width: '100%',
     height: 40,
   },
   helperText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.xs,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
+    marginTop: t.spacing.xs,
   },
   testButton: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: t.colors.primary,
+    paddingVertical: t.spacing.md,
+    paddingHorizontal: t.spacing.lg,
+    borderRadius: t.borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: theme.spacing.lg,
+    marginTop: t.spacing.lg,
   },
   testButtonText: {
     color: 'white',
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
-    marginLeft: theme.spacing.sm,
+    marginLeft: t.spacing.sm,
   },
 });

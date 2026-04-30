@@ -9,11 +9,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
 import AppLoading from '../components/AppLoading';
+import { useTheme } from '../contexts/ThemeContext';
 
 const ChatRoomsScreen = ({ navigation }) => {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const [chatRooms, setChatRooms] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -121,19 +123,19 @@ const ChatRoomsScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.xs,
-    paddingRight: theme.spacing.md,
+    paddingVertical: t.spacing.xs,
+    paddingRight: t.spacing.md,
     paddingLeft: 12,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: t.colors.surface,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -141,7 +143,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     zIndex: 1,
     borderBottomWidth: 1,
-    borderBottomColor: '#333333',
+    borderBottomColor: t.colors.border,
   },
   headerTitle: {
     position: 'absolute',
@@ -150,7 +152,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: t.colors.text,
     pointerEvents: 'none',
   },
   headerLogo: {
@@ -159,14 +161,14 @@ const styles = StyleSheet.create({
     marginLeft: 0,
   },
   listContent: {
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: t.spacing.lg,
   },
   chatRoomItem: {
     flexDirection: 'row',
-    paddingVertical: theme.spacing.md,
+    paddingVertical: t.spacing.md,
   },
   avatarContainer: {
-    marginRight: theme.spacing.md,
+    marginRight: t.spacing.md,
   },
   avatar: {
     width: 56,
@@ -174,7 +176,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
   },
   avatarPlaceholder: {
-    backgroundColor: theme.colors.gray[200],
+    backgroundColor: t.colors.gray[200],
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -186,16 +188,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.xs,
+    marginBottom: t.spacing.xs,
   },
   userName: {
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   timestamp: {
-    fontSize: theme.fontSize.xs,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.xs,
+    color: t.colors.textSecondary,
   },
   messageRow: {
     flexDirection: 'row',
@@ -204,36 +206,36 @@ const styles = StyleSheet.create({
   },
   lastMessage: {
     flex: 1,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginRight: theme.spacing.sm,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
+    marginRight: t.spacing.sm,
   },
   unreadBadge: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
     minWidth: 20,
     height: 20,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.xs,
+    paddingHorizontal: t.spacing.xs,
   },
   unreadCount: {
-    color: '#FFFFFF',
-    fontSize: theme.fontSize.xs,
+    color: t.colors.text,
+    fontSize: t.fontSize.xs,
     fontWeight: '600',
   },
   emptyText: {
-    marginTop: theme.spacing.md,
-    fontSize: theme.fontSize.lg,
+    marginTop: t.spacing.md,
+    fontSize: t.fontSize.lg,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   emptySubtext: {
-    marginTop: theme.spacing.xs,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
+    marginTop: t.spacing.xs,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
     textAlign: 'center',
-    paddingHorizontal: theme.spacing.xl,
+    paddingHorizontal: t.spacing.xl,
   },
 });
 

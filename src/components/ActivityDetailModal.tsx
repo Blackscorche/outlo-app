@@ -16,9 +16,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { theme } from '../styles/theme';
 import { Activity, ActivityComment } from '../hooks/useActivities';
 import { getActivityType } from '../constants/activityTypes';
+import { getCategoryDefaultImage } from '../constants/activityCategories';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ActivityDetailModalProps {
   visible: boolean;
@@ -49,7 +50,9 @@ export default function ActivityDetailModal({
   addComment,
   deleteComment,
 }: ActivityDetailModalProps) {
+  const { theme } = useTheme();
   const navigation = useNavigation<any>();
+  const styles = makeStyles(theme);
   const [comments, setComments] = useState<ActivityComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [newComment, setNewComment] = useState('');
@@ -250,6 +253,10 @@ export default function ActivityDetailModal({
           <View style={{ width: 40 }} />
         </View>
 
+        <Image
+          source={activity.image_url ? { uri: activity.image_url } : getCategoryDefaultImage(activity.category)}
+          style={styles.heroImg}
+        />
         <ScrollView ref={scrollViewRef} style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Activity Type Badge */}
           <View style={[styles.typeBadge, { backgroundColor: (activityType?.color || theme.colors.primary) + '18' }]}>
@@ -511,6 +518,26 @@ export default function ActivityDetailModal({
                   <Text style={{ color: '#fff', fontWeight: '800' }}>Promote on Map</Text>
                 </TouchableOpacity>
               )}
+              {activity.is_paid && (
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    backgroundColor: '#166834',
+                    paddingVertical: 14,
+                    borderRadius: 12,
+                  }}
+                  onPress={() => {
+                    onClose();
+                    (navigation as any)?.navigate?.('CreatorWallet');
+                  }}
+                >
+                  <Ionicons name="wallet" size={20} color="#4CAF50" />
+                  <Text style={{ color: '#4CAF50', fontWeight: '800' }}>My Earnings</Text>
+                </TouchableOpacity>
+              )}
               <View style={styles.creatorActions}>
                 <TouchableOpacity style={styles.completeButton} onPress={handleComplete}>
                   <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
@@ -572,20 +599,20 @@ export default function ActivityDetailModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderBottomColor: t.colors.border,
+    backgroundColor: t.colors.surface,
   },
   closeButton: {
     width: 40,
@@ -600,47 +627,52 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
+  },
+  heroImg: {
+    width: '100%',
+    height: 200,
+    backgroundColor: t.colors.surface,
   },
   content: {
     flex: 1,
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
   },
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: t.colors.primary + '15',
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 16,
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
     gap: 6,
   },
   typeText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: t.colors.primary,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    color: t.colors.text,
+    marginBottom: t.spacing.sm,
   },
   timeUntilBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: theme.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   timeUntilText: {
     fontSize: 14,
-    color: theme.colors.info,
+    color: t.colors.info,
     fontWeight: '500',
   },
   section: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -650,21 +682,21 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    color: t.colors.text,
+    marginBottom: t.spacing.sm,
   },
   description: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     lineHeight: 22,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    gap: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    padding: t.spacing.md,
+    borderRadius: t.borderRadius.md,
+    gap: t.spacing.md,
   },
   infoContent: {
     flex: 1,
@@ -672,20 +704,20 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   infoSubtext: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     marginTop: 2,
   },
   creatorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    gap: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    padding: t.spacing.md,
+    borderRadius: t.borderRadius.md,
+    gap: t.spacing.md,
   },
   creatorAvatar: {
     width: 48,
@@ -698,23 +730,23 @@ const styles = StyleSheet.create({
   creatorName: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   creatorSubtext: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     marginTop: 2,
   },
   participantsList: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.sm,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.md,
+    padding: t.spacing.sm,
   },
   participantItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: theme.spacing.sm,
-    gap: theme.spacing.sm,
+    padding: t.spacing.sm,
+    gap: t.spacing.sm,
   },
   participantAvatar: {
     width: 40,
@@ -725,10 +757,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   creatorLabel: {
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: t.colors.primary + '20',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -736,62 +768,62 @@ const styles = StyleSheet.create({
   creatorLabelText: {
     fontSize: 11,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: t.colors.primary,
   },
   spotAvailable: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: theme.spacing.sm,
-    gap: theme.spacing.sm,
+    padding: t.spacing.sm,
+    gap: t.spacing.sm,
   },
   spotAvailableIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.gray[100],
+    backgroundColor: t.colors.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: theme.colors.gray[200],
+    borderColor: t.colors.gray[200],
     borderStyle: 'dashed',
   },
   spotAvailableText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   commentInputWrapper: {
     position: 'absolute',
     bottom: 100,
     left: 0,
     right: 0,
-    padding: theme.spacing.md,
-    paddingBottom: theme.spacing.sm,
-    backgroundColor: theme.colors.surface,
+    padding: t.spacing.md,
+    paddingBottom: t.spacing.sm,
+    backgroundColor: t.colors.surface,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: t.colors.border,
   },
   actionContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: theme.spacing.md,
-    paddingBottom: theme.spacing.lg,
-    backgroundColor: theme.colors.surface,
+    padding: t.spacing.md,
+    paddingBottom: t.spacing.lg,
+    backgroundColor: t.colors.surface,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: t.colors.border,
   },
   joinButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    gap: theme.spacing.sm,
+    backgroundColor: t.colors.primary,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.lg,
+    gap: t.spacing.sm,
   },
   joinButtonDisabled: {
-    backgroundColor: theme.colors.gray[300],
+    backgroundColor: t.colors.gray[300],
   },
   joinButtonText: {
     fontSize: 16,
@@ -802,21 +834,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.error + '15',
+    backgroundColor: t.colors.error + '15',
     borderWidth: 1,
-    borderColor: theme.colors.error,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    gap: theme.spacing.sm,
+    borderColor: t.colors.error,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.lg,
+    gap: t.spacing.sm,
   },
   leaveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.error,
+    color: t.colors.error,
   },
   creatorActions: {
     flexDirection: 'row',
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   completeButton: {
     flex: 1,
@@ -826,9 +858,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8F5E9',
     borderWidth: 1,
     borderColor: '#4CAF50',
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    gap: theme.spacing.sm,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.lg,
+    gap: t.spacing.sm,
   },
   completeButtonText: {
     fontSize: 16,
@@ -840,26 +872,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.error + '15',
+    backgroundColor: t.colors.error + '15',
     borderWidth: 1,
-    borderColor: theme.colors.error,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    gap: theme.spacing.sm,
+    borderColor: t.colors.error,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.lg,
+    gap: t.spacing.sm,
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.error,
+    color: t.colors.error,
   },
   completedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#E8F5E9',
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    gap: theme.spacing.sm,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.lg,
+    gap: t.spacing.sm,
   },
   completedBannerText: {
     fontSize: 16,
@@ -870,48 +902,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.error + '15',
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    gap: theme.spacing.sm,
+    backgroundColor: t.colors.error + '15',
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.lg,
+    gap: t.spacing.sm,
   },
   cancelledBannerText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.error,
+    color: t.colors.error,
   },
   // Comments styles
   commentsList: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.sm,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.md,
+    padding: t.spacing.sm,
     minHeight: 80,
   },
   commentsLoading: {
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   noComments: {
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   noCommentsText: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.sm,
+    color: t.colors.textSecondary,
+    marginTop: t.spacing.sm,
   },
   noCommentsSubtext: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     marginTop: 4,
   },
   commentItem: {
     flexDirection: 'row',
-    padding: theme.spacing.sm,
-    gap: theme.spacing.sm,
+    padding: t.spacing.sm,
+    gap: t.spacing.sm,
   },
   commentAvatar: {
     width: 32,
@@ -924,48 +956,48 @@ const styles = StyleSheet.create({
   commentHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
     marginBottom: 2,
   },
   commentAuthor: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   commentTime: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   commentText: {
     fontSize: 14,
-    color: theme.colors.text,
+    color: t.colors.text,
     lineHeight: 20,
   },
   deleteCommentButton: {
-    padding: theme.spacing.sm,
+    padding: t.spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
   commentInputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginTop: theme.spacing.sm,
-    gap: theme.spacing.sm,
+    marginTop: t.spacing.sm,
+    gap: t.spacing.sm,
   },
   commentInput: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.lg,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    borderColor: t.colors.border,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
     fontSize: 14,
-    color: theme.colors.text,
+    color: t.colors.text,
     maxHeight: 100,
   },
   sendCommentButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -973,6 +1005,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sendCommentButtonDisabled: {
-    backgroundColor: theme.colors.gray[300],
+    backgroundColor: t.colors.gray[300],
   },
 });

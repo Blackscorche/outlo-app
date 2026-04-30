@@ -10,9 +10,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import subscriptionService from '../services/subscriptionService';
 import { supabase } from '../integrations/supabase/client';
+import { useTheme } from '../contexts/ThemeContext';
+import { theme } from '../styles/theme';
 
 interface FirstImpressionModalProps {
   visible: boolean;
@@ -120,6 +121,8 @@ export const FirstImpressionModal: React.FC<FirstImpressionModalProps> = ({
       setLoading(false);
     }
   };
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <Modal
@@ -185,80 +188,80 @@ export const FirstImpressionModal: React.FC<FirstImpressionModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   title: {
-    fontSize: theme.fontSize.lg,
+    fontSize: t.fontSize.lg,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   content: {
     flex: 1,
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
   },
   subtitle: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xl,
+    fontSize: t.fontSize.base,
+    color: t.colors.textSecondary,
+    marginBottom: t.spacing.xl,
     textAlign: 'center',
   },
   warningBox: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.warning + '20',
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.lg,
+    backgroundColor: t.colors.warning + '20',
+    padding: t.spacing.md,
+    borderRadius: t.borderRadius.md,
+    marginBottom: t.spacing.lg,
     alignItems: 'center',
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   warningText: {
     flex: 1,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.warning,
+    fontSize: t.fontSize.sm,
+    color: t.colors.warning,
   },
   messageInput: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    fontSize: theme.fontSize.base,
-    color: theme.colors.text,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.lg,
+    padding: t.spacing.md,
+    fontSize: t.fontSize.base,
+    color: t.colors.text,
     minHeight: 150,
     textAlignVertical: 'top',
   },
   charCount: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
     textAlign: 'right',
-    marginTop: theme.spacing.xs,
-    marginBottom: theme.spacing.lg,
+    marginTop: t.spacing.xs,
+    marginBottom: t.spacing.lg,
   },
   sendButton: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: t.colors.primary,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   sendButtonDisabled: {
-    backgroundColor: theme.colors.gray[400],
+    backgroundColor: t.colors.gray[400],
   },
   sendButtonText: {
     color: 'white',
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
   },
 });

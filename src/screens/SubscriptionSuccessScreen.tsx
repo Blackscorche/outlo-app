@@ -7,14 +7,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
 import { supabase } from '../integrations/supabase/client';
 import subscriptionService from '../services/subscriptionService';
 import { useSubscription } from '../hooks/useSubscription';
 import AppLoading from '../components/AppLoading';
+import { useTheme } from '../contexts/ThemeContext';
 
 const SubscriptionSuccessScreen = ({ navigation, route }) => {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,47 +113,47 @@ const SubscriptionSuccessScreen = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   centerContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.xl,
+    paddingHorizontal: t.spacing.xl,
   },
   title: {
-    fontSize: theme.fontSize.xl,
+    fontSize: t.fontSize.xl,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
     textAlign: 'center',
-    marginTop: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
+    marginTop: t.spacing.lg,
+    marginBottom: t.spacing.md,
   },
   message: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.base,
+    color: t.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: theme.spacing.xl,
+    marginBottom: t.spacing.xl,
     lineHeight: 24,
   },
   loadingText: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.md,
+    fontSize: t.fontSize.base,
+    color: t.colors.textSecondary,
+    marginTop: t.spacing.md,
   },
   button: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.xl,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: t.colors.primary,
+    paddingHorizontal: t.spacing.xl,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.md,
     minWidth: 200,
   },
   buttonText: {
-    color: '#FFFFFF',
-    fontSize: theme.fontSize.base,
+    color: t.colors.text,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
     textAlign: 'center',
   },

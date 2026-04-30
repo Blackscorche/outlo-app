@@ -17,11 +17,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { theme } from '../styles/theme';
 import { supabase } from '../integrations/supabase/client';
 import { useBadgeCounts } from '../hooks/useBadgeCounts';
 import EmoticonPicker from '../components/EmoticonPicker';
 import AppLoading from '../components/AppLoading';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface Message {
   id: string;
@@ -42,6 +42,8 @@ interface OtherUserProfile {
 }
 
 const ChatRoomScreen = ({ route, navigation }) => {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const { roomId, otherUserId, otherUserName } = route.params;
   
   // Validate required parameters
@@ -1042,17 +1044,17 @@ const ChatRoomScreen = ({ route, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   messagesList: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
   },
   messageContainer: {
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
     alignItems: 'flex-start',
   },
   myMessageContainer: {
@@ -1060,74 +1062,74 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     maxWidth: '80%',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.lg,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
+    borderRadius: t.borderRadius.lg,
   },
   myMessage: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
   },
   otherMessage: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: t.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
   },
   messageText: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.text,
+    fontSize: t.fontSize.base,
+    color: t.colors.text,
   },
   myMessageText: {
-    color: '#FFFFFF',
+    color: t.colors.text,
   },
   timestamp: {
-    fontSize: theme.fontSize.xs,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.xs,
+    color: t.colors.textSecondary,
   },
   messageInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: theme.spacing.xs,
-    gap: theme.spacing.xs,
+    marginTop: t.spacing.xs,
+    gap: t.spacing.xs,
   },
   readStatus: {
     marginLeft: 2,
   },
   typingIndicator: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
+    marginBottom: t.spacing.sm,
   },
   typingText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
     fontStyle: 'italic',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    backgroundColor: theme.colors.surface,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
+    backgroundColor: t.colors.surface,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: t.colors.border,
   },
   attachButton: {
-    marginRight: theme.spacing.sm,
-    marginBottom: theme.spacing.xs,
+    marginRight: t.spacing.sm,
+    marginBottom: t.spacing.xs,
   },
   input: {
     flex: 1,
-    backgroundColor: theme.colors.gray[50],
-    borderRadius: theme.borderRadius.lg,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    fontSize: theme.fontSize.base,
-    color: theme.colors.text,
+    backgroundColor: t.colors.gray[50],
+    borderRadius: t.borderRadius.lg,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
+    fontSize: t.fontSize.base,
+    color: t.colors.text,
     maxHeight: 100,
   },
   sendButton: {
-    marginLeft: theme.spacing.sm,
-    marginBottom: theme.spacing.xs,
+    marginLeft: t.spacing.sm,
+    marginBottom: t.spacing.xs,
   },
   sendButtonDisabled: {
     opacity: 0.5,
@@ -1137,12 +1139,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: theme.spacing.md,
+    paddingVertical: t.spacing.md,
   },
   blockedMessageText: {
-    marginLeft: theme.spacing.sm,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.error,
+    marginLeft: t.spacing.sm,
+    fontSize: t.fontSize.sm,
+    color: t.colors.error,
   },
   loadingContainer: {
     flex: 1,
@@ -1150,31 +1152,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: theme.spacing.md,
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary,
+    marginTop: t.spacing.md,
+    fontSize: t.fontSize.base,
+    color: t.colors.textSecondary,
   },
   customHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    backgroundColor: theme.colors.surface,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
+    backgroundColor: t.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   backButton: {
-    padding: theme.spacing.xs,
+    padding: t.spacing.xs,
   },
   userInfoContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: theme.spacing.sm,
+    marginLeft: t.spacing.sm,
   },
   avatarContainer: {
     position: 'relative',
-    marginRight: theme.spacing.sm,
+    marginRight: t.spacing.sm,
   },
   avatar: {
     width: 40,
@@ -1182,7 +1184,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   avatarPlaceholder: {
-    backgroundColor: theme.colors.gray[200],
+    backgroundColor: t.colors.gray[200],
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1195,26 +1197,26 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: '#4CAF50',
     borderWidth: 2,
-    borderColor: theme.colors.surface,
+    borderColor: t.colors.surface,
   },
   userTextInfo: {
     flex: 1,
   },
   userName: {
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   userStatus: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
     marginTop: 2,
   },
   unreadDivider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.md,
+    marginVertical: t.spacing.md,
+    paddingHorizontal: t.spacing.md,
   },
   unreadDividerLine: {
     flex: 1,
@@ -1222,32 +1224,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF1744',
   },
   unreadDividerText: {
-    marginHorizontal: theme.spacing.sm,
-    fontSize: theme.fontSize.xs,
+    marginHorizontal: t.spacing.sm,
+    fontSize: t.fontSize.xs,
     color: '#FF1744',
     fontWeight: '600',
   },
   dateSeparatorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.md,
+    marginVertical: t.spacing.lg,
+    paddingHorizontal: t.spacing.md,
   },
   dateSeparatorLine: {
     flex: 1,
     height: 1,
-    backgroundColor: theme.colors.border,
+    backgroundColor: t.colors.border,
   },
   dateSeparatorText: {
-    marginHorizontal: theme.spacing.md,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
+    marginHorizontal: t.spacing.md,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
     fontWeight: '500',
   },
   largeEmoticonContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: theme.spacing.xs,
+    paddingVertical: t.spacing.xs,
   },
   largeEmoticonText: {
     fontSize: 48,
@@ -1259,17 +1261,17 @@ const styles = StyleSheet.create({
   },
   loadMoreText: {
     fontSize: 13,
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontWeight: '500',
   },
   headerSearchButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.gray[100],
+    backgroundColor: t.colors.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: theme.spacing.sm,
+    marginLeft: t.spacing.sm,
   },
   searchBar: {
     flexDirection: 'row',
@@ -1284,12 +1286,12 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#1A1A1A',
+    color: t.colors.surface,
     padding: 0,
   },
   searchCount: {
     fontSize: 12,
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontWeight: '600',
     marginLeft: 8,
   },
@@ -1312,20 +1314,20 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.xl,
+    padding: t.spacing.xl,
   },
   errorText: {
-    fontSize: theme.fontSize.lg,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.lg,
+    color: t.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   backButton: {
-    padding: theme.spacing.xs,
+    padding: t.spacing.xs,
   },
   backButtonText: {
     color: 'white',
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
   },
 });

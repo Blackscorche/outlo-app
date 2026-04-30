@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, TextInput, Modal } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { useQuotaManager } from '../hooks/useQuotaManager';
 import { useNavigation } from '@react-navigation/native';
+import { theme } from '../styles/theme';
 
 interface FirstImpressionButtonProps {
   targetUserId: string;
@@ -73,6 +74,8 @@ export const FirstImpressionButton: React.FC<FirstImpressionButtonProps> = ({
       );
     }
   };
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <>
@@ -144,18 +147,18 @@ export const FirstImpressionButton: React.FC<FirstImpressionButtonProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     gap: 4,
   },
   buttonDisabled: {
-    backgroundColor: theme.colors.border,
+    backgroundColor: t.colors.border,
   },
   buttonText: {
     color: '#fff',
@@ -163,7 +166,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   buttonTextDisabled: {
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   modalOverlay: {
     flex: 1,
@@ -173,7 +176,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
     borderRadius: 16,
     padding: 20,
     width: '100%',
@@ -182,27 +185,27 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginBottom: 8,
   },
   modalSubtitle: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     marginBottom: 20,
   },
   textInput: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
     borderRadius: 8,
     padding: 12,
     height: 100,
     fontSize: 16,
-    color: theme.colors.text,
-    backgroundColor: theme.colors.surface,
+    color: t.colors.text,
+    backgroundColor: t.colors.surface,
   },
   characterCount: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     textAlign: 'right',
     marginTop: 4,
     marginBottom: 20,
@@ -220,13 +223,13 @@ const styles = StyleSheet.create({
   cancelButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
   },
   sendButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
   },
   cancelButtonText: {
-    color: theme.colors.text,
+    color: t.colors.text,
     fontWeight: '600',
   },
   sendButtonText: {

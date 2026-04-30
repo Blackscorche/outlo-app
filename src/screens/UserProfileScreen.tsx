@@ -29,7 +29,6 @@ import Svg, {
   Stop,
   Rect,
 } from "react-native-svg";
-import { theme } from "../styles/theme";
 import { supabase } from "../integrations/supabase/client";
 import { useConnectionRequests } from "../hooks/useConnectionRequests";
 import {
@@ -43,6 +42,8 @@ import { FirstImpressionModal } from "../components/FirstImpressionModal";
 import AppLoading from "../components/AppLoading";
 import { ACTIVITY_TYPES } from "../constants/activityTypes";
 import { validateSafeText } from "../utils/contentModeration";
+import { useTheme } from '../contexts/ThemeContext';
+import { theme } from '../styles/theme';
 
 interface TimelineItem {
   id: string;
@@ -78,10 +79,12 @@ const DEFAULT_PROFILE_PHOTO =
 const { width } = Dimensions.get("window");
 const GRID_ITEM_SIZE =
   (width - theme.spacing.lg * 2 - theme.spacing.xs * 2) / 3;
-const HEADER_COLOR = "#FF3D6E";
-const HEADER_COLOR_END = "#E8197D";
+const HEADER_COLOR = "#0A1A0A";
+const HEADER_COLOR_END = "#1B5E20";
 
 const UserProfileScreen = ({ navigation, route }: any) => {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const {
     getConnectionStatus,
     sendConnectionRequest,
@@ -943,7 +946,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
 
       {/* Nav Header */}
       <View style={styles.navHeader}>
@@ -994,7 +997,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
       </View>
 
       <ScrollView
-        style={{ flex: 1, backgroundColor: "#F3F4F6" }}
+        style={{ flex: 1, backgroundColor: "#0A0A0A" }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -1117,7 +1120,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
                         : profile.gender === "female"
                           ? "Woman"
                           : profile.gender.charAt(0).toUpperCase() +
-                            profile.gender.slice(1)
+                          profile.gender.slice(1)
                       : ""}
                   </Text>
                 </View>
@@ -1181,7 +1184,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
                     style={styles.secondaryActionBtn}
                     onPress={() => handleConnect(true)}
                   >
-                    <Ionicons name="sparkles" size={18} color="#FF1744" />
+                    <Ionicons name="sparkles" size={18} color="#4CAF50" />
                     <Text style={styles.secondaryActionBtnText}>
                       First Impression
                     </Text>
@@ -1190,42 +1193,42 @@ const UserProfileScreen = ({ navigation, route }: any) => {
               )}
               {(actionButtonState.status === "request_sent" ||
                 actionButtonState.status === "pending") && (
-                <>
-                  <View style={styles.pendingActionBtn}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={18}
-                      color="#6B7280"
-                    />
-                    <Text style={styles.pendingActionBtnText}>
-                      Request Sent
-                    </Text>
-                  </View>
-                  {!hasFirstImpression && (
-                    <TouchableOpacity
-                      style={styles.secondaryActionBtn}
-                      onPress={() => setShowFirstImpressionModal(true)}
-                    >
-                      <Ionicons name="sparkles" size={18} color="#FF1744" />
-                      <Text style={styles.secondaryActionBtnText}>
-                        First Impression
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  {hasFirstImpression && (
-                    <View style={styles.sentImpressionBtn}>
+                  <>
+                    <View style={styles.pendingActionBtn}>
                       <Ionicons
-                        name="checkmark-done"
+                        name="checkmark-circle"
                         size={18}
-                        color="#10B981"
+                        color="#6B7280"
                       />
-                      <Text style={styles.sentImpressionBtnText}>
-                        Impression Sent
+                      <Text style={styles.pendingActionBtnText}>
+                        Request Sent
                       </Text>
                     </View>
-                  )}
-                </>
-              )}
+                    {!hasFirstImpression && (
+                      <TouchableOpacity
+                        style={styles.secondaryActionBtn}
+                        onPress={() => setShowFirstImpressionModal(true)}
+                      >
+                        <Ionicons name="sparkles" size={18} color="#4CAF50" />
+                        <Text style={styles.secondaryActionBtnText}>
+                          First Impression
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    {hasFirstImpression && (
+                      <View style={styles.sentImpressionBtn}>
+                        <Ionicons
+                          name="checkmark-done"
+                          size={18}
+                          color="#10B981"
+                        />
+                        <Text style={styles.sentImpressionBtnText}>
+                          Impression Sent
+                        </Text>
+                      </View>
+                    )}
+                  </>
+                )}
               {actionButtonState.status === "request_received" && (
                 <TouchableOpacity
                   style={styles.primaryActionBtn}
@@ -1296,10 +1299,10 @@ const UserProfileScreen = ({ navigation, route }: any) => {
                     )}
                     {showAllInterests && profile.interests.length > 5 && (
                       <TouchableOpacity
-                        style={[styles.tagChip, { backgroundColor: "#E5E7EB" }]}
+                        style={[styles.tagChip, { backgroundColor: "#2A2A2A" }]}
                         onPress={() => setShowAllInterests(false)}
                       >
-                        <Text style={[styles.tagText, { color: "#6B7280" }]}>
+                        <Text style={[styles.tagText, { color: "#B3B3B3" }]}>
                           Show less
                         </Text>
                       </TouchableOpacity>
@@ -1435,11 +1438,11 @@ const UserProfileScreen = ({ navigation, route }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   // Container
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
 
   // Nav header
@@ -1447,15 +1450,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: theme.spacing.xs,
-    paddingRight: theme.spacing.md,
-    paddingLeft: theme.spacing.sm,
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingVertical: t.spacing.xs,
+    paddingRight: t.spacing.md,
+    paddingLeft: t.spacing.sm,
+    backgroundColor: t.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: "#222222",
     zIndex: 1,
   },
   navHeaderTitle: {
@@ -1465,7 +1465,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 18,
     fontWeight: "bold",
-    color: theme.colors.text,
+    color: t.colors.text,
     pointerEvents: "none",
   },
   headerActions: {
@@ -1477,7 +1477,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: t.colors.surface,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -1553,16 +1553,13 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   statsCard: {
-    backgroundColor: "white",
+    backgroundColor: t.colors.surface,
     borderRadius: 16,
     flexDirection: "row",
     paddingVertical: 16,
     marginBottom: 0,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 5,
+    borderWidth: 1,
+    borderColor: t.colors.border,
   },
   statItem: {
     flex: 1,
@@ -1571,17 +1568,17 @@ const styles = StyleSheet.create({
   statNum: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1F2937",
+    color: t.colors.text,
   },
   statLbl: {
     fontSize: 11,
-    color: "#6B7280",
+    color: t.colors.textSecondary,
     marginTop: 2,
     textAlign: "center",
   },
   statSep: {
     width: 1,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: t.colors.border,
     marginVertical: 4,
   },
 
@@ -1590,7 +1587,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 16,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: t.colors.background,
   },
 
   // Action buttons
@@ -1605,7 +1602,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 7,
-    backgroundColor: "#FF1744",
+    backgroundColor: "#4CAF50",
     borderRadius: 12,
     paddingVertical: 13,
   },
@@ -1615,14 +1612,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 7,
-    backgroundColor: "white",
+    backgroundColor: t.colors.surface,
     borderRadius: 12,
     paddingVertical: 13,
     borderWidth: 1.5,
-    borderColor: "#FF1744",
+    borderColor: "#4CAF50",
   },
   secondaryActionBtnText: {
-    color: "#FF1744",
+    color: "#4CAF50",
     fontSize: 15,
     fontWeight: "600",
   },
@@ -1642,12 +1639,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 7,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: t.colors.inputBg,
     borderRadius: 12,
     paddingVertical: 13,
   },
   pendingActionBtnText: {
-    color: "#6B7280",
+    color: t.colors.textSecondary,
     fontSize: 15,
     fontWeight: "600",
   },
@@ -1657,12 +1654,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 7,
-    backgroundColor: "#D1FAE5",
+    backgroundColor: "#1A2E1A",
     borderRadius: 12,
     paddingVertical: 13,
   },
   sentImpressionBtnText: {
-    color: "#059669",
+    color: "#4CAF50",
     fontSize: 15,
     fontWeight: "600",
   },
@@ -1675,10 +1672,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#FEE2E2",
+    backgroundColor: "#2A1515",
     borderRadius: 12,
     padding: 14,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#5A2020",
   },
   blockedCardText: {
     color: "#EF4444",
@@ -1699,35 +1698,32 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#1F2937",
+    color: t.colors.text,
   },
   viewAllLink: {
     fontSize: 14,
-    color: "#FF1744",
+    color: "#4CAF50",
     fontWeight: "600",
   },
 
   // White card
   card: {
-    backgroundColor: "white",
+    backgroundColor: t.colors.surface,
     borderRadius: 12,
     padding: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: t.colors.border,
   },
 
   // About Me
   bioText: {
     fontSize: 14,
-    color: "#374151",
+    color: t.colors.text,
     lineHeight: 22,
   },
   bioPlaceholder: {
     fontSize: 14,
-    color: "#9CA3AF",
+    color: t.colors.textSecondary,
     lineHeight: 22,
     fontStyle: "italic",
   },
@@ -1738,14 +1734,16 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   tagChip: {
-    backgroundColor: "#FFF1F2",
+    backgroundColor: "rgba(76, 175, 80, 0.12)",
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: "rgba(76, 175, 80, 0.25)",
   },
   tagText: {
     fontSize: 13,
-    color: "#FF1744",
+    color: "#4CAF50",
     fontWeight: "500",
   },
 
@@ -1800,22 +1798,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   checkInSimpleCard: {
-    backgroundColor: "white",
+    backgroundColor: t.colors.surface,
     borderRadius: 12,
     padding: 12,
     flexDirection: "row",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: t.colors.border,
   },
   checkInIconContainer: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#FFF1F2",
+    backgroundColor: "rgba(76, 175, 80, 0.12)",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -1826,11 +1821,11 @@ const styles = StyleSheet.create({
   checkInSimpleLocation: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#1F2937",
+    color: t.colors.text,
   },
   checkInSimpleActivity: {
     fontSize: 12,
-    color: "#6B7280",
+    color: t.colors.textSecondary,
     marginTop: 2,
   },
   checkInSimpleDate: {
@@ -1842,26 +1837,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: t.colors.inputBg,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
   expiredBadgeText: {
     fontSize: 11,
-    color: "#6B7280",
+    color: t.colors.textSecondary,
   },
 
   // Empty state
   emptyCard: {
-    backgroundColor: "white",
+    backgroundColor: t.colors.surface,
     borderRadius: 12,
     padding: 28,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: t.colors.border,
   },
   emptyCardText: {
     fontSize: 14,
-    color: "#6B7280",
+    color: t.colors.textSecondary,
     marginTop: 8,
   },
 });

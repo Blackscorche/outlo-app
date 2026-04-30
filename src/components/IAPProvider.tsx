@@ -28,14 +28,29 @@ export const IAPProvider: React.FC<IAPProviderProps> = ({ children }) => {
     const validateSubscriptionOnAppStateChange = async (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active' && iapHook.connected) {
         console.log('🔄 App became active, validating subscription...');
-        
+
         try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
+          // Check if user is authenticated before making network calls
+          const { data: { user }, error: authError } = await supabase.auth.getUser();
+          if (authError) {
+            console.log('⚠️ Auth error during validation, skipping:', authError.message);
+            return;
+          }
+          if (!user) {
+            console.log('ℹ️ No user logged in, skipping subscription validation');
+            return;
+          }
 
           // Method 1: Comprehensive validation with database + IAP
-          const validationResult = await iapHook.checkSubscriptionStatusWithIAP();
-          console.log('📊 Subscription validation result:', validationResult);
+          let validationResult;
+          try {
+            validationResult = await iapHook.checkSubscriptionStatusWithIAP();
+            console.log('📊 Subscription validation result:', validationResult);
+          } catch (iapError) {
+            console.warn('⚠️ IAP validation failed (network may be unavailable):', iapError);
+            // Continue with database-only validation
+            validationResult = { shouldUpdate: false };
+          }
 
           if (validationResult.shouldUpdate) {
             if (validationResult.reason === 'unreflected_iap_subscription') {
@@ -48,20 +63,30 @@ export const IAPProvider: React.FC<IAPProviderProps> = ({ children }) => {
           }
 
           // Method 2: Also run database-only validation for expiry checks
-          await subscriptionService.validateAndSyncSubscription(user.id);
+          try {
+            await subscriptionService.validateAndSyncSubscription(user.id);
+          } catch (dbError) {
+            console.warn('⚠️ Database validation failed:', dbError);
+          }
 
         } catch (error) {
           console.error('❌ Error validating subscription on app state change:', error);
+          // Don't throw - let app continue even if validation fails
         }
       }
     };
 
     const subscription = AppState.addEventListener('change', validateSubscriptionOnAppStateChange);
-    
-    // Also run validation on initial mount
-    validateSubscriptionOnAppStateChange('active');
 
-    return () => subscription?.remove();
+    // Also run validation on initial mount (with delay to allow network to stabilize)
+    const initialValidationTimeout = setTimeout(() => {
+      validateSubscriptionOnAppStateChange('active');
+    }, 2000); // 2 second delay for network stabilization
+
+    return () => {
+      subscription?.remove();
+      clearTimeout(initialValidationTimeout);
+    };
   }, [iapHook.connected]);
 
   return (

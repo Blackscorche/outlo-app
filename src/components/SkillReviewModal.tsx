@@ -13,9 +13,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { supabase } from '../integrations/supabase/client';
 import { Tables } from '../integrations/supabase/types';
+import { useTheme } from '../contexts/ThemeContext';
 
 const DEFAULT_AVATAR = 'https://ui-avatars.com/api/?background=FF1744&color=fff&size=100';
 
@@ -129,6 +129,8 @@ export default function SkillReviewModal({
   );
 
   if (!session) return null;
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <Modal
@@ -252,73 +254,73 @@ export default function SkillReviewModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   closeButton: {
-    padding: theme.spacing.xs,
+    padding: t.spacing.xs,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   headerRight: {
     width: 32,
   },
   content: {
     flex: 1,
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
   },
   teacherCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.xl,
-    gap: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    padding: t.spacing.md,
+    borderRadius: t.borderRadius.md,
+    marginBottom: t.spacing.xl,
+    gap: t.spacing.md,
   },
   teacherAvatar: {
     width: 64,
     height: 64,
     borderRadius: 32,
     borderWidth: 2,
-    borderColor: theme.colors.primary + '30',
+    borderColor: t.colors.primary + '30',
   },
   teacherName: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   skillName: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     marginTop: 2,
   },
   ratingsSection: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
   },
   ratingLabel: {
     fontSize: 15,
-    color: theme.colors.text,
+    color: t.colors.text,
     fontWeight: '500',
   },
   starsContainer: {
@@ -329,83 +331,83 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   section: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    color: t.colors.text,
+    marginBottom: t.spacing.sm,
   },
   reviewInput: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.md,
+    padding: t.spacing.md,
     fontSize: 15,
-    color: theme.colors.text,
+    color: t.colors.text,
     minHeight: 120,
     textAlignVertical: 'top',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
   },
   charCount: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     textAlign: 'right',
     marginTop: 4,
   },
   recommendSection: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: t.spacing.xl,
   },
   recommendLabel: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.md,
+    color: t.colors.text,
+    marginBottom: t.spacing.md,
   },
   recommendOptions: {
     flexDirection: 'row',
-    gap: theme.spacing.md,
+    gap: t.spacing.md,
   },
   recommendOption: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: t.colors.surface,
+    padding: t.spacing.md,
+    borderRadius: t.borderRadius.md,
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
     gap: 8,
   },
   recommendOptionSelected: {
-    borderColor: theme.colors.success,
-    backgroundColor: theme.colors.success + '10',
+    borderColor: t.colors.success,
+    backgroundColor: t.colors.success + '10',
   },
   recommendOptionSelectedNo: {
-    borderColor: theme.colors.error,
-    backgroundColor: theme.colors.error + '10',
+    borderColor: t.colors.error,
+    backgroundColor: t.colors.error + '10',
   },
   recommendText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   recommendTextSelected: {
-    color: theme.colors.success,
+    color: t.colors.success,
   },
   recommendTextSelectedNo: {
-    color: theme.colors.error,
+    color: t.colors.error,
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
     padding: 16,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.xl,
+    borderRadius: t.borderRadius.md,
+    marginBottom: t.spacing.xl,
     gap: 8,
   },
   submitButtonDisabled: {

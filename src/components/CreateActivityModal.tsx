@@ -16,11 +16,11 @@ import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Slider from "@react-native-community/slider";
 import * as Location from "expo-location";
-import { theme } from "../styles/theme";
 import AppLoading from "./AppLoading";
 import { ACTIVITY_TYPES } from "../constants/activityTypes";
 import { useActivities } from "../hooks/useActivities";
 import { validateSafeText } from "../utils/contentModeration";
+import { useTheme } from '../contexts/ThemeContext';
 
 interface CreateActivityModalProps {
   visible: boolean;
@@ -230,6 +230,8 @@ export default function CreateActivityModal({
       minute: "2-digit",
     });
   };
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <Modal
@@ -455,49 +457,49 @@ export default function CreateActivityModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderBottomColor: t.colors.border,
+    backgroundColor: t.colors.surface,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   createButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: theme.colors.primary,
+    color: t.colors.primary,
   },
   createButtonTextDisabled: {
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   content: {
     flex: 1,
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
   },
   sectionLabel: {
     fontSize: 14,
     fontWeight: "600",
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
-    marginTop: theme.spacing.md,
+    color: t.colors.text,
+    marginBottom: t.spacing.sm,
+    marginTop: t.spacing.md,
   },
   activityTypesContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   activityTypeChip: {
     flexDirection: "row",
@@ -506,17 +508,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: theme.colors.primary,
+    borderColor: t.colors.primary,
     backgroundColor: "transparent",
     gap: 6,
   },
   activityTypeChipSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
+    borderColor: t.colors.primary,
   },
   activityTypeText: {
     fontSize: 13,
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontWeight: "500",
   },
   activityTypeTextSelected: {
@@ -524,12 +526,12 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
+    borderColor: t.colors.border,
+    borderRadius: t.borderRadius.md,
+    padding: t.spacing.md,
     fontSize: 16,
-    color: theme.colors.text,
-    backgroundColor: theme.colors.surface,
+    color: t.colors.text,
+    backgroundColor: t.colors.surface,
   },
   textArea: {
     minHeight: 80,
@@ -538,21 +540,21 @@ const styles = StyleSheet.create({
   locationContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: theme.spacing.sm,
-    gap: theme.spacing.md,
+    marginBottom: t.spacing.sm,
+    gap: t.spacing.md,
   },
   locationButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.primary + "15",
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
-    gap: theme.spacing.sm,
+    backgroundColor: t.colors.primary + "15",
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
+    borderRadius: t.borderRadius.md,
+    gap: t.spacing.sm,
   },
   locationButtonText: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontWeight: "500",
   },
   locationInfo: {
@@ -562,33 +564,33 @@ const styles = StyleSheet.create({
   },
   locationInfoText: {
     fontSize: 14,
-    color: theme.colors.success,
+    color: t.colors.success,
     fontWeight: "500",
   },
   dateTimeButton: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
-    gap: theme.spacing.sm,
+    borderColor: t.colors.border,
+    borderRadius: t.borderRadius.md,
+    padding: t.spacing.md,
+    backgroundColor: t.colors.surface,
+    gap: t.spacing.sm,
   },
   dateTimeText: {
     flex: 1,
     fontSize: 16,
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   iosPickerButtons: {
     alignItems: "center",
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: t.spacing.sm,
   },
   iosPickerButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: t.colors.primary,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.sm,
+    borderRadius: t.borderRadius.md,
   },
   iosPickerButtonText: {
     color: "white",
@@ -605,21 +607,21 @@ const styles = StyleSheet.create({
   },
   sliderLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   infoNote: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.info + "15",
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginTop: theme.spacing.lg,
-    gap: theme.spacing.sm,
+    backgroundColor: t.colors.info + "15",
+    padding: t.spacing.md,
+    borderRadius: t.borderRadius.md,
+    marginTop: t.spacing.lg,
+    gap: t.spacing.sm,
   },
   infoNoteText: {
     flex: 1,
     fontSize: 13,
-    color: theme.colors.info,
+    color: t.colors.info,
     lineHeight: 18,
   },
   loadingOverlay: {

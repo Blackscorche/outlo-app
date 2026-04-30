@@ -12,9 +12,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { theme } from '../styles/theme';
 import { supabase } from '../integrations/supabase/client';
 import { Place } from '../hooks/usePlaces';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Activity tags for check-in feature
 export const ACTIVITY_TAGS = [
@@ -207,6 +207,8 @@ const CheckInModal = ({ visible, onClose, onCheckIn, onCheckInSuccess, currentLo
       setLoading(false);
     }
   };
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <Modal
@@ -294,80 +296,80 @@ const CheckInModal = ({ visible, onClose, onCheckIn, onCheckInSuccess, currentLo
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   title: {
-    fontSize: theme.fontSize.lg,
+    fontSize: t.fontSize.lg,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   doneButton: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.primary,
+    fontSize: t.fontSize.base,
+    color: t.colors.primary,
     fontWeight: '600',
   },
   doneButtonDisabled: {
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   content: {
     flex: 1,
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
   },
   locationInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.lg,
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
+    gap: t.spacing.sm,
+    marginBottom: t.spacing.lg,
+    padding: t.spacing.md,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.md,
   },
   locationText: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.text,
+    fontSize: t.fontSize.base,
+    color: t.colors.text,
   },
   input: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    fontSize: theme.fontSize.base,
-    marginBottom: theme.spacing.md,
+    borderColor: t.colors.border,
+    borderRadius: t.borderRadius.md,
+    padding: t.spacing.md,
+    fontSize: t.fontSize.base,
+    marginBottom: t.spacing.md,
   },
   textArea: {
     minHeight: 80,
     textAlignVertical: 'top',
   },
   hint: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
     fontStyle: 'italic',
-    marginTop: theme.spacing.sm,
+    marginTop: t.spacing.sm,
   },
   sectionLabel: {
-    fontSize: theme.fontSize.sm,
+    fontSize: t.fontSize.sm,
     fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
-    marginTop: theme.spacing.sm,
+    color: t.colors.text,
+    marginBottom: t.spacing.sm,
+    marginTop: t.spacing.sm,
   },
   activityTagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.lg,
+    gap: t.spacing.sm,
+    marginBottom: t.spacing.lg,
   },
   activityTag: {
     flexDirection: 'row',
@@ -377,16 +379,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.background,
+    borderColor: t.colors.primary,
+    backgroundColor: t.colors.background,
   },
   activityTagSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
+    borderColor: t.colors.primary,
   },
   activityTagText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.primary,
+    fontSize: t.fontSize.sm,
+    color: t.colors.primary,
     fontWeight: '500',
   },
   activityTagTextSelected: {

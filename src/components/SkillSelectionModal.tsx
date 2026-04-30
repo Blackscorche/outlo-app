@@ -10,11 +10,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import AppLoading from './AppLoading';
 import { SKILL_LEVELS, SkillLevelId } from '../constants/skillTypes';
 import { useSkills, SkillWithCategory } from '../hooks/useSkills';
 import { Tables } from '../integrations/supabase/types';
+import { useTheme } from '../contexts/ThemeContext';
 
 type SkillCategory = Tables<'skill_categories'>;
 
@@ -267,6 +267,8 @@ export default function SkillSelectionModal({
       </TouchableOpacity>
     </ScrollView>
   );
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <Modal
@@ -312,27 +314,27 @@ export default function SkillSelectionModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   closeButton: {
-    padding: theme.spacing.xs,
+    padding: t.spacing.xs,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   headerRight: {
     width: 32,
@@ -341,21 +343,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: theme.spacing.md,
+    paddingVertical: t.spacing.md,
   },
   progressDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
   },
   progressDotInactive: {
-    backgroundColor: theme.colors.gray[300],
+    backgroundColor: t.colors.gray[300],
   },
   progressLine: {
     width: 40,
     height: 2,
-    backgroundColor: theme.colors.gray[300],
+    backgroundColor: t.colors.gray[300],
     marginHorizontal: 4,
   },
   loadingContainer: {
@@ -365,35 +367,35 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
   },
   stepTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.lg,
+    color: t.colors.text,
+    marginBottom: t.spacing.lg,
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
     gap: 8,
   },
   backButtonText: {
     fontSize: 16,
-    color: theme.colors.text,
+    color: t.colors.text,
     fontWeight: '500',
   },
   categoriesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.md,
+    gap: t.spacing.md,
   },
   categoryCard: {
     width: '47%',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.lg,
+    padding: t.spacing.lg,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -405,137 +407,137 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: t.colors.primary + '15',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    marginBottom: t.spacing.sm,
   },
   categoryName: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
     textAlign: 'center',
   },
   skillsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   skillChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: t.colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 24,
     gap: 8,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
   },
   skillChipText: {
     fontSize: 15,
-    color: theme.colors.text,
+    color: t.colors.text,
     fontWeight: '500',
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: theme.spacing.xl,
+    paddingVertical: t.spacing.xl,
   },
   emptyText: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     textAlign: 'center',
-    marginTop: theme.spacing.md,
+    marginTop: t.spacing.md,
   },
   selectedSkillBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary + '10',
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.lg,
-    gap: theme.spacing.md,
+    backgroundColor: t.colors.primary + '10',
+    padding: t.spacing.md,
+    borderRadius: t.borderRadius.md,
+    marginBottom: t.spacing.lg,
+    gap: t.spacing.md,
   },
   selectedSkillIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: t.colors.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
   },
   selectedSkillName: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   selectedSkillCategory: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   section: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    color: t.colors.text,
+    marginBottom: t.spacing.sm,
   },
   levelOptions: {
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   levelOption: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.md,
+    padding: t.spacing.md,
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
   },
   levelOptionSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + '10',
+    borderColor: t.colors.primary,
+    backgroundColor: t.colors.primary + '10',
   },
   levelOptionLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginBottom: 2,
   },
   levelOptionLabelSelected: {
-    color: theme.colors.primary,
+    color: t.colors.primary,
   },
   levelOptionDesc: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   levelOptionDescSelected: {
-    color: theme.colors.primary,
+    color: t.colors.primary,
   },
   descriptionInput: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.md,
+    padding: t.spacing.md,
     fontSize: 15,
-    color: theme.colors.text,
+    color: t.colors.text,
     minHeight: 100,
     textAlignVertical: 'top',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
   },
   charCount: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     textAlign: 'right',
     marginTop: 4,
   },
   confirmButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: t.colors.primary,
+    borderRadius: t.borderRadius.md,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.xl,
+    marginTop: t.spacing.md,
+    marginBottom: t.spacing.xl,
   },
   confirmButtonText: {
     fontSize: 16,

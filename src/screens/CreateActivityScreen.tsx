@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -26,22 +27,14 @@ import {
   formatPrice,
   getCategoryDefaultImage,
   PLATFORM_FEE_BPS,
+  TICKET_PRICE_TIERS,
 } from "../constants/activityCategories";
-import WizardProgressBar from "../components/WizardProgressBar";
+import MapView, { Marker } from "react-native-maps";
 import PriceBadge from "../components/PriceBadge";
 import { supabase } from "../integrations/supabase/client";
+import { useTheme } from '../contexts/ThemeContext';
 
 const TOTAL_STEPS = 7;
-
-const STEP_TITLES: Record<number, string> = {
-  1: "Basics",
-  2: "Location",
-  3: "Date & Time",
-  4: "Details",
-  5: "Pricing",
-  6: "Image",
-  7: "Review",
-};
 
 interface FormState {
   category: string | null;
@@ -61,13 +54,15 @@ interface FormState {
 }
 
 export default function CreateActivityScreen({ navigation }: any) {
+  console.log('CreateActivity rendering');
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const { createActivity } = useActivities();
 
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [gettingLocation, setGettingLocation] = useState(false);
 
   const [form, setForm] = useState<FormState>(() => {
     const d = new Date();
@@ -127,30 +122,6 @@ export default function CreateActivityScreen({ navigation }: any) {
   const back = () => {
     if (step > 1) setStep(step - 1);
     else navigation.goBack();
-  };
-
-  const useCurrentLocation = async () => {
-    try {
-      setGettingLocation(true);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permission needed", "Allow location to set your activity place");
-        return;
-      }
-      const loc = await Location.getCurrentPositionAsync({});
-      const [addr] = await Location.reverseGeocodeAsync({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-      });
-      update("latitude", loc.coords.latitude);
-      update("longitude", loc.coords.longitude);
-      const parts = [addr?.name, addr?.street, addr?.city].filter(Boolean);
-      update("locationName", parts.join(", ") || "Current location");
-    } catch (e) {
-      Alert.alert("Error", "Could not get your location");
-    } finally {
-      setGettingLocation(false);
-    }
   };
 
   const pickImage = () => {
@@ -218,6 +189,42 @@ export default function CreateActivityScreen({ navigation }: any) {
     }
   };
 
+  // ---------- Render helpers (moved inside component to access styles) ----------
+  const StepDotsBar = ({ step, total }: { step: number; total: number }) => {
+    return (
+      <View style={styles.dotsBar}>
+        <Text style={styles.dotsBarLabel}>Step {step} of {total}</Text>
+        <View style={styles.dotsRow}>
+          {Array.from({ length: total }, (_, i) => {
+            const n = i + 1;
+            const completed = n < step;
+            const current = n === step;
+            return (
+              <React.Fragment key={n}>
+                {i > 0 && (
+                  <View
+                    style={[
+                      styles.dotsLine,
+                      n <= step ? styles.dotsLineGreen : styles.dotsLineGrey,
+                    ]}
+                  />
+                )}
+                <View style={[styles.dotWrap, current && styles.dotWrapCurrent]}>
+                  <View
+                    style={[
+                      styles.dotCore,
+                      completed || current ? styles.dotCoreGreen : styles.dotCoreEmpty,
+                    ]}
+                  />
+                </View>
+              </React.Fragment>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
+
   // ---------- Render ----------
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -231,7 +238,7 @@ export default function CreateActivityScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <WizardProgressBar step={step} total={TOTAL_STEPS} title={STEP_TITLES[step]} />
+      <StepDotsBar step={step} total={TOTAL_STEPS} styles={styles} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -242,29 +249,23 @@ export default function CreateActivityScreen({ navigation }: any) {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {step === 1 && <Step1 form={form} update={update} />}
-          {step === 2 && (
-            <Step2
-              form={form}
-              update={update}
-              gettingLocation={gettingLocation}
-              useCurrentLocation={useCurrentLocation}
-            />
-          )}
+          {step === 1 && <Step1 form={form} update={update} styles={styles} />}
+          {step === 2 && <Step2 form={form} update={update} styles={styles} />}
           {step === 3 && (
             <Step3
               form={form}
               update={update}
+              styles={styles}
               showDatePicker={showDatePicker}
               setShowDatePicker={setShowDatePicker}
               showTimePicker={showTimePicker}
               setShowTimePicker={setShowTimePicker}
             />
           )}
-          {step === 4 && <Step4 form={form} update={update} />}
-          {step === 5 && <Step5 form={form} update={update} />}
-          {step === 6 && <Step6 form={form} pickImage={pickImage} update={update} />}
-          {step === 7 && <Step7 form={form} />}
+          {step === 4 && <Step4 form={form} update={update} styles={styles} />}
+          {step === 5 && <Step5 form={form} update={update} styles={styles} />}
+          {step === 6 && <Step6 form={form} pickImage={pickImage} update={update} styles={styles} />}
+          {step === 7 && <Step7 form={form} styles={styles} />}
         </ScrollView>
 
         {/* Sticky bottom CTA */}
@@ -309,7 +310,42 @@ export default function CreateActivityScreen({ navigation }: any) {
 // Step components
 // ====================================================================
 
-function Step1({ form, update }: any) {
+function StepDotsBar({ step, total, styles }: { step: number; total: number; styles: any }) {
+  return (
+    <View style={styles.dotsBar}>
+      <Text style={styles.dotsBarLabel}>Step {step} of {total}</Text>
+      <View style={styles.dotsRow}>
+        {Array.from({ length: total }, (_, i) => {
+          const n = i + 1;
+          const completed = n < step;
+          const current = n === step;
+          return (
+            <React.Fragment key={n}>
+              {i > 0 && (
+                <View
+                  style={[
+                    styles.dotsLine,
+                    n <= step ? styles.dotsLineGreen : styles.dotsLineGrey,
+                  ]}
+                />
+              )}
+              <View style={[styles.dotWrap, current && styles.dotWrapCurrent]}>
+                <View
+                  style={[
+                    styles.dotCore,
+                    completed || current ? styles.dotCoreGreen : styles.dotCoreEmpty,
+                  ]}
+                />
+              </View>
+            </React.Fragment>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function Step1({ form, update, styles }: any) {
   return (
     <View>
       <Text style={styles.stepHeading}>What kind of activity?</Text>
@@ -358,44 +394,304 @@ function Step1({ form, update }: any) {
   );
 }
 
-function Step2({ form, update, gettingLocation, useCurrentLocation }: any) {
+function Step2({ form, update, styles }: any) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [showFullMap, setShowFullMap] = useState(false);
+  const [pendingCoords, setPendingCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [pendingName, setPendingName] = useState("");
+  const [fullMapSearchQuery, setFullMapSearchQuery] = useState("");
+  const [fullMapSearching, setFullMapSearching] = useState(false);
+  const mapRef = useRef<any>(null);
+  const fullMapRef = useRef<any>(null);
+
+  useEffect(() => {
+    (async () => {
+      setLocating(true);
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permission needed", "Allow location to set your activity place");
+          return;
+        }
+        const loc = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = loc.coords;
+        setUserCoords({ latitude, longitude });
+        if (form.latitude === null) {
+          const [addr] = await Location.reverseGeocodeAsync({ latitude, longitude });
+          update("latitude", latitude);
+          update("longitude", longitude);
+          const parts = [addr?.name, addr?.street, addr?.city].filter(Boolean);
+          update("locationName", parts.join(", ") || "Current location");
+          mapRef.current?.animateToRegion(
+            { latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 },
+            300
+          );
+        }
+      } catch {
+        Alert.alert("Error", "Could not get your location");
+      } finally {
+        setLocating(false);
+      }
+    })();
+  }, []);
+
+  const handleMapPress = async (e: any) => {
+    const { latitude, longitude } = e.nativeEvent.coordinate;
+    update("latitude", latitude);
+    update("longitude", longitude);
+    try {
+      const [addr] = await Location.reverseGeocodeAsync({ latitude, longitude });
+      const parts = [addr?.name, addr?.street, addr?.city].filter(Boolean);
+      update("locationName", parts.join(", ") || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+    } catch {
+      update("locationName", `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    try {
+      const results = await Location.geocodeAsync(searchQuery.trim());
+      if (results.length === 0) {
+        Alert.alert("Not found", "No results for that location");
+        return;
+      }
+      const { latitude, longitude } = results[0];
+      update("latitude", latitude);
+      update("longitude", longitude);
+      update("locationName", searchQuery.trim());
+      mapRef.current?.animateToRegion(
+        { latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 },
+        500
+      );
+    } catch {
+      Alert.alert("Error", "Could not find that location");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const openFullMap = () => {
+    if (form.latitude !== null && form.longitude !== null) {
+      setPendingCoords({ latitude: form.latitude, longitude: form.longitude });
+      setPendingName(form.locationName || "");
+    } else if (userCoords) {
+      setPendingCoords(userCoords);
+      setPendingName("");
+    } else {
+      setPendingCoords(null);
+      setPendingName("");
+    }
+    setFullMapSearchQuery("");
+    setShowFullMap(true);
+  };
+
+  const handleFullMapPress = async (e: any) => {
+    const { latitude, longitude } = e.nativeEvent.coordinate;
+    setPendingCoords({ latitude, longitude });
+    try {
+      const [addr] = await Location.reverseGeocodeAsync({ latitude, longitude });
+      const parts = [addr?.name, addr?.street, addr?.city].filter(Boolean);
+      setPendingName(parts.join(", ") || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+    } catch {
+      setPendingName(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+    }
+  };
+
+  const handleFullMapSearch = async () => {
+    if (!fullMapSearchQuery.trim()) return;
+    setFullMapSearching(true);
+    try {
+      const results = await Location.geocodeAsync(fullMapSearchQuery.trim());
+      if (results.length === 0) {
+        Alert.alert("Not found", "No results for that location");
+        return;
+      }
+      const { latitude, longitude } = results[0];
+      setPendingCoords({ latitude, longitude });
+      setPendingName(fullMapSearchQuery.trim());
+      fullMapRef.current?.animateToRegion(
+        { latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 },
+        500
+      );
+    } catch {
+      Alert.alert("Error", "Could not find that location");
+    } finally {
+      setFullMapSearching(false);
+    }
+  };
+
+  const confirmLocation = () => {
+    if (pendingCoords) {
+      update("latitude", pendingCoords.latitude);
+      update("longitude", pendingCoords.longitude);
+      update(
+        "locationName",
+        pendingName || `${pendingCoords.latitude.toFixed(4)}, ${pendingCoords.longitude.toFixed(4)}`
+      );
+    }
+    setShowFullMap(false);
+  };
+
+  const distance = useMemo(() => {
+    if (!userCoords || form.latitude === null || form.longitude === null) return null;
+    return haversineKm(userCoords.latitude, userCoords.longitude, form.latitude, form.longitude);
+  }, [userCoords, form.latitude, form.longitude]);
+
+  const initialRegion = {
+    latitude: form.latitude ?? 53.3498,
+    longitude: form.longitude ?? -6.2603,
+    latitudeDelta: form.latitude !== null ? 0.01 : 0.1,
+    longitudeDelta: form.latitude !== null ? 0.01 : 0.1,
+  };
+
+  const fullMapInitialRegion = {
+    latitude: pendingCoords?.latitude ?? userCoords?.latitude ?? 53.3498,
+    longitude: pendingCoords?.longitude ?? userCoords?.longitude ?? -6.2603,
+    latitudeDelta: 0.02,
+    longitudeDelta: 0.02,
+  };
+
   return (
     <View>
       <Text style={styles.stepHeading}>Where is it?</Text>
       <Text style={styles.stepSub}>Set the meeting place. People will see it on the map.</Text>
 
-      <Text style={styles.label}>Place name</Text>
-      <TextInput
-        value={form.locationName}
-        onChangeText={(v: string) => update("locationName", v)}
-        placeholder="e.g. Caffè Nero, Grafton Street"
-        placeholderTextColor="#9CA3AF"
-        style={styles.input}
-      />
+      <View style={styles.searchRow}>
+        <TextInput
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onSubmitEditing={handleSearch}
+          placeholder="Search for a place…"
+          placeholderTextColor="#9CA3AF"
+          style={styles.searchInput}
+          returnKeyType="search"
+        />
+        <TouchableOpacity style={styles.searchBtn} onPress={handleSearch} disabled={searching}>
+          {searching ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Ionicons name="search" size={18} color="#fff" />
+          )}
+        </TouchableOpacity>
+      </View>
 
-      <TouchableOpacity
-        style={styles.locationBtn}
-        onPress={useCurrentLocation}
-        disabled={gettingLocation}
-      >
-        {gettingLocation ? (
-          <ActivityIndicator color="#4CAF50" />
-        ) : (
-          <Ionicons name="locate" size={18} color="#4CAF50" />
+      <View style={styles.mapContainer}>
+        {locating && (
+          <View style={styles.mapOverlay}>
+            <ActivityIndicator color="#4CAF50" />
+            <Text style={styles.mapOverlayText}>Locating you…</Text>
+          </View>
         )}
-        <Text style={styles.locationBtnText}>
-          {gettingLocation ? "Getting location..." : "Use my current location"}
-        </Text>
+        <MapView
+          ref={mapRef}
+          style={styles.map}
+          initialRegion={initialRegion}
+          onPress={handleMapPress}
+        >
+          {form.latitude !== null && form.longitude !== null && (
+            <Marker
+              coordinate={{ latitude: form.latitude, longitude: form.longitude }}
+              pinColor="#4CAF50"
+            />
+          )}
+        </MapView>
+        <View style={styles.mapTapHint}>
+          <Ionicons name="finger-print-outline" size={13} color="rgba(255,255,255,0.85)" />
+          <Text style={styles.mapTapHintText}>Tap map to pin</Text>
+        </View>
+      </View>
+
+      <TouchableOpacity style={styles.openMapBtn} onPress={openFullMap}>
+        <Ionicons name="expand-outline" size={18} color="#4CAF50" />
+        <Text style={styles.openMapBtnText}>Pick on Full Map</Text>
       </TouchableOpacity>
 
-      {form.latitude !== null && form.longitude !== null && (
-        <View style={styles.coordsCard}>
+      {form.locationName ? (
+        <View style={styles.locationInfoCard}>
           <Ionicons name="pin" size={16} color="#4CAF50" />
-          <Text style={styles.coordsText}>
-            {form.latitude.toFixed(4)}, {form.longitude.toFixed(4)}
-          </Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.locationInfoName} numberOfLines={2}>{form.locationName}</Text>
+            {distance !== null && distance > 0.05 && (
+              <Text style={styles.locationInfoDist}>{formatDistance(distance)} from your location</Text>
+            )}
+          </View>
         </View>
-      )}
+      ) : null}
+
+      {/* ── Full-Screen Map Picker Modal ── */}
+      <Modal visible={showFullMap} animationType="slide" statusBarTranslucent>
+        <SafeAreaView style={styles.fullMapSafe} edges={["top", "bottom"]}>
+          <View style={styles.fullMapHeader}>
+            <TouchableOpacity style={styles.fullMapBackBtn} onPress={() => setShowFullMap(false)}>
+              <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.fullMapTitle}>Pick Location</Text>
+            <View style={{ width: 44 }} />
+          </View>
+
+          <View style={styles.fullMapSearchRow}>
+            <TextInput
+              value={fullMapSearchQuery}
+              onChangeText={setFullMapSearchQuery}
+              onSubmitEditing={handleFullMapSearch}
+              placeholder="Search address or place…"
+              placeholderTextColor="#9CA3AF"
+              style={styles.fullMapSearchInput}
+              returnKeyType="search"
+              autoCorrect={false}
+            />
+            <TouchableOpacity
+              style={styles.fullMapSearchBtn}
+              onPress={handleFullMapSearch}
+              disabled={fullMapSearching}
+            >
+              {fullMapSearching ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Ionicons name="search" size={18} color="#fff" />
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <MapView
+            ref={fullMapRef}
+            style={styles.fullMap}
+            initialRegion={fullMapInitialRegion}
+            onPress={handleFullMapPress}
+          >
+            {pendingCoords && (
+              <Marker coordinate={pendingCoords} pinColor="#4CAF50" />
+            )}
+          </MapView>
+
+          <View style={styles.fullMapBottom}>
+            {pendingName ? (
+              <View style={styles.fullMapLocationBar}>
+                <Ionicons name="pin" size={16} color="#4CAF50" />
+                <Text style={styles.fullMapLocationText} numberOfLines={2}>{pendingName}</Text>
+              </View>
+            ) : (
+              <View style={styles.fullMapHint}>
+                <Ionicons name="hand-left-outline" size={16} color="#B3B3B3" />
+                <Text style={styles.fullMapHintText}>Tap anywhere on the map to set a location</Text>
+              </View>
+            )}
+            <TouchableOpacity
+              style={[styles.fullMapConfirmBtn, !pendingCoords && styles.btnDisabled]}
+              onPress={confirmLocation}
+              disabled={!pendingCoords}
+            >
+              <Ionicons name="checkmark-circle" size={20} color="#fff" />
+              <Text style={styles.fullMapConfirmText}>Confirm Location</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
@@ -403,6 +699,7 @@ function Step2({ form, update, gettingLocation, useCurrentLocation }: any) {
 function Step3({
   form,
   update,
+  styles,
   showDatePicker,
   setShowDatePicker,
   showTimePicker,
@@ -498,7 +795,7 @@ function Step3({
   );
 }
 
-function Step4({ form, update }: any) {
+function Step4({ form, update, styles }: any) {
   return (
     <View>
       <Text style={styles.stepHeading}>Tell people more</Text>
@@ -567,8 +864,7 @@ function Step4({ form, update }: any) {
   );
 }
 
-function Step5({ form, update }: any) {
-  const priceEuro = form.ticketPriceCents / 100;
+function Step5({ form, update, styles }: any) {
   const platformFeeCents = Math.round(
     (form.ticketPriceCents * PLATFORM_FEE_BPS) / 10000,
   );
@@ -600,21 +896,30 @@ function Step5({ form, update }: any) {
 
       {form.isPaid && (
         <View>
-          <Text style={styles.label}>Ticket price (€)</Text>
-          <View style={styles.priceInputWrap}>
-            <Text style={styles.priceCurrency}>€</Text>
-            <TextInput
-              value={priceEuro ? priceEuro.toString() : ""}
-              onChangeText={(v: string) => {
-                const cleaned = v.replace(/[^0-9.,]/g, "").replace(",", ".");
-                const n = parseFloat(cleaned);
-                update("ticketPriceCents", isNaN(n) ? 0 : Math.round(n * 100));
-              }}
-              keyboardType="decimal-pad"
-              placeholder="0.00"
-              placeholderTextColor="#9CA3AF"
-              style={styles.priceInput}
-            />
+          <Text style={styles.label}>Select ticket price</Text>
+          <View style={styles.priceTierGrid}>
+            {TICKET_PRICE_TIERS.map((tier) => {
+              const selected = form.ticketPriceCents === tier.priceCents;
+              return (
+                <TouchableOpacity
+                  key={tier.productId}
+                  style={[
+                    styles.priceTierBtn,
+                    selected && styles.priceTierBtnActive,
+                  ]}
+                  onPress={() => update("ticketPriceCents", tier.priceCents)}
+                >
+                  <Text
+                    style={[
+                      styles.priceTierLabel,
+                      selected && styles.priceTierLabelActive,
+                    ]}
+                  >
+                    {tier.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           {form.ticketPriceCents > 0 && (
@@ -654,7 +959,7 @@ function Step5({ form, update }: any) {
   );
 }
 
-function Step6({ form, pickImage, update }: any) {
+function Step6({ form, pickImage, update, styles }: any) {
   const fallback = getCategoryDefaultImage(form.category);
   return (
     <View>
@@ -683,18 +988,11 @@ function Step6({ form, pickImage, update }: any) {
           <Text style={styles.removeImageText}>Remove image</Text>
         </TouchableOpacity>
       )}
-
-      {!form.imageUri && form.category && (
-        <View style={styles.fallbackBox}>
-          <Image source={fallback} style={styles.fallbackImg} />
-          <Text style={styles.fallbackText}>Default image for this category</Text>
-        </View>
-      )}
     </View>
   );
 }
 
-function Step7({ form }: any) {
+function Step7({ form, styles }: any) {
   const cat = ACTIVITY_CATEGORIES.find((c) => c.id === form.category);
   return (
     <View>
@@ -725,10 +1023,10 @@ function Step7({ form }: any) {
 
           <Text style={styles.previewTitle}>{form.title || "Untitled"}</Text>
 
-          <PreviewRow icon="calendar" text={form.scheduledAt.toLocaleString()} />
-          <PreviewRow icon="time" text={`${form.durationMinutes ?? 60} minutes`} />
-          <PreviewRow icon="location" text={form.locationName || "—"} />
-          <PreviewRow icon="people" text={`Up to ${form.maxParticipants} attendees`} />
+          <PreviewRow icon="calendar" text={form.scheduledAt.toLocaleString()} styles={styles} />
+          <PreviewRow icon="time" text={`${form.durationMinutes ?? 60} minutes`} styles={styles} />
+          <PreviewRow icon="location" text={form.locationName || "—"} styles={styles} />
+          <PreviewRow icon="people" text={`Up to ${form.maxParticipants} attendees`} styles={styles} />
 
           {form.description ? (
             <Text style={styles.previewDesc}>{form.description}</Text>
@@ -739,13 +1037,34 @@ function Step7({ form }: any) {
   );
 }
 
-function PreviewRow({ icon, text }: { icon: any; text: string }) {
+function PreviewRow({ icon, text, styles }: { icon: any; text: string; styles: any }) {
   return (
     <View style={styles.previewRow}>
       <Ionicons name={icon} size={14} color="#6B7280" />
       <Text style={styles.previewRowText}>{text}</Text>
     </View>
   );
+}
+
+// ====================================================================
+// Helpers
+// ====================================================================
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDistance(km: number): string {
+  if (km < 1) return `${Math.round(km * 1000)} m`;
+  return `${km.toFixed(1)} km`;
 }
 
 // ====================================================================
@@ -804,8 +1123,8 @@ async function uploadActivityImage(uri: string): Promise<string | null> {
 // Styles
 // ====================================================================
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0A0A0A" },
+const makeStyles = (t: any) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: t.colors.background },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -813,30 +1132,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#333333",
+    borderBottomColor: t.colors.border,
   },
   headerBtn: {
     padding: 8,
   },
-  headerTitle: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
+  headerTitle: { fontSize: 16, fontWeight: "700", color: t.colors.text },
 
   scrollContent: { padding: 16, paddingBottom: 120 },
 
-  stepHeading: { fontSize: 22, fontWeight: "800", color: "#FFFFFF", marginBottom: 4 },
-  stepSub: { fontSize: 14, color: "#B3B3B3", marginBottom: 18 },
+  stepHeading: { fontSize: 22, fontWeight: "800", color: t.colors.text, marginBottom: 4 },
+  stepSub: { fontSize: 14, color: t.colors.textSecondary, marginBottom: 18 },
 
-  label: { fontSize: 13, fontWeight: "700", color: "#FFFFFF", marginTop: 14, marginBottom: 8 },
+  label: { fontSize: 13, fontWeight: "700", color: t.colors.text, marginTop: 14, marginBottom: 8 },
   helper: { fontSize: 11, color: "#888", marginTop: 4 },
 
   input: {
     borderWidth: 1,
-    borderColor: "#333333",
+    borderColor: t.colors.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: "#FFFFFF",
-    backgroundColor: "#2A2A2A",
+    color: t.colors.text,
+    backgroundColor: t.colors.inputBg,
   },
   textarea: { minHeight: 110, textAlignVertical: "top" },
 
@@ -850,11 +1169,11 @@ const styles = StyleSheet.create({
   categoryCard: {
     width: "31%",
     borderWidth: 2,
-    borderColor: "#333333",
+    borderColor: t.colors.border,
     borderRadius: 14,
     paddingVertical: 12,
     alignItems: "center",
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
   },
   categoryIcon: {
     width: 40,
@@ -864,7 +1183,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 6,
   },
-  categoryLabel: { fontSize: 12, color: "#FFFFFF", fontWeight: "600" },
+  categoryLabel: { fontSize: 12, color: t.colors.text, fontWeight: "600" },
 
   // Location
   locationBtn: {
@@ -875,7 +1194,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginTop: 14,
     borderRadius: 12,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: t.colors.inputBg,
     borderWidth: 1,
     borderColor: "#4CAF50",
   },
@@ -887,9 +1206,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
     padding: 10,
     borderRadius: 8,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: t.colors.inputBg,
   },
-  coordsText: { color: "#FFFFFF", fontSize: 13 },
+  coordsText: { color: t.colors.text, fontSize: 13 },
 
   // Date/Time tiles
   tile: {
@@ -900,12 +1219,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#333333",
-    backgroundColor: "#1A1A1A",
+    borderColor: t.colors.border,
+    backgroundColor: t.colors.surface,
     marginBottom: 10,
   },
-  tileLabel: { fontSize: 12, color: "#B3B3B3", fontWeight: "600" },
-  tileValue: { fontSize: 15, color: "#FFFFFF", fontWeight: "600" },
+  tileLabel: { fontSize: 12, color: t.colors.textSecondary, fontWeight: "600" },
+  tileValue: { fontSize: 15, color: t.colors.text, fontWeight: "600" },
 
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
@@ -913,11 +1232,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#333333",
-    backgroundColor: "#1A1A1A",
+    borderColor: t.colors.border,
+    backgroundColor: t.colors.surface,
   },
-  chipActive: { borderColor: "#4CAF50", backgroundColor: "#2A2A2A" },
-  chipText: { color: "#FFFFFF", fontWeight: "600", fontSize: 13 },
+  chipActive: { borderColor: "#4CAF50", backgroundColor: t.colors.inputBg },
+  chipText: { color: t.colors.text, fontWeight: "600", fontSize: 13 },
   chipTextActive: { color: "#4CAF50" },
 
   // Stepper
@@ -931,13 +1250,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: t.colors.inputBg,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "#4CAF50",
   },
-  stepperValue: { fontSize: 22, fontWeight: "800", color: "#FFFFFF", minWidth: 40, textAlign: "center" },
+  stepperValue: { fontSize: 22, fontWeight: "800", color: t.colors.text, minWidth: 40, textAlign: "center" },
 
   // Options
   optionRow: {
@@ -948,10 +1267,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#333333",
-    backgroundColor: "#1A1A1A",
+    borderColor: t.colors.border,
+    backgroundColor: t.colors.surface,
   },
-  optionRowActive: { borderColor: "#4CAF50", backgroundColor: "#2A2A2A" },
+  optionRowActive: { borderColor: "#4CAF50", backgroundColor: t.colors.inputBg },
   radio: {
     width: 20,
     height: 20,
@@ -961,46 +1280,64 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  optionLabel: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
-  optionSub: { fontSize: 12, color: "#B3B3B3" },
+  optionLabel: { fontSize: 14, fontWeight: "700", color: t.colors.text },
+  optionSub: { fontSize: 12, color: t.colors.textSecondary },
 
   // Pricing
   toggleRow: { flexDirection: "row", gap: 10, marginBottom: 10 },
   toggleCard: {
     flex: 1,
     borderWidth: 2,
-    borderColor: "#333333",
+    borderColor: t.colors.border,
     borderRadius: 14,
     padding: 14,
     alignItems: "center",
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
   },
-  toggleActive: { borderColor: "#4CAF50", backgroundColor: "#2A2A2A" },
-  toggleTitle: { fontSize: 16, fontWeight: "800", color: "#FFFFFF", marginTop: 6 },
-  toggleSub: { fontSize: 12, color: "#B3B3B3" },
+  toggleActive: { borderColor: "#4CAF50", backgroundColor: t.colors.inputBg },
+  toggleTitle: { fontSize: 16, fontWeight: "800", color: t.colors.text, marginTop: 6 },
+  toggleSub: { fontSize: 12, color: t.colors.textSecondary },
 
-  priceInputWrap: {
+  priceTierGrid: {
     flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#333333",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    backgroundColor: "#2A2A2A",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 8,
   },
-  priceCurrency: { fontSize: 18, fontWeight: "700", color: "#FFFFFF", marginRight: 6 },
-  priceInput: { flex: 1, fontSize: 18, paddingVertical: 12, color: "#FFFFFF" },
+  priceTierBtn: {
+    flex: 1,
+    minWidth: 70,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: t.colors.border,
+    backgroundColor: t.colors.inputBg,
+    alignItems: "center",
+  },
+  priceTierBtnActive: {
+    borderColor: "#4CAF50",
+    backgroundColor: "#4CAF5022",
+  },
+  priceTierLabel: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: t.colors.text,
+  },
+  priceTierLabelActive: {
+    color: "#4CAF50",
+  },
 
   feeBreakdown: {
     marginTop: 10,
     padding: 12,
     borderRadius: 10,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: t.colors.inputBg,
     borderWidth: 1,
-    borderColor: "#333333",
+    borderColor: t.colors.border,
   },
   feeRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 },
-  feeLabel: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
+  feeLabel: { fontSize: 13, fontWeight: "700", color: t.colors.text },
   feeValue: { fontSize: 13, fontWeight: "800", color: "#4CAF50" },
   feeLabelMuted: { fontSize: 12, color: "#888" },
   feeValueMuted: { fontSize: 12, color: "#888" },
@@ -1016,9 +1353,9 @@ const styles = StyleSheet.create({
   imagePicker: {
     height: 180,
     borderRadius: 14,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: t.colors.inputBg,
     borderWidth: 2,
-    borderColor: "#333333",
+    borderColor: t.colors.border,
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
@@ -1044,20 +1381,20 @@ const styles = StyleSheet.create({
     marginTop: 12,
     padding: 10,
     borderRadius: 10,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: t.colors.inputBg,
   },
   fallbackImg: { width: 44, height: 44, borderRadius: 8 },
-  fallbackText: { color: "#B3B3B3", fontSize: 12, flex: 1 },
+  fallbackText: { color: t.colors.textSecondary, fontSize: 12, flex: 1 },
 
   // Preview
   previewCard: {
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#333333",
+    borderColor: t.colors.border,
   },
-  previewImg: { width: "100%", height: 160, backgroundColor: "#2A2A2A" },
+  previewImg: { width: "100%", height: 160, backgroundColor: t.colors.inputBg },
   previewBadgeRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
   catChip: {
     flexDirection: "row",
@@ -1071,12 +1408,12 @@ const styles = StyleSheet.create({
   previewTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: t.colors.text,
     marginBottom: 10,
   },
   previewRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 },
-  previewRowText: { fontSize: 13, color: "#B3B3B3" },
-  previewDesc: { fontSize: 13, color: "#B3B3B3", marginTop: 8, lineHeight: 18 },
+  previewRowText: { fontSize: 13, color: t.colors.textSecondary },
+  previewDesc: { fontSize: 13, color: t.colors.textSecondary, marginTop: 8, lineHeight: 18 },
 
   // Footer
   footer: {
@@ -1084,9 +1421,9 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 12,
     paddingBottom: Platform.OS === "ios" ? 24 : 12,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#333333",
+    borderTopColor: t.colors.border,
   },
   primaryBtn: {
     flex: 2,
@@ -1105,8 +1442,232 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2A2A2A",
+    backgroundColor: t.colors.inputBg,
   },
-  secondaryBtnText: { color: "#FFFFFF", fontWeight: "700" },
+  secondaryBtnText: { color: t.colors.text, fontWeight: "700" },
   btnDisabled: { opacity: 0.4 },
+
+  // Dots progress bar
+  dotsBar: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 14,
+    backgroundColor: t.colors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#222222",
+  },
+  dotsBarLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#9CA3AF",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: 10,
+  },
+  dotsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dotsLine: {
+    flex: 1,
+    height: 2,
+    borderRadius: 1,
+  },
+  dotsLineGreen: { backgroundColor: "#4CAF50" },
+  dotsLineGrey: { backgroundColor: t.colors.border },
+  dotWrap: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dotWrapCurrent: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: "#4CAF50",
+  },
+  dotCore: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  dotCoreGreen: { backgroundColor: "#4CAF50" },
+  dotCoreEmpty: {
+    borderWidth: 2,
+    borderColor: t.colors.border,
+    backgroundColor: "transparent",
+  },
+
+  // Map & search (Step 2)
+  searchRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 10,
+  },
+  searchInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: t.colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: t.colors.text,
+    backgroundColor: t.colors.inputBg,
+  },
+  searchBtn: {
+    width: 46,
+    borderRadius: 12,
+    backgroundColor: "#4CAF50",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mapContainer: {
+    height: 220,
+    borderRadius: 14,
+    overflow: "hidden",
+    marginBottom: 10,
+    position: "relative",
+  },
+  map: { width: "100%", height: "100%" },
+  mapOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    zIndex: 1,
+  },
+  mapOverlayText: { color: t.colors.text, fontWeight: "600" },
+  locationInfoCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: t.colors.inputBg,
+    borderWidth: 1,
+    borderColor: t.colors.border,
+    marginTop: 2,
+  },
+  locationInfoName: { color: t.colors.text, fontWeight: "600", fontSize: 14 },
+  locationInfoDist: { color: "#9CA3AF", fontSize: 12, marginTop: 2 },
+
+  // Map tap hint overlay
+  mapTapHint: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  mapTapHintText: { color: "rgba(255,255,255,0.85)", fontSize: 11, fontWeight: "600" },
+
+  // Open full map button
+  openMapBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    marginBottom: 10,
+    borderRadius: 12,
+    backgroundColor: t.colors.surface,
+    borderWidth: 1,
+    borderColor: "#4CAF50",
+  },
+  openMapBtnText: { color: "#4CAF50", fontWeight: "700", fontSize: 14 },
+
+  // Full-screen map modal
+  fullMapSafe: { flex: 1, backgroundColor: t.colors.background },
+  fullMapHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: t.colors.border,
+  },
+  fullMapBackBtn: { padding: 8, width: 44, alignItems: "center" },
+  fullMapTitle: { fontSize: 16, fontWeight: "700", color: t.colors.text },
+  fullMapSearchRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: t.colors.background,
+  },
+  fullMapSearchInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: t.colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    fontSize: 14,
+    color: t.colors.text,
+    backgroundColor: t.colors.inputBg,
+  },
+  fullMapSearchBtn: {
+    width: 46,
+    borderRadius: 12,
+    backgroundColor: "#4CAF50",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fullMap: { flex: 1 },
+  fullMapBottom: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 10,
+    backgroundColor: t.colors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: t.colors.border,
+    gap: 10,
+  },
+  fullMapLocationBar: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: t.colors.surface,
+    borderWidth: 1,
+    borderColor: t.colors.border,
+  },
+  fullMapLocationText: { flex: 1, color: t.colors.text, fontWeight: "600", fontSize: 14 },
+  fullMapHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: t.colors.surface,
+    borderWidth: 1,
+    borderColor: t.colors.border,
+  },
+  fullMapHintText: { flex: 1, color: t.colors.textSecondary, fontSize: 13 },
+  fullMapConfirmBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: "#4CAF50",
+  },
+  fullMapConfirmText: { color: "#fff", fontSize: 15, fontWeight: "800" },
 });

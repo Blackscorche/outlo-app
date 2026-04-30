@@ -12,7 +12,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
-import { theme } from "../styles/theme";
 import { commonStyles } from "../styles/common";
 import { useActivities, Activity } from "../hooks/useActivities";
 import { ACTIVITY_TYPES } from "../constants/activityTypes";
@@ -21,6 +20,7 @@ import ActivityCard from "../components/ActivityCard";
 import CreateActivityModal from "../components/CreateActivityModal";
 import ActivityDetailModal from "../components/ActivityDetailModal";
 import { supabase } from "../integrations/supabase/client";
+import { useTheme } from '../contexts/ThemeContext';
 
 type TabType = "all" | "my" | "joined";
 type DistanceFilter = "all" | "1" | "5" | "10" | "25";
@@ -62,6 +62,8 @@ const calculateDistance = (
 };
 
 export default function ActivitiesScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const {
     activities,
     myActivities,
@@ -287,6 +289,7 @@ export default function ActivitiesScreen({ navigation }: any) {
   const filteredJoinedCount = applyFilters(joinedActivities).length;
   const filteredMyCount = applyFilters(myActivities).length;
   const activeFiltersCount = getActiveFiltersCount();
+  const hasPaidActivities = myActivities.some(a => a.is_paid);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -360,6 +363,26 @@ export default function ActivitiesScreen({ navigation }: any) {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {activeTab === 'my' && hasPaidActivities && (
+        <TouchableOpacity
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            backgroundColor: '#166834',
+            marginHorizontal: 16,
+            marginBottom: 8,
+            paddingVertical: 12,
+            borderRadius: 12,
+          }}
+          onPress={() => navigation.navigate('CreatorWallet')}
+        >
+          <Ionicons name="wallet" size={18} color="#4CAF50" />
+          <Text style={{ color: '#4CAF50', fontWeight: '700', fontSize: 15 }}>View Earnings</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Filter Row */}
       <View style={styles.filterRow}>
@@ -577,19 +600,19 @@ export default function ActivitiesScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0A0A0A",
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: theme.spacing.xs,
-    paddingRight: theme.spacing.md,
+    paddingVertical: t.spacing.xs,
+    paddingRight: t.spacing.md,
     paddingLeft: 12,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -597,7 +620,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     zIndex: 1,
     borderBottomWidth: 1,
-    borderBottomColor: "#333333",
+    borderBottomColor: t.colors.border,
   },
   headerTitle: {
     position: "absolute",
@@ -606,7 +629,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 24,
     fontWeight: "bold",
-    color: "#FFFFFF",
+    color: t.colors.text,
     pointerEvents: "none",
   },
   headerLogo: {
@@ -623,7 +646,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: t.colors.surface,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -649,7 +672,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   createButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -658,13 +681,13 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     flexDirection: "row",
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#333333",
+    borderBottomColor: t.colors.border,
   },
   tab: {
     flex: 1,
-    paddingVertical: theme.spacing.md,
+    paddingVertical: t.spacing.md,
     alignItems: "center",
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
@@ -674,7 +697,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 14,
-    color: "#B3B3B3",
+    color: t.colors.textSecondary,
     fontWeight: "500",
   },
   activeTabText: {
@@ -682,14 +705,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   filterRow: {
-    backgroundColor: "#1A1A1A",
-    paddingVertical: theme.spacing.sm,
+    backgroundColor: t.colors.surface,
+    paddingVertical: t.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: "#333333",
+    borderBottomColor: t.colors.border,
   },
   filterList: {
-    paddingHorizontal: theme.spacing.lg,
-    gap: theme.spacing.sm,
+    paddingHorizontal: t.spacing.lg,
+    gap: t.spacing.sm,
   },
   filterChip: {
     flexDirection: "row",
@@ -700,7 +723,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#4CAF50",
     backgroundColor: "transparent",
-    marginRight: theme.spacing.sm,
+    marginRight: t.spacing.sm,
     gap: 4,
   },
   filterChipActive: {
@@ -717,12 +740,12 @@ const styles = StyleSheet.create({
   },
   additionalFilters: {
     flexDirection: "row",
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
-    backgroundColor: "#1A1A1A",
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.sm,
+    backgroundColor: t.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#333333",
-    gap: theme.spacing.sm,
+    borderBottomColor: t.colors.border,
+    gap: t.spacing.sm,
     flexWrap: "wrap",
   },
   filterButton: {
@@ -731,9 +754,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: t.colors.inputBg,
     borderWidth: 1,
-    borderColor: "#333333",
+    borderColor: t.colors.border,
     gap: 4,
   },
   filterButtonActive: {
@@ -742,7 +765,7 @@ const styles = StyleSheet.create({
   },
   filterButtonText: {
     fontSize: 12,
-    color: "#B3B3B3",
+    color: t.colors.textSecondary,
     fontWeight: "500",
   },
   filterButtonTextActive: {
@@ -756,11 +779,11 @@ const styles = StyleSheet.create({
   },
   clearFiltersText: {
     fontSize: 12,
-    color: theme.colors.error,
+    color: t.colors.error,
     fontWeight: "500",
   },
   listContent: {
-    padding: theme.spacing.lg,
+    padding: t.spacing.lg,
     paddingBottom: 100,
   },
   loadingContainer: {
@@ -770,29 +793,29 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     alignItems: "center",
-    paddingTop: theme.spacing.xl * 2,
+    paddingTop: t.spacing.xl * 2,
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#FFFFFF",
-    marginTop: theme.spacing.md,
+    color: t.colors.text,
+    marginTop: t.spacing.md,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: "#B3B3B3",
-    marginTop: theme.spacing.sm,
+    color: t.colors.textSecondary,
+    marginTop: t.spacing.sm,
     textAlign: "center",
   },
   createButtonEmpty: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#4CAF50",
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    marginTop: theme.spacing.lg,
-    gap: theme.spacing.sm,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.lg,
+    marginTop: t.spacing.lg,
+    gap: t.spacing.sm,
   },
   createButtonEmptyText: {
     color: "white",
@@ -805,71 +828,71 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   filterModal: {
-    backgroundColor: "#1A1A1A",
+    backgroundColor: t.colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl * 2,
+    padding: t.spacing.lg,
+    paddingBottom: t.spacing.xl * 2,
   },
   filterModalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: theme.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   filterModalTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   filterSectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: theme.colors.text,
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
+    color: t.colors.text,
+    marginTop: t.spacing.md,
+    marginBottom: t.spacing.sm,
   },
   filterOptions: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   filterOption: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    borderColor: t.colors.border,
+    backgroundColor: t.colors.background,
   },
   filterOptionActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + "15",
+    borderColor: t.colors.primary,
+    backgroundColor: t.colors.primary + "15",
   },
   filterOptionText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   filterOptionTextActive: {
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontWeight: "600",
   },
   availableToggle: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: theme.spacing.lg,
-    gap: theme.spacing.sm,
+    marginTop: t.spacing.lg,
+    gap: t.spacing.sm,
   },
   availableToggleText: {
     fontSize: 14,
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   applyButton: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: t.colors.primary,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.lg,
     alignItems: "center",
-    marginTop: theme.spacing.lg,
+    marginTop: t.spacing.lg,
   },
   applyButtonText: {
     color: "white",

@@ -12,11 +12,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../contexts/ThemeContext';
 
 const ChangeEmailScreen = ({ navigation }: any) => {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const { user } = useAuth();
   const [newEmail, setNewEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -227,17 +229,17 @@ const ChangeEmailScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
   },
   backButton: {
     width: 40,
@@ -246,82 +248,82 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: theme.fontSize.lg,
+    fontSize: t.fontSize.lg,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   scrollContent: {
-    padding: theme.spacing.md,
+    padding: t.spacing.md,
   },
   errorCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FEF2F2',
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
+    borderRadius: t.borderRadius.lg,
+    padding: t.spacing.md,
+    marginBottom: t.spacing.md,
     gap: 8,
   },
   errorText: {
     flex: 1,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.error,
+    fontSize: t.fontSize.sm,
+    color: t.colors.error,
   },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF1F2',
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
+    borderRadius: t.borderRadius.lg,
+    padding: t.spacing.md,
+    marginBottom: t.spacing.md,
     gap: 8,
   },
   infoText: {
     flex: 1,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.text,
+    fontSize: t.fontSize.sm,
+    color: t.colors.text,
   },
   card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.xl,
+    padding: t.spacing.md,
+    marginBottom: t.spacing.md,
   },
   label: {
-    fontSize: theme.fontSize.sm,
+    fontSize: t.fontSize.sm,
     fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    color: t.colors.text,
+    marginBottom: t.spacing.xs,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: t.colors.background,
+    borderRadius: t.borderRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginBottom: theme.spacing.md,
+    borderColor: t.colors.border,
+    marginBottom: t.spacing.md,
   },
   disabledInput: {
-    backgroundColor: theme.colors.gray[100],
+    backgroundColor: t.colors.gray[100],
   },
   currentEmailText: {
     flex: 1,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm + 4,
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm + 4,
+    fontSize: t.fontSize.base,
+    color: t.colors.textSecondary,
   },
   input: {
     flex: 1,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm + 4,
-    fontSize: theme.fontSize.base,
-    color: theme.colors.text,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm + 4,
+    fontSize: t.fontSize.base,
+    color: t.colors.text,
   },
   actionButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: t.colors.primary,
+    borderRadius: t.borderRadius.lg,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -331,16 +333,16 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: '#FFF',
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: '700',
   },
   resendRow: {
     alignItems: 'center',
-    marginTop: theme.spacing.md,
+    marginTop: t.spacing.md,
   },
   resendText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.primary,
+    fontSize: t.fontSize.sm,
+    color: t.colors.primary,
     fontWeight: '600',
   },
   successButton: {
@@ -350,22 +352,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.xl,
+    paddingHorizontal: t.spacing.xl,
   },
   successIconCircle: {
-    marginBottom: theme.spacing.md,
+    marginBottom: t.spacing.md,
   },
   successTitle: {
-    fontSize: theme.fontSize.xl,
+    fontSize: t.fontSize.xl,
     fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    color: t.colors.text,
+    marginBottom: t.spacing.sm,
   },
   successMessage: {
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.base,
+    color: t.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: theme.spacing.xl,
+    marginBottom: t.spacing.xl,
   },
 });
 

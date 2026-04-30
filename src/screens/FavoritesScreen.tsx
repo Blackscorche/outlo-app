@@ -9,8 +9,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
+import { useTheme } from '../contexts/ThemeContext';
 
 const FavoritesScreen = ({ navigation }) => {
   const [favorites, setFavorites] = useState([
@@ -64,6 +64,8 @@ const FavoritesScreen = ({ navigation }) => {
       </TouchableOpacity>
     </TouchableOpacity>
   );
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -95,33 +97,33 @@ const FavoritesScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.md,
   },
   listContent: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.lg,
+    paddingHorizontal: t.spacing.lg,
+    paddingBottom: t.spacing.lg,
   },
   favoriteCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
+    backgroundColor: t.colors.surface,
+    borderRadius: t.borderRadius.lg,
+    padding: t.spacing.md,
+    marginBottom: t.spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
   },
   avatarContainer: {
     position: 'relative',
-    marginRight: theme.spacing.md,
+    marginRight: t.spacing.md,
   },
   avatar: {
     width: 70,
@@ -129,7 +131,7 @@ const styles = StyleSheet.create({
     borderRadius: 35,
   },
   avatarPlaceholder: {
-    backgroundColor: theme.colors.gray[200],
+    backgroundColor: t.colors.gray[200],
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -140,48 +142,48 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: theme.colors.success,
+    backgroundColor: t.colors.success,
     borderWidth: 2,
-    borderColor: theme.colors.surface,
+    borderColor: t.colors.surface,
   },
   favoriteInfo: {
     flex: 1,
   },
   favoriteName: {
-    fontSize: theme.fontSize.base,
+    fontSize: t.fontSize.base,
     fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    color: t.colors.text,
+    marginBottom: t.spacing.xs,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   locationText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginLeft: theme.spacing.xs,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
+    marginLeft: t.spacing.xs,
   },
   messageButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: t.colors.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
   },
   emptyText: {
-    marginTop: theme.spacing.md,
-    fontSize: theme.fontSize.lg,
+    marginTop: t.spacing.md,
+    fontSize: t.fontSize.lg,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   emptySubtext: {
-    marginTop: theme.spacing.xs,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
+    marginTop: t.spacing.xs,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
     textAlign: 'center',
-    paddingHorizontal: theme.spacing.xl,
+    paddingHorizontal: t.spacing.xl,
   },
 });
 

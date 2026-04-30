@@ -1,3 +1,5 @@
+// Static dark theme — used by screens that don't need dynamic switching.
+// For dynamic theming use: import { useTheme } from '../contexts/ThemeContext'
 export const theme = {
   colors: {
     primary: '#4CAF50',

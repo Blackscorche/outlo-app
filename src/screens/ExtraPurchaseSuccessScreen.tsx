@@ -7,13 +7,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
 import { supabase } from '../integrations/supabase/client';
 import AppLoading from '../components/AppLoading';
 import subscriptionService from '../services/subscriptionService';
+import { useTheme } from '../contexts/ThemeContext';
 
 const ExtraPurchaseSuccessScreen = ({ navigation, route }: any) => {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState(false);
   const [purchaseDetails, setPurchaseDetails] = useState<any>(null);
@@ -130,77 +132,77 @@ const ExtraPurchaseSuccessScreen = ({ navigation, route }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   centerContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.xl,
+    padding: t.spacing.xl,
   },
   successIcon: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: t.spacing.xl,
   },
   title: {
-    fontSize: theme.fontSize.xxl,
+    fontSize: t.fontSize.xxl,
     fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.md,
+    color: t.colors.text,
+    marginBottom: t.spacing.md,
     textAlign: 'center',
   },
   message: {
-    fontSize: theme.fontSize.md,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.md,
+    color: t.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: theme.spacing.xl,
+    marginBottom: t.spacing.xl,
     lineHeight: 24,
   },
   loadingText: {
-    fontSize: theme.fontSize.md,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.md,
+    fontSize: t.fontSize.md,
+    color: t.colors.textSecondary,
+    marginTop: t.spacing.md,
   },
   detailsContainer: {
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.xl,
+    backgroundColor: t.colors.card,
+    borderRadius: t.borderRadius.lg,
+    padding: t.spacing.lg,
+    marginBottom: t.spacing.xl,
     width: '100%',
   },
   detailsTitle: {
-    fontSize: theme.fontSize.md,
+    fontSize: t.fontSize.md,
     fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.md,
+    color: t.colors.text,
+    marginBottom: t.spacing.md,
   },
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    marginBottom: t.spacing.sm,
   },
   detailText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginLeft: theme.spacing.sm,
+    fontSize: t.fontSize.sm,
+    color: t.colors.textSecondary,
+    marginLeft: t.spacing.sm,
   },
   button: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.xl * 2,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.full,
-    marginBottom: theme.spacing.md,
+    backgroundColor: t.colors.primary,
+    paddingHorizontal: t.spacing.xl * 2,
+    paddingVertical: t.spacing.md,
+    borderRadius: t.borderRadius.full,
+    marginBottom: t.spacing.md,
   },
   buttonText: {
     color: 'white',
-    fontSize: theme.fontSize.md,
+    fontSize: t.fontSize.md,
     fontWeight: '600',
   },
   autoRedirectText: {
-    fontSize: theme.fontSize.xs,
-    color: theme.colors.textSecondary,
+    fontSize: t.fontSize.xs,
+    color: t.colors.textSecondary,
     fontStyle: 'italic',
   },
 });

@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import MapFilters from '../components/MapFilters';
 import UserProfilePopup from '../components/UserProfilePopup';
 import NearbyUsersModal from '../components/NearbyUsersModal';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface UserLocation {
   id: string;
@@ -205,6 +206,8 @@ export default function HomeScreen({ navigation }: any) {
         setLoading(false);
       }
     })();
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
     return () => {
       isMounted = false;
@@ -584,7 +587,7 @@ export default function HomeScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
   },

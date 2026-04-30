@@ -9,16 +9,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { useSkillMatching } from '../hooks/useSkillMatching';
 import { useSkills } from '../hooks/useSkills';
 import SkillMatchCard from '../components/SkillMatchCard';
 import AppLoading from '../components/AppLoading';
 import SkillExchangeProposalModal from '../components/SkillExchangeProposalModal';
+import { useTheme } from '../contexts/ThemeContext';
 
 type TabType = 'all' | 'canTeach' | 'wantToLearn' | 'mutual';
 
 export default function SkillMatchingScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [showProposalModal, setShowProposalModal] = useState(false);
@@ -243,27 +245,27 @@ export default function SkillMatchingScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   backButton: {
-    padding: theme.spacing.xs,
+    padding: t.spacing.xs,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   headerTitleRow: {
     flexDirection: 'row',
@@ -300,14 +302,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 8,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderBottomColor: theme.colors.gray[700],
+    borderBottomColor: t.colors.gray[700],
     marginLeft: 80,
   },
   tooltip: {
-    backgroundColor: theme.colors.gray[700],
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.sm,
+    backgroundColor: t.colors.gray[700],
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.sm,
+    borderRadius: t.borderRadius.sm,
     maxWidth: 240,
   },
   tooltipText: {
@@ -318,8 +320,8 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: t.spacing.md,
+    paddingVertical: t.spacing.md,
     gap: 8,
   },
   tab: {
@@ -329,22 +331,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: t.colors.surface,
     gap: 4,
   },
   tabActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
   },
   tabText: {
     fontSize: 12,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   tabTextActive: {
     color: 'white',
   },
   tabBadge: {
-    backgroundColor: theme.colors.gray[300],
+    backgroundColor: t.colors.gray[300],
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 10,
@@ -357,7 +359,7 @@ const styles = StyleSheet.create({
   tabBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   tabBadgeTextActive: {
     color: 'white',
@@ -366,50 +368,50 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: theme.spacing.md,
+    gap: t.spacing.md,
   },
   loadingText: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   listContent: {
-    padding: theme.spacing.md,
+    padding: t.spacing.md,
     flexGrow: 1,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.xl,
-    paddingVertical: theme.spacing.xl * 2,
+    paddingHorizontal: t.spacing.xl,
+    paddingVertical: t.spacing.xl * 2,
   },
   emptyIconContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: t.colors.primary + '15',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    color: t.colors.text,
+    marginBottom: t.spacing.sm,
     textAlign: 'center',
   },
   emptyText: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: theme.spacing.lg,
+    marginBottom: t.spacing.lg,
   },
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24,
@@ -427,12 +429,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: t.colors.primary,
     gap: 8,
   },
   refreshButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.primary,
+    color: t.colors.primary,
   },
 });

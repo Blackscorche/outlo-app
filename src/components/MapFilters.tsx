@@ -8,8 +8,7 @@ import {
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
-
+import { useTheme } from '../contexts/ThemeContext';
 interface MapFiltersProps {
   visible: boolean;
   onClose: () => void;
@@ -44,6 +43,8 @@ export default function MapFilters({ visible, onClose, filters, onFiltersChange 
     setLocalFilters(defaultFilters);
     onFiltersChange(defaultFilters);
   };
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
 
   return (
     <Modal
@@ -133,10 +134,10 @@ export default function MapFilters({ visible, onClose, filters, onFiltersChange 
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -145,15 +146,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   resetText: {
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontSize: 16,
   },
   content: {
@@ -166,7 +167,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginBottom: 16,
   },
   optionsContainer: {
@@ -175,20 +176,20 @@ const styles = StyleSheet.create({
   },
   optionButton: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: t.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: t.colors.border,
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
   },
   optionButtonSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
+    borderColor: t.colors.primary,
   },
   optionText: {
     fontSize: 16,
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   optionTextSelected: {
     color: 'white',
@@ -197,7 +198,7 @@ const styles = StyleSheet.create({
     height: 40,
   },
   sliderThumb: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
   },
   sliderLabels: {
     flexDirection: 'row',
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
   },
   sliderLabel: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
   },
   ageContainer: {
     gap: 20,
@@ -216,15 +217,15 @@ const styles = StyleSheet.create({
   },
   ageLabel: {
     fontSize: 16,
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   footer: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: t.colors.border,
   },
   applyButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
   },
   ageDisabledText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 16,

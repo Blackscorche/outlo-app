@@ -1,29 +1,29 @@
 {
   "expo": {
     "name": "Outlo",
-    "slug": "lovemapmobile",
-    "version": "1.0.0",
+    "slug": "outlo",
+    "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/logos/lightmode_logo.jpeg",
+    "icon": "./assets/logos/darkmode_logo.png",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/logos/lightmode_logo.jpeg",
+      "image": "./assets/logos/darkmode_logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#000000"
+      "backgroundColor": "#0A0A0A"
     },
     "ios": {
       "supportsTablet": true,
       "deploymentTarget": "16.0",
       "newArchEnabled": true,
       "infoPlist": {
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "LoveMap needs your location to display your position on the interactive map and help you discover nearby users. For example, when you open the map, your pin will appear at your current location, and you'll see other users within your area. Your location is also used when you post photos or check in at places to share where you are with your connections.",
-        "NSLocationWhenInUseUsageDescription": "LoveMap needs your location to display your position on the interactive map and help you discover nearby users. For example, when you open the map, your pin will appear at your current location, and you'll see other users within your area. Your location is also used when you post photos or check in at places to share where you are with your connections.",
-        "NSCameraUsageDescription": "LoveMap needs access to your camera to capture photos for your posts and profile. For example, you can take a photo directly from the app to share a moment on your profile or use it as your profile picture.",
-        "NSPhotoLibraryUsageDescription": "LoveMap needs access to your photo library to select photos for your posts and profile. For example, you can choose an existing photo from your library to share on your profile or set as your profile picture.",
-        "NSPhotoLibraryAddUsageDescription": "LoveMap needs permission to save photos to your library. For example, you can save photos from posts you've created or photos you've received from other users to your device's photo library.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Outlo needs your location to display your position on the interactive map and help you discover nearby users. For example, when you open the map, your pin will appear at your current location, and you'll see other users within your area. Your location is also used when you post photos or check in at places to share where you are with your connections.",
+        "NSLocationWhenInUseUsageDescription": "Outlo needs your location to display your position on the interactive map and help you discover nearby users. For example, when you open the map, your pin will appear at your current location, and you'll see other users within your area. Your location is also used when you post photos or check in at places to share where you are with your connections.",
+        "NSCameraUsageDescription": "Outlo needs access to your camera to capture photos for your posts and profile. For example, you can take a photo directly from the app to share a moment on your profile or use it as your profile picture.",
+        "NSPhotoLibraryUsageDescription": "Outlo needs access to your photo library to select photos for your posts and profile. For example, you can choose an existing photo from your library to share on your profile or set as your profile picture.",
+        "NSPhotoLibraryAddUsageDescription": "Outlo needs permission to save photos to your library. For example, you can save photos from posts you've created or photos you've received from other users to your device's photo library.",
         "SKStoreProductParameterITunesItemIdentifier": "Enable in-app purchases"
       },
-      "bundleIdentifier": "com.lovemapapp.mobile",
+      "bundleIdentifier": "com.outlo.mobile",
       "config": {
         "googleMapsApiKey": "AIzaSyACvyzzNdarbci_i_HYUH9s6Dl3TsFSZY0"
       },
@@ -31,11 +31,11 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/logos/darkmode_logo.png",
+        "backgroundColor": "#0A0A0A"
       },
       "softwareKeyboardLayoutMode": "pan",
-      "package": "com.lovemapapp.mobile",
+      "package": "com.outlo.mobile",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
@@ -56,7 +56,7 @@
           "autoVerify": true,
           "data": [
             {
-              "scheme": "lovemap"
+              "scheme": "outlo"
             }
           ],
           "category": [
@@ -69,7 +69,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "scheme": "lovemap",
+    "scheme": "outlo",
     "plugins": [
       "expo-notifications",
       [
@@ -85,7 +85,12 @@
           "cameraPermission": "The app accesses your camera to let you take photos to share."
         }
       ],
-      "react-native-iap",
+      [
+        "react-native-iap",
+        {
+          "playBillingVersion": "6"
+        }
+      ],
       "@react-native-google-signin/google-signin",
       [
         "expo-build-properties",

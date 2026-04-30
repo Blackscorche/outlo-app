@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View, ViewStyle } from "react-native";
+import { useTheme } from '../contexts/ThemeContext';
 import { Ionicons } from "@expo/vector-icons";
 
 interface BoostBadgeProps {
@@ -17,6 +18,8 @@ export default function BoostBadge({
   label = "Featured",
 }: BoostBadgeProps) {
   const small = size === "sm";
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   return (
     <View style={[styles.base, small && styles.smallPad, style]}>
       <Ionicons name="star" size={small ? 11 : 13} color="#fff" />
@@ -25,7 +28,7 @@ export default function BoostBadge({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   base: {
     flexDirection: "row",
     alignItems: "center",

@@ -13,7 +13,7 @@ import {
 import Slider from "@react-native-community/slider";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../styles/theme";
+import { useTheme } from "../contexts/ThemeContext";
 import { supabase } from "../integrations/supabase/client";
 import { useAuth } from "../hooks/useAuth";
 import { useSettings } from "../contexts/SettingsContext";
@@ -22,6 +22,8 @@ import { useSubscription } from "../hooks/useSubscription";
 import engagementNotificationService from "../services/engagementNotificationService";
 
 const SettingsScreen = ({ navigation }) => {
+  const { theme, isDark, toggleTheme } = useTheme();
+  const styles = makeStyles(theme);
   const { user } = useAuth();
   const {
     settings,
@@ -173,7 +175,7 @@ const SettingsScreen = ({ navigation }) => {
                     } catch (e) {
                       Alert.alert(
                         "Error",
-                        "Failed to delete account. Please contact support@lovemapapp.com",
+                        "Failed to delete account. Please contact support@outlo.app",
                       );
                     } finally {
                       setLoading(false);
@@ -236,6 +238,29 @@ const SettingsScreen = ({ navigation }) => {
             <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
               <Text style={styles.editButton}>Edit</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Appearance */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="contrast-outline" size={20} color="#4CAF50" />
+            <Text style={styles.sectionTitle}>Appearance</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleInfo}>
+              <Text style={styles.toggleTitle}>Dark Mode</Text>
+              <Text style={styles.toggleSubtitle}>
+                {isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+              </Text>
+            </View>
+            <Switch
+              value={isDark}
+              onValueChange={toggleTheme}
+              trackColor={{ false: '#E0E0E0', true: '#4CAF50' }}
+              thumbColor={isDark ? '#FFFFFF' : '#FFFFFF'}
+            />
           </View>
         </View>
 
@@ -546,7 +571,7 @@ const SettingsScreen = ({ navigation }) => {
             style={styles.menuRow}
             onPress={() => {
               const url =
-                "https://youthful-bath-564.notion.site/LoveMap-Privacy-Policy-32f2528e6c4180028ae7d72d7cc9a2b7";
+                "https://youthful-bath-564.notion.site/Outlo-Privacy-Policy-32f2528e6c4180028ae7d72d7cc9a2b7";
               Linking.openURL(url).catch(() =>
                 Alert.alert("Error", "Unable to open link"),
               );
@@ -570,7 +595,7 @@ const SettingsScreen = ({ navigation }) => {
             style={styles.menuRow}
             onPress={() => {
               const url =
-                "https://youthful-bath-564.notion.site/LoveMap-Terms-of-Service-32f2528e6c418020b72de5f727b05da2";
+                "https://youthful-bath-564.notion.site/Outlo-Terms-of-Service-32f2528e6c418020b72de5f727b05da2";
               Linking.openURL(url).catch(() =>
                 Alert.alert("Error", "Unable to open link"),
               );
@@ -593,7 +618,7 @@ const SettingsScreen = ({ navigation }) => {
           <TouchableOpacity
             style={styles.menuRow}
             onPress={() => {
-              const email = "support@lovemapapp.com";
+              const email = "support@outlo.app";
               Linking.openURL(`mailto:${email}`).catch(() =>
                 Alert.alert("Error", "Unable to open email app"),
               );
@@ -710,10 +735,10 @@ const SettingsScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0A0A0A",
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: "row",
@@ -722,7 +747,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingRight: 16,
     paddingLeft: 12,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: theme.colors.surface,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -730,7 +755,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     zIndex: 1,
     borderBottomWidth: 1,
-    borderBottomColor: "#333333",
+    borderBottomColor: theme.colors.border,
   },
   headerTitle: {
     position: "absolute",
@@ -739,7 +764,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 22,
     fontWeight: "bold",
-    color: "#FFFFFF",
+    color: theme.colors.text,
     pointerEvents: "none",
   },
   headerLogo: {
@@ -752,7 +777,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   card: {
-    backgroundColor: "#1A1A1A",
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -762,7 +787,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
     borderWidth: 1,
-    borderColor: "#333333",
+    borderColor: theme.colors.border,
   },
   // Profile
   profileRow: {
@@ -779,7 +804,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
   },
   avatarPlaceholder: {
-    backgroundColor: "#F0F0F0",
+    backgroundColor: theme.colors.surfaceVariant,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -832,7 +857,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: "#F0F0F0",
+    backgroundColor: theme.colors.border,
     marginVertical: 2,
   },
   // Toggle rows
@@ -900,9 +925,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderColor: theme.colors.border,
     alignItems: "center",
-    backgroundColor: "#FAFAFA",
+    backgroundColor: theme.colors.surfaceVariant,
   },
   genderBtnActive: {
     borderColor: "#2979FF",
@@ -983,7 +1008,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     paddingVertical: 14,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },

@@ -11,10 +11,10 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import AppLoading from './AppLoading';
 import { supabase } from '../integrations/supabase/client';
 import { usePinnedUsers } from '../hooks/usePinnedUsers';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface UserLocation {
   id: string;
@@ -49,11 +49,14 @@ export default function NearbyUsersModal({
   navigation,
   onShowOnMap
 }: NearbyUsersModalProps) {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
+  const { pinnedUsers, togglePinUser, isPinned } = usePinnedUsers();
+
   const [refreshing, setRefreshing] = useState(false);
   const [connectedUserIds, setConnectedUserIds] = useState<Set<string>>(new Set());
   const [connectionsLoaded, setConnectionsLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<'online' | 'all'>('all');
-  const { pinnedUsers, togglePinUser, isPinned } = usePinnedUsers();
 
   // Load connections only once when modal becomes visible
   useEffect(() => {
@@ -499,10 +502,10 @@ export default function NearbyUsersModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: t.colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -511,12 +514,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
   },
   placeholder: {
     width: 24,
@@ -538,12 +541,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginTop: 16,
   },
   emptyText: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -562,12 +565,12 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + '10',
+    borderColor: t.colors.primary,
+    backgroundColor: t.colors.primary + '10',
   },
   chatButtonDisabled: {
-    borderColor: theme.colors.gray[300],
-    backgroundColor: theme.colors.gray[100],
+    borderColor: t.colors.gray[300],
+    backgroundColor: t.colors.gray[100],
   },
   userPhotoContainer: {
     position: 'relative',
@@ -581,7 +584,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: theme.colors.gray[200],
+    backgroundColor: t.colors.gray[200],
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -603,7 +606,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: t.colors.text,
     marginBottom: 8,
   },
   interestsContainer: {
@@ -612,7 +615,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   interestTag: {
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: t.colors.primary + '20',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -620,11 +623,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   interestText: {
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontSize: 12,
   },
   moreInterests: {
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     fontSize: 12,
     marginLeft: 4,
   },
@@ -632,11 +635,11 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     padding: 4,
     borderRadius: 12,
-    backgroundColor: theme.colors.gray[100],
+    backgroundColor: t.colors.gray[100],
   },
   separator: {
     height: 1,
-    backgroundColor: theme.colors.border,
+    backgroundColor: t.colors.border,
     marginLeft: 76,
   },
   unreadBadge: {
@@ -661,7 +664,7 @@ const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: t.colors.border,
   },
   tabItem: {
     flex: 1,
@@ -671,15 +674,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: theme.colors.primary,
+    borderBottomColor: t.colors.primary,
   },
   tabText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: t.colors.textSecondary,
     fontWeight: '500',
   },
   activeTabText: {
-    color: theme.colors.primary,
+    color: t.colors.primary,
     fontWeight: '600',
   },
   pinButton: {
@@ -692,7 +695,7 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: t.colors.primary,
   },
   pinnedIndicator: {
     position: 'absolute',

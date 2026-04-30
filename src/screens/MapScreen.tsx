@@ -9,11 +9,13 @@ import {
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
 import { commonStyles } from '../styles/common';
 import AppLoading from '../components/AppLoading';
+import { useTheme } from '../contexts/ThemeContext';
 
 const MapScreen = ({ navigation }: { navigation: any }) => {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<Array<{ id: string; latitude: number; longitude: number; name: string }>>([]);
@@ -151,7 +153,7 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -159,24 +161,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   loadingText: {
-    marginTop: theme.spacing.md,
-    fontSize: theme.fontSize.base,
-    color: theme.colors.textSecondary,
+    marginTop: t.spacing.md,
+    fontSize: t.fontSize.base,
+    color: t.colors.textSecondary,
   },
   controls: {
     position: 'absolute',
     top: 50,
     right: 10,
-    gap: theme.spacing.sm,
+    gap: t.spacing.sm,
   },
   controlButton: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: t.colors.surface,
     width: 48,
     height: 48,
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    marginBottom: t.spacing.sm,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -190,24 +192,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   marker: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: t.colors.primary,
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: t.colors.text,
   },
   markerLabel: {
     marginTop: 4,
-    fontSize: theme.fontSize.xs,
+    fontSize: t.fontSize.xs,
     fontWeight: '600',
-    color: theme.colors.text,
-    backgroundColor: theme.colors.surface,
-    paddingHorizontal: theme.spacing.xs,
+    color: t.colors.text,
+    backgroundColor: t.colors.surface,
+    paddingHorizontal: t.spacing.xs,
     paddingVertical: 2,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: t.borderRadius.sm,
   },
 });
 

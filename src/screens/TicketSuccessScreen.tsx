@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../integrations/supabase/client";
 import { formatPrice } from "../constants/activityCategories";
+import { useTheme } from '../contexts/ThemeContext';
 
 /**
  * After Stripe checkout. We poll until the webhook flips the latest pending
@@ -17,6 +18,8 @@ import { formatPrice } from "../constants/activityCategories";
  * a future QR code).
  */
 export default function TicketSuccessScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
   const { activityId } = route.params || {};
   const [ticket, setTicket] = useState<any>(null);
   const [activity, setActivity] = useState<any>(null);
@@ -119,7 +122,7 @@ export default function TicketSuccessScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: any) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F9FAFB" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8 },
   loadingText: { fontSize: 16, fontWeight: "700", color: "#111827", marginTop: 16 },
