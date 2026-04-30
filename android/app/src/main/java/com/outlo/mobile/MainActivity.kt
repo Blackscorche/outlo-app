@@ -1,4 +1,4 @@
-package com.lovemapapp.mobile
+package com.outlo.mobile
 
 import android.os.Build
 import android.os.Bundle
