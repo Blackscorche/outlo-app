@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { commonStyles } from "../styles/common";
@@ -100,6 +101,12 @@ export default function ActivitiesScreen({ navigation }: any) {
     getCurrentUser();
     getUserLocation();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshActivities();
+    }, [refreshActivities])
+  );
 
   const getCurrentUser = async () => {
     const {
@@ -366,21 +373,18 @@ export default function ActivitiesScreen({ navigation }: any) {
 
       {activeTab === 'my' && hasPaidActivities && (
         <TouchableOpacity
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            backgroundColor: '#166834',
-            marginHorizontal: 16,
-            marginBottom: 8,
-            paddingVertical: 12,
-            borderRadius: 12,
-          }}
+          style={styles.earningsButton}
           onPress={() => navigation.navigate('CreatorWallet')}
+          activeOpacity={0.8}
         >
-          <Ionicons name="wallet" size={18} color="#4CAF50" />
-          <Text style={{ color: '#4CAF50', fontWeight: '700', fontSize: 15 }}>View Earnings</Text>
+          <View style={styles.earningsIconWrap}>
+            <Ionicons name="wallet" size={20} color="#4CAF50" />
+          </View>
+          <View style={styles.earningsTextWrap}>
+            <Text style={styles.earningsTitle}>View Earnings</Text>
+            <Text style={styles.earningsSubtitle}>Track ticket sales & payouts</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#4CAF50" />
         </TouchableOpacity>
       )}
 
@@ -898,5 +902,47 @@ const makeStyles = (t: any) => StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  earningsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: t.colors.surface,
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 4,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: t.colors.border,
+    borderLeftWidth: 3,
+    borderLeftColor: '#4CAF50',
+    gap: 12,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  earningsIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#4CAF5018',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  earningsTextWrap: {
+    flex: 1,
+  },
+  earningsTitle: {
+    color: '#4CAF50',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  earningsSubtitle: {
+    color: t.colors.textSecondary,
+    fontSize: 12,
+    marginTop: 1,
   },
 });

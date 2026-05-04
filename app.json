@@ -4,7 +4,7 @@
     "slug": "outlo",
     "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/logos/darkmode_logo.png",
+    "icon": "./assets/logos/logo_O.png",
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/logos/darkmode_logo.png",
@@ -31,7 +31,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logos/darkmode_logo.png",
+        "foregroundImage": "./assets/logos/logo_O.png",
         "backgroundColor": "#0A0A0A"
       },
       "softwareKeyboardLayoutMode": "pan",
@@ -102,7 +102,11 @@
           }
         }
       ],
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

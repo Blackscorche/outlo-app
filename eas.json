@@ -15,8 +15,16 @@
         "buildType": "apk"
       }
     },
+    "apk": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
     "production": {
       "autoIncrement": true,
+      "distribution": "store",
       "android": {
         "buildType": "app-bundle"
       }

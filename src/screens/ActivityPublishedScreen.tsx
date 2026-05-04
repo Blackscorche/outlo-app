@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,9 +11,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { BOOST_PLANS, formatPrice } from "../constants/activityCategories";
+import { BOOST_PLANS, BoostPlanId, formatPrice } from "../constants/activityCategories";
 import { useBoosts } from "../hooks/useBoosts";
 import { useTheme } from "../contexts/ThemeContext";
+import { useLoveMapIAP } from "../services/iapService";
 
 interface RouteParams {
   activityId: string;
@@ -22,51 +24,61 @@ interface RouteParams {
 /**
  * Shown immediately after an activity is published.
  * Celebrates the publish + offers map boost upsell (24h / 3d / 7d).
- *
- * The actual IAP purchase is wired through the boost flow in `useBoosts`.
- * For now, we trigger the IAP service inline.
  */
 export default function ActivityPublishedScreen({ route, navigation }: any) {
   const { activityId, isPaid }: RouteParams = route.params || {};
   const { activateBoost } = useBoosts(activityId);
   const [busy, setBusy] = useState<string | null>(null);
   const { theme } = useTheme();
+  const pendingPlanId = useRef<BoostPlanId | null>(null);
 
-  const goToActivity = () => {
-    // Navigate to the activities list and let the user open it from there.
+  const goToActivity = useCallback(() => {
     navigation.navigate("Main", { screen: "Activities" });
-  };
+  }, [navigation]);
 
-  const handleBoost = async (planId: "24h" | "3d" | "7d") => {
-    const plan = BOOST_PLANS.find((p) => p.id === planId);
-    if (!plan) return;
+  const handleBoostSuccess = useCallback(async (purchase: any) => {
+    const planId = pendingPlanId.current;
+    if (!planId) { setBusy(null); return; }
 
-    try {
-      setBusy(planId);
-      // Lazy-load the IAP service so this screen is testable without IAP context.
-      const { useLoveMapIAP } = await import("../services/iapService");
-      void useLoveMapIAP; // satisfy bundler – actual purchase happens via IAPProvider context
+    const ok = await activateBoost({
+      activityId,
+      plan: planId,
+      productId: purchase.productId,
+      transactionId: purchase.transactionId ?? purchase.purchaseToken,
+      purchaseToken: purchase.purchaseToken,
+    });
 
+    setBusy(null);
+    pendingPlanId.current = null;
+
+    if (ok) {
       Alert.alert(
-        "Boost Coming Soon",
-        `In-app purchase for boost (${plan.label} – ${formatPrice(
-          plan.priceCents,
-        )}) will be wired in once the boost product IDs are registered in the App Store / Play Console.\n\nProduct ID: ${plan.productId}`,
-        [{ text: "OK", onPress: goToActivity }],
+        "Boost Activated! 🚀",
+        "Your activity is now boosted on the map.",
+        [{ text: "View Activity", onPress: goToActivity }],
       );
-
-      // Once IAP is wired, the flow will be:
-      //   const purchase = await requestPurchase({ sku: plan.productId, type: 'inapp' });
-      //   await activateBoost({
-      //     activityId,
-      //     plan: planId,
-      //     productId: plan.productId,
-      //     transactionId: purchase.transactionId,
-      //     purchaseToken: purchase.purchaseToken,
-      //   });
-    } finally {
-      setBusy(null);
     }
+  }, [activityId, activateBoost, goToActivity]);
+
+  const handleBoostError = useCallback((error: any) => {
+    setBusy(null);
+    pendingPlanId.current = null;
+    if (error?.code !== "E_USER_CANCELLED") {
+      Alert.alert("Purchase Failed", error?.message || "Could not complete boost purchase.");
+    }
+  }, []);
+
+  const { purchaseProduct } = useLoveMapIAP({
+    onBoostPurchaseSuccess: handleBoostSuccess,
+    onPurchaseError: handleBoostError,
+  });
+
+  const handleBoost = (planId: BoostPlanId) => {
+    const plan = BOOST_PLANS.find((p) => p.id === planId);
+    if (!plan || busy) return;
+    pendingPlanId.current = planId;
+    setBusy(planId);
+    purchaseProduct(plan.productId);
   };
 
   const s = makeStyles(theme);

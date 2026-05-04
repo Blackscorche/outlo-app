@@ -17,6 +17,9 @@ export const IAP_PRODUCTS = {
     "outlo_ticket_20",
     "outlo_ticket_25",
     "outlo_ticket_50",
+    "outlo_boost_24h",
+    "outlo_boost_3d",
+    "outlo_boost_7d",
   ],
   // All products combined for loading
   all: [
@@ -31,6 +34,9 @@ export const IAP_PRODUCTS = {
     "outlo_ticket_20",
     "outlo_ticket_25",
     "outlo_ticket_50",
+    "outlo_boost_24h",
+    "outlo_boost_3d",
+    "outlo_boost_7d",
   ],
 };
 
@@ -57,6 +63,8 @@ interface ModalCallbacks {
   ) => void;
   hideModals?: () => void;
   onTicketPurchaseSuccess?: (purchase: Purchase, activityId: string) => void;
+  onBoostPurchaseSuccess?: (purchase: Purchase) => void;
+  onPurchaseError?: (error: any) => void;
 }
 
 export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks, activityId?: string) => {
@@ -117,6 +125,18 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks, activityId?: stri
           return;
         }
 
+        // Check if this is a boost purchase
+        if (purchase.productId.startsWith("outlo_boost_")) {
+          if (modalCallbacks?.onBoostPurchaseSuccess) {
+            await modalCallbacks.onBoostPurchaseSuccess(purchase);
+          }
+          await finishTransaction({
+            purchase,
+            isConsumable: true,
+          });
+          return;
+        }
+
         // 2. Process with subscription service (updates database)
         const { default: subscriptionService } = await import(
           "./subscriptionService"
@@ -158,7 +178,9 @@ export const useLoveMapIAP = (modalCallbacks?: ModalCallbacks, activityId?: stri
     onPurchaseError: (error: PurchaseError) => {
       hideModals();
       console.log("🚀 ~ useLoveMapIAP ~ error:", error);
-      if (error.code !== "E_USER_CANCELLED") {
+      if (modalCallbacks?.onPurchaseError) {
+        modalCallbacks.onPurchaseError(error);
+      } else if (error.code !== "E_USER_CANCELLED") {
         console.error("❌ Purchase failed:", error);
         showError("Purchase Failed", error.message);
       }
