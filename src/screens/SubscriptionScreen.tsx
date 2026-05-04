@@ -29,10 +29,10 @@ import { useLoveMapIAP } from "../services/iapService";
 import { useTheme } from '../contexts/ThemeContext';
 
 const PRIVACY_URL =
-  "https://youthful-bath-564.notion.site/LoveMap-Privacy-Policy-32f2528e6c4180028ae7d72d7cc9a2b7";
+  "https://outlo.app/privacy-policy";
 
 const TERMS_URL =
-  "https://youthful-bath-564.notion.site/LoveMap-Terms-of-Service-32f2528e6c418020b72de5f727b05da2";
+  "https://outlo.app/terms-of-service";
 
 const openExternalLink = async (url: string) => {
   try {
@@ -86,8 +86,8 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
       "change",
       handleAppStateChange,
     );
-  const { theme } = useTheme();
-  const styles = makeStyles(theme);
+    const { theme } = useTheme();
+    const styles = makeStyles(theme);
 
     return () => {
       unsubscribe();

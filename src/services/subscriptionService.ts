@@ -46,7 +46,7 @@ class SubscriptionService {
       if (dbSubscription.current_period_end) {
         const expiryDate = new Date(dbSubscription.current_period_end);
         const now = new Date();
-        
+
         if (now > expiryDate && dbSubscription.status === 'active') {
           await this.downgradeToBasic(userId, 'expired');
           return { tier: 'basic', status: 'expired' };
@@ -57,13 +57,13 @@ class SubscriptionService {
       if (dbSubscription.tier === 'premium' && dbSubscription.status === 'active') {
         // Check if we should verify with IAP (accounting for Google Play delays)
         let shouldVerifyIAP = forceIAPCheck;
-        
+
         if (!shouldVerifyIAP && dbSubscription.current_period_end) {
           const expiryDate = new Date(dbSubscription.current_period_end);
           const now = new Date();
           const timeSinceExpiry = now.getTime() - expiryDate.getTime();
           const gracePeriodMs = 24 * 60 * 60 * 1000; // 24 hours grace period
-          
+
           // Only check IAP if we're past the grace period
           shouldVerifyIAP = timeSinceExpiry > gracePeriodMs;
         }
@@ -78,7 +78,7 @@ class SubscriptionService {
         }
       }
 
-     
+
       return dbSubscription;
 
     } catch (error) {
@@ -92,7 +92,7 @@ class SubscriptionService {
     try {
       // Import IAP service dynamically to avoid circular dependency
       const { useLoveMapIAP } = await import('./iapService');
-      
+
       // This would be called from a component that has IAP context
       // For now, we'll return true and rely on app state checks
       // TODO: Implement proper IAP receipt validation
@@ -104,7 +104,7 @@ class SubscriptionService {
   }
 
   // Downgrade user to basic plan
- async downgradeToBasic(userId: string, reason: string): Promise<void> {
+  async downgradeToBasic(userId: string, reason: string): Promise<void> {
     try {
 
       // Update subscription
@@ -144,7 +144,7 @@ class SubscriptionService {
     }
   }
 
-    // Get user's current subscription from database
+  // Get user's current subscription from database
   async getUserSubscription(userId: string): Promise<UserSubscription> {
     try {
       const { data, error } = await supabase
@@ -208,7 +208,7 @@ class SubscriptionService {
 
   // Process IAP purchase - Update database only
   async processIAPPurchase(userId: string, purchase: any): Promise<void> {
-    console.log("🚀 ~ SubscriptionService ~ processIAPPurchase ~ userId:", userId,purchase)
+    console.log("🚀 ~ SubscriptionService ~ processIAPPurchase ~ userId:", userId, purchase)
     try {
 
       // Ensure user records exist first
@@ -279,58 +279,58 @@ class SubscriptionService {
   // Activate subscription in database
   private async activateSubscription(userId: string, productId: string, purchase: any): Promise<void> {
     console.log("🚀 ~ SubscriptionService ~ activateSubscription ~ purchase:", purchase)
-    try{
-    const billingPeriod: BillingPeriod = productId.includes('yearly') ? 'yearly' : 'monthly';
-    const daysToAdd = billingPeriod === 'yearly' ? 365 : 30;
-    
-    const currentPeriodEnd = new Date();
-    currentPeriodEnd.setDate(currentPeriodEnd.getDate() + daysToAdd);
+    try {
+      const billingPeriod: BillingPeriod = productId.includes('yearly') ? 'yearly' : 'monthly';
+      const daysToAdd = billingPeriod === 'yearly' ? 365 : 30;
 
-    // Update subscription using upsert with proper WHERE clause
-    const { data: subData, error: subError } = await supabase
-      .from('user_subscriptions' as any)
-      .upsert({
-        user_id: userId,
-        tier: 'premium',
-        billing_period: billingPeriod,
-        status: 'active',
-        product_id: productId,
-        iap_transaction_id: purchase.transactionId,
-        payment_method: Platform.OS === 'ios' ? 'apple' : 'google',
-        current_period_start: new Date().toISOString(),
-        current_period_end: currentPeriodEnd.toISOString(),
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id',
-      });
+      const currentPeriodEnd = new Date();
+      currentPeriodEnd.setDate(currentPeriodEnd.getDate() + daysToAdd);
 
-    if (subError) {
-      console.error("❌ Subscription upsert error:", subError);
-      throw subError;
+      // Update subscription using upsert with proper WHERE clause
+      const { data: subData, error: subError } = await supabase
+        .from('user_subscriptions' as any)
+        .upsert({
+          user_id: userId,
+          tier: 'premium',
+          billing_period: billingPeriod,
+          status: 'active',
+          product_id: productId,
+          iap_transaction_id: purchase.transactionId,
+          payment_method: Platform.OS === 'ios' ? 'apple' : 'google',
+          current_period_start: new Date().toISOString(),
+          current_period_end: currentPeriodEnd.toISOString(),
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',
+        });
+
+      if (subError) {
+        console.error("❌ Subscription upsert error:", subError);
+        throw subError;
+      }
+
+
+      // Update quotas using upsert with proper WHERE clause
+      const { data: quotaData, error: quotaError } = await supabase
+        .from('user_quotas' as any)
+        .upsert({
+          user_id: userId,
+          connection_requests_remaining: 10,
+          first_impressions_remaining: 3,
+          connection_requests_purchased: 0, // Reset purchased ones
+          first_impressions_purchased: 0,   // Reset purchased ones
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',
+        });
+
+      if (quotaError) {
+        console.error("❌ Quotas upsert error:", quotaError);
+        throw quotaError;
+      }
     }
-
-
-    // Update quotas using upsert with proper WHERE clause
-    const { data: quotaData, error: quotaError } = await supabase
-      .from('user_quotas' as any)
-      .upsert({
-        user_id: userId,
-        connection_requests_remaining: 10,
-        first_impressions_remaining: 3,
-        connection_requests_purchased: 0, // Reset purchased ones
-        first_impressions_purchased: 0,   // Reset purchased ones
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id',
-      });
-
-    if (quotaError) {
-      console.error("❌ Quotas upsert error:", quotaError);
-      throw quotaError;
-    }
-    }
-    catch(error){
-      console.error("Error in activateSubscription:", error); 
+    catch (error) {
+      console.error("Error in activateSubscription:", error);
     }
   }
 
@@ -338,7 +338,7 @@ class SubscriptionService {
   private async addConsumable(userId: string, productId: string): Promise<void> {
     try {
       const quotas = await this.getUserQuotas(userId);
-      const updates: any = { 
+      const updates: any = {
         user_id: userId, // Always include user_id for upsert
         updated_at: new Date().toISOString(),
         // Preserve existing values
@@ -383,10 +383,10 @@ class SubscriptionService {
   async useConnectionRequest(userId: string): Promise<{ success: boolean; remaining: number }> {
     try {
       const quotas = await this.getUserQuotas(userId);
-      
+
       // Calculate total available (remaining + purchased)
       const totalAvailable = (quotas.connection_requests_remaining || 0) + (quotas.connection_requests_purchased || 0);
-      
+
       if (totalAvailable <= 0) {
         return { success: false, remaining: 0 };
       }
@@ -418,7 +418,7 @@ class SubscriptionService {
       if (error) throw error;
 
       const remaining = newPurchased + newRemaining;
-      
+
       return { success: true, remaining };
     } catch (error) {
       console.error("❌ Error using connection request:", error);
@@ -430,10 +430,10 @@ class SubscriptionService {
   async useFirstImpression(userId: string): Promise<{ success: boolean; remaining: number }> {
     try {
       const quotas = await this.getUserQuotas(userId);
-      
+
       // Calculate total available (remaining + purchased)
       const totalAvailable = (quotas.first_impressions_remaining || 0) + (quotas.first_impressions_purchased || 0);
-      
+
       if (totalAvailable <= 0) {
         return { success: false, remaining: 0 };
       }
@@ -465,7 +465,7 @@ class SubscriptionService {
       if (error) throw error;
 
       const remaining = newPurchased + newRemaining;
-      
+
       return { success: true, remaining };
     } catch (error) {
       console.error("❌ Error using first impression:", error);
@@ -487,7 +487,7 @@ class SubscriptionService {
       if (quotas.invisible_mode_expires_at) {
         const expiryDate = new Date(quotas.invisible_mode_expires_at);
         const now = new Date();
-        
+
         if (now < expiryDate) {
           return { active: true, expiresAt: quotas.invisible_mode_expires_at };
         }
@@ -561,55 +561,55 @@ class SubscriptionService {
   async cancelSubscription(userId: string, productId: string): Promise<boolean> {
     try {
       const isIAP = this.isSubscription(productId);
-      
+
       if (isIAP) {
         // For IAP subscriptions, user must cancel through device settings
-      Alert.alert(
-        'Cancel Subscription',
-        Platform.OS === 'ios'
-          ? 'Go to Settings > Subscriptions, select LoveMap, then tap Cancel.'
-          : 'Go to Google Play Store > Menu > Subscriptions, select LoveMap, then tap Cancel.',
-        [
-          { text: 'Close', style: 'cancel' },
-          { 
-            text: 'Take Me There', 
-            onPress: () => {
-              Alert.alert(
-                'Confirm',
-                'We’ll mark your subscription as cancelled in our system and send you to your device settings to finish the cancellation.',
-                [
-                  { text: 'Back', style: 'cancel' },
-                  {
-                    text: 'Continue',
-                    style: 'destructive',
-                    onPress: async () => {
-                      try {
-                        await supabase
-                          .from('user_subscriptions' as any)
-                          .update({
-                            status: 'cancelled',
-                            updated_at: new Date().toISOString(),
-                          })
-                          .eq('user_id', userId);
+        Alert.alert(
+          'Cancel Subscription',
+          Platform.OS === 'ios'
+            ? 'Go to Settings > Subscriptions, select Outlo, then tap Cancel.'
+            : 'Go to Google Play Store > Menu > Subscriptions, select Outlo, then tap Cancel.',
+          [
+            { text: 'Close', style: 'cancel' },
+            {
+              text: 'Take Me There',
+              onPress: () => {
+                Alert.alert(
+                  'Confirm',
+                  'We’ll mark your subscription as cancelled in our system and send you to your device settings to finish the cancellation.',
+                  [
+                    { text: 'Back', style: 'cancel' },
+                    {
+                      text: 'Continue',
+                      style: 'destructive',
+                      onPress: async () => {
+                        try {
+                          await supabase
+                            .from('user_subscriptions' as any)
+                            .update({
+                              status: 'cancelled',
+                              updated_at: new Date().toISOString(),
+                            })
+                            .eq('user_id', userId);
 
-                        if (Platform.OS === 'ios') {
-                          Linking.openURL('App-Prefs:APPLE_ID&path=SUBSCRIPTIONS');
-                        } else {
-                          Linking.openURL('https://play.google.com/store/account/subscriptions');
+                          if (Platform.OS === 'ios') {
+                            Linking.openURL('App-Prefs:APPLE_ID&path=SUBSCRIPTIONS');
+                          } else {
+                            Linking.openURL('https://play.google.com/store/account/subscriptions');
+                          }
+
+                        } catch (error) {
+                          console.error('❌ Error updating subscription status:', error);
+                          Alert.alert('Error', 'Could not update your subscription. Please try again.');
                         }
-                        
-                      } catch (error) {
-                        console.error('❌ Error updating subscription status:', error);
-                        Alert.alert('Error', 'Could not update your subscription. Please try again.');
                       }
                     }
-                  }
-                ]
-              );
+                  ]
+                );
+              }
             }
-          }
-        ]
-      );
+          ]
+        );
         return true;
       }
 

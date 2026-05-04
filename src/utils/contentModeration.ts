@@ -42,7 +42,7 @@ export const validateSafeText = (
   if (containsObjectionableContent(text)) {
     return {
       valid: false,
-      message: `Your ${fieldName} contains language or content that is not allowed on LoveMap.`,
+      message: `Your ${fieldName} contains language or content that is not allowed on Outlo.`,
     };
   }
 

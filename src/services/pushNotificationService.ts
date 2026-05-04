@@ -170,7 +170,7 @@ class PushNotificationService {
 
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'LoveMap',
+        title: 'Outlo',
         body: randomMessage,
         data: { type: 'nearby_users', count: nearbyCount },
         sound: true,
