@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { commonStyles } from '../styles/common';
 import AppLoading from '../components/AppLoading';
 import { useTheme } from '../contexts/ThemeContext';
+import OutloLogo from '../components/OutloLogo';
 
 const ChatRoomsScreen = ({ navigation }) => {
   const { theme } = useTheme();
@@ -90,11 +91,7 @@ const ChatRoomsScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-          <Image
-            source={require('../../assets/logos/darkmode_logo.png')}
-            style={styles.headerLogo}
-            resizeMode="contain"
-          />
+          <OutloLogo style={styles.headerLogo} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Messages</Text>
         <TouchableOpacity>

@@ -33,6 +33,7 @@ import { getActivityType, ACTIVITY_TYPES } from '../constants/activityTypes';
 import AppLoading from '../components/AppLoading';
 import SkillEditSection from '../components/SkillEditSection';
 import { useTheme } from '../contexts/ThemeContext';
+import OutloLogo from '../components/OutloLogo';
 
 interface TimelineItem {
   id: string;
@@ -656,11 +657,7 @@ const ProfileScreenV2 = ({ navigation, route }: any) => {
       <View style={styles.navHeader}>
         {isOwnProfile ? (
           <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-            <Image
-              source={require('../../assets/logos/darkmode_logo.png')}
-              style={styles.headerLogo}
-              resizeMode="contain"
-            />
+            <OutloLogo style={styles.headerLogo} />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.headerIconButton} onPress={() => navigation.goBack()}>

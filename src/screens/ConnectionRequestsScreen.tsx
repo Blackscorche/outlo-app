@@ -21,6 +21,7 @@ import { useBadgeCounts } from '../hooks/useBadgeCounts';
 import { supabase } from '../integrations/supabase/client';
 import AppLoading from '../components/AppLoading';
 import { useTheme } from '../contexts/ThemeContext';
+import OutloLogo from '../components/OutloLogo';
 
 type SentStatusFilter = 'all' | 'pending' | 'accepted' | 'rejected';
 type SortOrder = 'default' | 'az' | 'za';
@@ -505,11 +506,7 @@ const ConnectionRequestsScreen = ({ navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-          <Image
-            source={require('../../assets/logos/darkmode_logo.png')}
-            style={styles.headerLogo}
-            resizeMode="contain"
-          />
+          <OutloLogo style={styles.headerLogo} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Connections</Text>
         <View style={styles.headerActions}>

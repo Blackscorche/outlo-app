@@ -33,6 +33,7 @@ import PlaceDetailModal from "../components/PlaceDetailModal";
 import PlaceReviewModal from "../components/PlaceReviewModal";
 import AppLoading from "../components/AppLoading";
 import { useTheme } from '../contexts/ThemeContext';
+import OutloLogo from '../components/OutloLogo';
 
 interface UserLocation {
   id: string;
@@ -1018,11 +1019,7 @@ export default function HomeScreen({ navigation, route }: any) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Image
-          source={require('../../assets/logos/darkmode_logo.png')}
-          style={styles.headerLogo}
-          resizeMode="contain"
-        />
+        <OutloLogo style={styles.headerLogo} />
         <Text style={styles.headerTitle}>Explore Map</Text>
         <View style={styles.headerActions}>
           {location && isLocationEnabled && (

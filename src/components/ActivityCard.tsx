@@ -9,8 +9,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Activity } from '../hooks/useActivities';
 import { getActivityType, getActivityIcon } from '../constants/activityTypes';
-import { getCategoryDefaultImage } from '../constants/activityCategories';
 import PriceBadge from './PriceBadge';
+import OutloLogo from './OutloLogo';
 import BoostBadge from './BoostBadge';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -130,15 +130,18 @@ export default function ActivityCard({
   const remainingCount = actualParticipants - avatars.length;
 
   const typeColor = activityType?.color || '#4CAF50';
-  const heroSrc = activity.image_url
-    ? { uri: activity.image_url }
-    : getCategoryDefaultImage(activity.category);
   const { theme } = useTheme();
   const styles = makeStyles(theme);
 
   return (
     <TouchableOpacity style={[styles.container, activity.status === 'cancelled' && styles.pastContainer]} onPress={onPress} activeOpacity={0.8}>
-      <Image source={heroSrc} style={styles.heroImg} />
+      {activity.image_url ? (
+        <Image source={{ uri: activity.image_url }} style={styles.heroImg} />
+      ) : (
+        <View style={[styles.heroImg, styles.heroPlaceholder]}>
+          <OutloLogo width={100} height={32} />
+        </View>
+      )}
       <View style={styles.cardBody}>
         {/* Header: Icon + Title + Spots */}
         <View style={styles.headerRow}>
@@ -303,6 +306,10 @@ const makeStyles = (t: any) => StyleSheet.create({
     width: '100%',
     height: 150,
     backgroundColor: t.colors.inputBg,
+  },
+  heroPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cardBody: {
     padding: 16,

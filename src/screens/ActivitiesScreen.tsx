@@ -22,6 +22,7 @@ import CreateActivityModal from "../components/CreateActivityModal";
 import ActivityDetailModal from "../components/ActivityDetailModal";
 import { supabase } from "../integrations/supabase/client";
 import { useTheme } from '../contexts/ThemeContext';
+import OutloLogo from '../components/OutloLogo';
 
 type TabType = "all" | "my" | "joined";
 type DistanceFilter = "all" | "1" | "5" | "10" | "25";
@@ -303,11 +304,7 @@ export default function ActivitiesScreen({ navigation }: any) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate("Home")}>
-          <Image
-            source={require('../../assets/logos/darkmode_logo.png')}
-            style={styles.headerLogo}
-            resizeMode="contain"
-          />
+          <OutloLogo style={styles.headerLogo} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Skill Activities</Text>
         <View style={styles.headerActions}>

@@ -27,6 +27,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../integrations/supabase/client";
 import { validateSafeText } from "../utils/contentModeration";
 import { useTheme } from '../contexts/ThemeContext';
+import OutloLogo from '../components/OutloLogo';
 
 GoogleSignin.configure({
   webClientId:
@@ -612,11 +613,7 @@ const AuthScreen = ({ navigation }) => {
 
               {/* Logo Header */}
               <View style={styles.logoContainer}>
-                <Image
-                  source={require("../../assets/logos/darkmode_logo.png")}
-                  style={styles.logo}
-                  resizeMode="contain"
-                />
+                <OutloLogo style={styles.logo} />
               </View>
 
               <View style={styles.form}>

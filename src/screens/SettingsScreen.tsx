@@ -14,6 +14,7 @@ import Slider from "@react-native-community/slider";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
+import OutloLogo from "../components/OutloLogo";
 import { supabase } from "../integrations/supabase/client";
 import { useAuth } from "../hooks/useAuth";
 import { useSettings } from "../contexts/SettingsContext";
@@ -199,11 +200,7 @@ const SettingsScreen = ({ navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate("Home")}>
-          <Image
-            source={require('../../assets/logos/darkmode_logo.png')}
-            style={styles.headerLogo}
-            resizeMode="contain"
-          />
+          <OutloLogo style={styles.headerLogo} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
         <View style={{ width: 40 }} />

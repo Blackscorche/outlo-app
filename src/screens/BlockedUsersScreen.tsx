@@ -27,6 +27,9 @@ const BlockedUsersScreen = ({ navigation }) => {
   const [profiles, setProfiles] = useState<BlockedUserProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
+
   const fetchProfiles = useCallback(async () => {
     if (blockedUsers.length === 0) {
       setProfiles([]);
@@ -79,8 +82,6 @@ const BlockedUsersScreen = ({ navigation }) => {
 
   const renderItem = ({ item }: { item: BlockedUserProfile }) => {
     const avatar = item.photos?.[0];
-  const { theme } = useTheme();
-  const styles = makeStyles(theme);
 
     return (
       <View style={styles.card}>

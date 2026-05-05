@@ -20,6 +20,7 @@ import { useBadgeCounts } from '../hooks/useBadgeCounts';
 import { usePinnedUsers } from '../hooks/usePinnedUsers';
 import AppLoading from '../components/AppLoading';
 import { useTheme } from '../contexts/ThemeContext';
+import OutloLogo from '../components/OutloLogo';
 
 interface ChatRoom {
   id: string;
@@ -485,11 +486,7 @@ export default function ChatScreen({ navigation }: any) {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-          <Image
-            source={require('../../assets/logos/darkmode_logo.png')}
-            style={styles.headerLogo}
-            resizeMode="contain"
-          />
+          <OutloLogo style={styles.headerLogo} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Messages</Text>
         <View style={styles.headerActions}>

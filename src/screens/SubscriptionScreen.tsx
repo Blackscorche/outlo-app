@@ -67,6 +67,9 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
   });
   console.log("...", iap.products, iap.subscriptions);
 
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
+
   useEffect(() => {
     loadSubscriptionData();
     // Refresh when screen comes into focus
@@ -86,8 +89,6 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
       "change",
       handleAppStateChange,
     );
-    const { theme } = useTheme();
-    const styles = makeStyles(theme);
 
     return () => {
       unsubscribe();
