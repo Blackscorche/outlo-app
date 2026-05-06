@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Activity, ActivityComment } from '../hooks/useActivities';
 import { getActivityType } from '../constants/activityTypes';
-import { getCategoryDefaultImage } from '../constants/activityCategories';
+import OutloLogo from './OutloLogo';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface ActivityDetailModalProps {
@@ -253,10 +253,13 @@ export default function ActivityDetailModal({
           <View style={{ width: 40 }} />
         </View>
 
-        <Image
-          source={activity.image_url ? { uri: activity.image_url } : getCategoryDefaultImage(activity.category)}
-          style={styles.heroImg}
-        />
+        {activity.image_url ? (
+          <Image source={{ uri: activity.image_url }} style={styles.heroImg} />
+        ) : (
+          <View style={[styles.heroImg, styles.heroPlaceholder]}>
+            <OutloLogo width={200} height={62} />
+          </View>
+        )}
         <ScrollView ref={scrollViewRef} style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Activity Type Badge */}
           <View style={[styles.typeBadge, { backgroundColor: (activityType?.color || theme.colors.primary) + '18' }]}>
@@ -633,6 +636,11 @@ const makeStyles = (t: any) => StyleSheet.create({
     width: '100%',
     height: 200,
     backgroundColor: t.colors.surface,
+  },
+  heroPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: t.colors.inputBg,
   },
   content: {
     flex: 1,

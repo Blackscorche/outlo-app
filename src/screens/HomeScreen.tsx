@@ -2287,8 +2287,8 @@ const makeStyles = (t: any) => StyleSheet.create({
     borderBottomColor: t.colors.border,
   },
   headerLogo: {
-    width: 120,
-    height: 40,
+    width: 80,
+    height: 26,
     marginLeft: 0,
   },
   headerTitle: {

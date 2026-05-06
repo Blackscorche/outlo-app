@@ -1524,8 +1524,8 @@ const makeStyles = (t: any) => StyleSheet.create({
     opacity: 0.7,
   },
   logo: {
-    width: 240,
-    height: 80,
+    width: 160,
+    height: 52,
     zIndex: 10,
   },
   welcomeText: {
@@ -1996,12 +1996,12 @@ const makeStyles = (t: any) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F5F5F5",
+    backgroundColor: t.colors.inputBg,
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "transparent",
+    borderColor: t.colors.border,
     gap: 6,
   },
   modernOptionCardSelected: {

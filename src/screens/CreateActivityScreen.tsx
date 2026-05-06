@@ -25,10 +25,10 @@ import {
   ACTIVITY_CATEGORIES,
   JOIN_TYPES,
   formatPrice,
-  getCategoryDefaultImage,
   PLATFORM_FEE_BPS,
   TICKET_PRICE_TIERS,
 } from "../constants/activityCategories";
+import OutloLogo from "../components/OutloLogo";
 import MapView, { Marker } from "react-native-maps";
 import PriceBadge from "../components/PriceBadge";
 import { supabase } from "../integrations/supabase/client";
@@ -960,7 +960,6 @@ function Step5({ form, update, styles }: any) {
 }
 
 function Step6({ form, pickImage, update, styles }: any) {
-  const fallback = getCategoryDefaultImage(form.category);
   return (
     <View>
       <Text style={styles.stepHeading}>Add an image</Text>
@@ -1003,7 +1002,9 @@ function Step7({ form, styles }: any) {
         {form.imageUri ? (
           <Image source={{ uri: form.imageUri }} style={styles.previewImg} />
         ) : (
-          <Image source={getCategoryDefaultImage(form.category)} style={styles.previewImg} />
+          <View style={[styles.previewImg, { justifyContent: 'center', alignItems: 'center' }]}>
+            <OutloLogo width={200} height={62} />
+          </View>
         )}
 
         <View style={{ padding: 14 }}>

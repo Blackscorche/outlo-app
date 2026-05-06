@@ -139,7 +139,7 @@ export default function ActivityCard({
         <Image source={{ uri: activity.image_url }} style={styles.heroImg} />
       ) : (
         <View style={[styles.heroImg, styles.heroPlaceholder]}>
-          <OutloLogo width={100} height={32} />
+          <OutloLogo width={200} height={62} />
         </View>
       )}
       <View style={styles.cardBody}>
@@ -304,12 +304,14 @@ const makeStyles = (t: any) => StyleSheet.create({
   },
   heroImg: {
     width: '100%',
-    height: 150,
+    height: 110,
     backgroundColor: t.colors.inputBg,
   },
   heroPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
   cardBody: {
     padding: 16,

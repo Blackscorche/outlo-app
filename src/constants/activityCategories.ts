@@ -13,42 +13,42 @@ export const ACTIVITY_CATEGORIES = [
     label: "Coffee",
     icon: "cafe" as const,
     color: "#8D6E63",
-    defaultImage: require("../../assets/adaptive-icon.png"),
+    defaultImage: require("../../assets/logos/logo_O.png"),
   },
   {
     id: "study",
     label: "Study",
     icon: "book" as const,
     color: "#1E88E5",
-    defaultImage: require("../../assets/adaptive-icon.png"),
+    defaultImage: require("../../assets/logos/logo_O.png"),
   },
   {
     id: "language",
     label: "Language",
     icon: "chatbubbles" as const,
     color: "#00897B",
-    defaultImage: require("../../assets/adaptive-icon.png"),
+    defaultImage: require("../../assets/logos/logo_O.png"),
   },
   {
     id: "fitness",
     label: "Fitness",
     icon: "barbell" as const,
     color: "#F4511E",
-    defaultImage: require("../../assets/adaptive-icon.png"),
+    defaultImage: require("../../assets/logos/logo_O.png"),
   },
   {
     id: "creative",
     label: "Creative",
     icon: "color-palette" as const,
     color: "#D81B60",
-    defaultImage: require("../../assets/adaptive-icon.png"),
+    defaultImage: require("../../assets/logos/logo_O.png"),
   },
   {
     id: "events",
     label: "Events",
     icon: "calendar" as const,
     color: "#5E35B1",
-    defaultImage: require("../../assets/adaptive-icon.png"),
+    defaultImage: require("../../assets/logos/logo_O.png"),
   },
 ] as const;
 
@@ -69,7 +69,7 @@ export const getCategoryColor = (id: string | null | undefined): string =>
   getCategory(id)?.color ?? "#999";
 
 export const getCategoryDefaultImage = (id: string | null | undefined) =>
-  getCategory(id)?.defaultImage ?? require("../../assets/adaptive-icon.png");
+  getCategory(id)?.defaultImage ?? require("../../assets/logos/logo_O.png");
 
 export const JOIN_TYPES = [
   { id: "everyone", label: "Everyone", description: "Open to all" },

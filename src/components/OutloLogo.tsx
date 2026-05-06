@@ -1,5 +1,6 @@
 import React from "react";
-import { Image, ImageStyle, StyleProp, useColorScheme } from "react-native";
+import { Image, ImageStyle, StyleProp } from "react-native";
+import { useTheme } from "../contexts/ThemeContext";
 
 interface OutloLogoProps {
   width?: number;
@@ -19,14 +20,13 @@ export default function OutloLogo({
   variant = "auto",
   style,
 }: OutloLogoProps) {
-  const scheme = useColorScheme();
-  const resolved =
-    variant === "auto" ? (scheme === "dark" ? "dark" : "light") : variant;
+  const { isDark } = useTheme();
+  const resolved = variant === "auto" ? (isDark ? "dark" : "light") : variant;
 
   const source =
     resolved === "dark"
-      ? require("../../assets/logos/darkmode_logo.png")
-      : require("../../assets/logos/lightmode_logo.jpeg");
+      ? require("../../assets/logos/darkmode_logo_big.png")
+      : require("../../assets/logos/lightmode_logo.png");
 
   return (
     <Image

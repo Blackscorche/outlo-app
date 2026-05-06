@@ -17,8 +17,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import {
   formatPrice,
   PLATFORM_FEE_BPS,
-  getCategoryDefaultImage,
 } from "../constants/activityCategories";
+import OutloLogo from "../components/OutloLogo";
 import { processTicketPurchase } from "../hooks/useTickets";
 import { useLoveMapIAP } from "../services/iapService";
 import { TICKET_PRODUCTS } from "../services/iapService";
@@ -113,10 +113,6 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
     );
   }
 
-  const heroSrc = activity.image_url
-    ? { uri: activity.image_url }
-    : getCategoryDefaultImage(activity.category);
-
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
@@ -132,7 +128,13 @@ export default function TicketCheckoutScreen({ route, navigation }: any) {
 
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.activityCard}>
-          <Image source={heroSrc} style={styles.heroImg} />
+          {activity.image_url ? (
+            <Image source={{ uri: activity.image_url }} style={styles.heroImg} />
+          ) : (
+            <View style={[styles.heroImg, styles.heroPlaceholder]}>
+              <OutloLogo width={200} height={62} />
+            </View>
+          )}
           <View style={{ padding: 14 }}>
             <Text style={styles.title}>{activity.title}</Text>
             <View style={styles.row}>
@@ -222,7 +224,8 @@ const makeStyles = (t: any) => StyleSheet.create({
     overflow: "hidden",
     marginBottom: 14,
   },
-  heroImg: { width: "100%", height: 140, backgroundColor: t.colors.border },
+  heroImg: { width: "100%", height: 90, backgroundColor: t.colors.inputBg },
+  heroPlaceholder: { justifyContent: "center", alignItems: "center", paddingHorizontal: 24, paddingVertical: 16 },
   title: { fontSize: 18, fontWeight: "800", color: t.colors.text, marginBottom: 8 },
   row: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 2 },
   rowText: { fontSize: 13, color: t.colors.textSecondary },

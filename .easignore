@@ -1,0 +1,25 @@
+# Inherit everything from .gitignore
+node_modules/
+.expo/
+dist/
+web-build/
+
+# Android build artifacts (largest offenders)
+android/build/
+android/app/build/
+android/.gradle/
+android/app/.cxx/
+
+# iOS build artifacts
+ios/build/
+ios/Pods/
+ios/DerivedData/
+
+# Misc
+*.aab
+*.apk
+.DS_Store
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.tsbuildinfo

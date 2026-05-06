@@ -5,6 +5,7 @@
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/logos/logo_O.png",
+    "scheme": "outlo",
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/logos/darkmode_logo.png",
@@ -32,7 +33,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/logos/logo_O.png",
-        "backgroundColor": "#0A0A0A"
+        "backgroundColor": "#FFFFFF"
       },
       "softwareKeyboardLayoutMode": "pan",
       "package": "com.outlo.mobile",
